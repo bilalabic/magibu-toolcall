@@ -69,7 +69,7 @@ def test_dataset_review_and_report_commands(tmp_path: Path, capsys, access_files
         "--record-id", record["id"],
         "--reviewer-id", "rev_language_01",
         "--role", "language",
-        "--status", "accepted",
+        "--decision", "approve",
         "--timestamp", "2026-08-06T00:00:00+00:00",
         "--policy", access_files["policy"],
         "--audit-log", access_files["audit"],

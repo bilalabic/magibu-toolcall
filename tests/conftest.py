@@ -17,9 +17,13 @@ def access_files(tmp_path: Path) -> dict[str, str]:
                 "roles": ["language_reviewer"], "permissions": ["review", "accept"],
             },
             {
+                "id": "rev_technical_01", "active": True, "teams": ["dataset"],
+                "roles": ["technical_reviewer"], "permissions": ["review", "accept"],
+            },
+            {
                 "id": "dataset_operator_01", "active": True, "teams": ["dataset"],
                 "roles": ["contributor", "dataset_lead"],
-                "permissions": ["source_import", "localize", "generate", "export"],
+                "permissions": ["source_import", "localize", "generate", "quality_check", "export"],
             },
             {
                 "id": "benchmark_lead_01", "active": True, "teams": ["benchmark"],

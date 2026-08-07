@@ -8,6 +8,12 @@
   text benchmark responses remains a separate provider interface/test double.
 - Turkish naturalness, tool necessity, clarification adequacy, and broad factual
   grounding still require a semantic judge and humans.
+- The dataset quality command can certify declared local/mock execution and
+  compare recorded results. Sandbox execution remains pending; real API quality
+  execution requires explicit confirmation, approved registry tools, and live
+  platform authorization.
+- Human language approval is intentionally not automated. The deterministic
+  token-similarity test double cannot mark the production semantic gate passed.
 - Entity-shape duplicate detection needs supplied entity values; production NER
   is deferred.
 - The local/stateful adapters are demonstration contracts, not approved tools.

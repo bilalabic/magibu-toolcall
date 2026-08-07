@@ -66,6 +66,7 @@ from tool_call_tr.execution import (
     MockAdapter,
 )
 from tool_call_tr.records import RecordIOError, load_records, write_records
+from tool_call_tr.quality import QualityError, run_dataset_quality, write_quality_report
 from tool_call_tr.registry import ToolRegistry
 from tool_call_tr.reporting import benchmark_run_report, corpus_report
 from tool_call_tr.review import ReviewError, apply_review, export_accepted
@@ -97,6 +98,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_dataset_source_commands(dataset_commands)
     _add_batch_commands(dataset_commands, "dataset")
     _add_dataset_generation_command(dataset_commands)
+    _add_dataset_quality_command(dataset_commands)
 
     benchmark = subparsers.add_parser("benchmark", help="Manage isolated benchmark gold and runs only.")
     benchmark_commands = benchmark.add_subparsers(dest="benchmark_command", metavar="COMMAND", required=True)
@@ -131,7 +133,7 @@ def _add_record_commands(subparsers: argparse._SubParsersAction, kind: str, *, i
     review.add_argument("--record-id", required=True)
     review.add_argument("--reviewer-id", required=True)
     review.add_argument("--role", choices=("language", "technical"), required=True)
-    review.add_argument("--status", choices=("accepted", "needs_revision", "rejected"), required=True)
+    review.add_argument("--decision", choices=("approve", "needs_revision", "reject"), required=True)
     review.add_argument("--notes")
     review.add_argument("--timestamp")
     review.add_argument("--policy", type=Path, required=True)
@@ -334,6 +336,25 @@ def _add_dataset_generation_command(subparsers: argparse._SubParsersAction) -> N
     generate.add_argument("--policy", type=Path, required=True)
     generate.add_argument("--audit-log", type=Path, required=True)
     generate.set_defaults(handler=_cmd_generate_dataset, record_kind="dataset")
+
+
+def _add_dataset_quality_command(subparsers: argparse._SubParsersAction) -> None:
+    quality = subparsers.add_parser(
+        "quality",
+        help="Recompute automatic quality evidence without granting human acceptance.",
+    )
+    quality.add_argument("input_path", type=Path)
+    quality.add_argument("output_path", type=Path)
+    quality.add_argument("--report", type=Path)
+    quality.add_argument("--reference", type=Path, action="append", default=[])
+    _add_semantic_arguments(quality)
+    quality.add_argument("--confirm-live", action="store_true")
+    quality.add_argument("--timestamp")
+    quality.add_argument("--overwrite", action="store_true")
+    quality.add_argument("--actor-id", required=True)
+    quality.add_argument("--policy", type=Path, required=True)
+    quality.add_argument("--audit-log", type=Path, required=True)
+    quality.set_defaults(handler=_cmd_dataset_quality, record_kind="dataset")
 
 
 def _add_generation_command(subparsers: argparse._SubParsersAction, lifecycle: str) -> None:
@@ -883,6 +904,83 @@ def _execute_candidate_generation(
     return run_job(manifest_path, process)
 
 
+def _cmd_dataset_quality(args: argparse.Namespace) -> int:
+    report_path = args.report or Path(str(args.output_path) + ".quality.json")
+    try:
+        if report_path.resolve() in {args.input_path.resolve(), args.output_path.resolve()}:
+            raise QualityError("quality report path must differ from input and output paths")
+        if not args.overwrite:
+            occupied = [str(path) for path in (args.output_path, report_path) if path.exists()]
+            if occupied:
+                raise QualityError("quality output already exists: " + ", ".join(occupied))
+        _authorize_cli_action(
+            args,
+            actor_id=args.actor_id,
+            lifecycle="dataset",
+            permission="quality_check",
+            resource_id=str(args.output_path),
+        )
+        if args.confirm_live:
+            _authorize_cli_action(
+                args,
+                actor_id=args.actor_id,
+                lifecycle="platform",
+                permission="real_api",
+                resource_id=str(args.input_path),
+            )
+        records = load_records(args.input_path)
+        references = [record for path in args.reference for record in load_records(path)]
+        semantic = _semantic_similarity(args)
+        if args.semantic_provider == "openai":
+            semantic.provider.require_configured()
+        result = run_dataset_quality(
+            records,
+            references=references,
+            registry=ToolRegistry.load(),
+            actor_id=args.actor_id,
+            semantic=semantic,
+            semantic_provider=args.semantic_provider,
+            production_semantic=args.semantic_provider == "openai",
+            semantic_threshold=args.semantic_threshold,
+            allow_real_api=args.confirm_live,
+            timestamp=args.timestamp,
+        )
+        result.report["input_path"] = str(args.input_path.resolve())
+        result.report["reference_paths"] = [str(path.resolve()) for path in args.reference]
+        write_records(args.output_path, result.records, overwrite=args.overwrite)
+        write_quality_report(report_path, result.report, overwrite=args.overwrite)
+    except (
+        AccessPolicyError,
+        AccessDenied,
+        OSError,
+        ProviderError,
+        ProviderNotConfigured,
+        QualityError,
+        RecordIOError,
+        ValueError,
+    ) as exc:
+        print(f"ERROR QUALITY_BLOCKED: {exc}")
+        return 1
+    _audit_cli_allowed(
+        args,
+        args.actor_id,
+        "dataset",
+        "quality_check",
+        str(args.output_path),
+    )
+    if args.confirm_live:
+        _audit_cli_allowed(args, args.actor_id, "platform", "real_api", str(args.input_path))
+    _print_payload(
+        {
+            "output": str(args.output_path),
+            "report": str(report_path),
+            "summary": result.report["summary"],
+        },
+        "json",
+    )
+    return 0 if result.passed else 1
+
+
 def _cmd_generate_localizations(args: argparse.Namespace) -> int:
     if not args.execute_live:
         print("ERROR LOCALIZATION_BLOCKED: --execute-live is required")
@@ -959,7 +1057,7 @@ def _cmd_duplicates(args: argparse.Namespace) -> int:
 
 def _cmd_review(args: argparse.Namespace) -> int:
     try:
-        permission = "accept" if args.status == "accepted" else "review"
+        permission = "accept" if args.decision == "approve" else "review"
         _authorize_cli_action(
             args,
             actor_id=args.reviewer_id,
@@ -977,7 +1075,7 @@ def _cmd_review(args: argparse.Namespace) -> int:
             records[index],
             reviewer_id=args.reviewer_id,
             reviewer_role=args.role,
-            new_status=args.status,
+            decision=args.decision,
             notes=args.notes,
             timestamp=args.timestamp,
         )
@@ -991,7 +1089,10 @@ def _cmd_review(args: argparse.Namespace) -> int:
         print(f"ERROR REVIEW_BLOCKED: {exc}")
         return 1
     _audit_cli_allowed(args, args.reviewer_id, args.record_kind, permission, args.record_id)
-    print(f"OK: reviewed {args.record_id} -> {args.status}; wrote {args.output_path}")
+    print(
+        f"OK: reviewed {args.record_id}; decision={args.decision}; "
+        f"record_status={reviewed['metadata']['review']['status']}; wrote {args.output_path}"
+    )
     return 0
 
 

@@ -100,10 +100,11 @@
     },
     "review_event": {
       "type": "object",
-      "required": ["reviewer_id", "reviewer_role", "from_status", "to_status", "timestamp"],
+      "required": ["reviewer_id", "reviewer_role", "decision", "from_status", "to_status", "timestamp"],
       "properties": {
         "reviewer_id": {"type": "string", "minLength": 1},
         "reviewer_role": {"enum": ["language", "technical"]},
+        "decision": {"enum": ["approve", "needs_revision", "reject"]},
         "from_status": {"type": ["string", "null"], "enum": [null, "accepted", "needs_revision", "rejected"]},
         "to_status": {"$ref": "#/$defs/review_status"},
         "notes": {"type": ["string", "null"]},

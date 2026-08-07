@@ -45,26 +45,39 @@ def validator() -> RuleBasedValidator:
 def test_simple_review_transition_and_history() -> None:
     reviewed = apply_review(
         pending(load("valid_no_tool.json")), reviewer_id="rev_language_01", reviewer_role="language",
-        new_status="accepted", notes="Dil uygun.", timestamp="2026-08-06T00:00:00+00:00",
+        decision="approve", notes="Dil uygun.", timestamp="2026-08-06T00:00:00+00:00",
     )
     assert reviewed["metadata"]["review"]["status"] == "accepted"
+    assert reviewed["metadata"]["review"]["history"][0]["decision"] == "approve"
     assert reviewed["metadata"]["review"]["history"][0]["from_status"] == "needs_revision"
 
 
 def test_self_final_approval_is_prevented() -> None:
     with pytest.raises(ReviewError, match="own record"):
-        apply_review(pending(load("valid_no_tool.json")), reviewer_id="contrib_01", reviewer_role="technical", new_status="accepted")
+        apply_review(pending(load("valid_no_tool.json")), reviewer_id="contrib_01", reviewer_role="technical", decision="approve")
 
 
 def test_two_reviewer_records_require_both_perspectives() -> None:
     record = pending(load("valid_single_tool.json"))
     assert record_requires_two_reviewers(record)
-    first = apply_review(record, reviewer_id="rev_language_01", reviewer_role="language", new_status="needs_revision")
-    with pytest.raises(ReviewError, match="two distinct"):
-        apply_review(record, reviewer_id="rev_language_01", reviewer_role="language", new_status="accepted")
-    accepted = apply_review(first, reviewer_id="rev_technical_01", reviewer_role="technical", new_status="accepted")
+    first = apply_review(record, reviewer_id="rev_language_01", reviewer_role="language", decision="approve")
+    assert first["metadata"]["review"]["status"] == "needs_revision"
+    accepted = apply_review(first, reviewer_id="rev_technical_01", reviewer_role="technical", decision="approve")
     assert accepted["metadata"]["review"]["status"] == "accepted"
     assert len(accepted["metadata"]["review"]["reviewer_ids"]) == 2
+
+
+def test_reviewer_approval_does_not_bypass_pending_automatic_gates() -> None:
+    record = pending(load("valid_no_tool.json"))
+    record["metadata"]["validation"]["semantic"] = "not_run"
+    reviewed = apply_review(
+        record,
+        reviewer_id="rev_language_01",
+        reviewer_role="language",
+        decision="approve",
+    )
+    assert reviewed["metadata"]["validation"]["language"] == "passed"
+    assert reviewed["metadata"]["review"]["status"] == "needs_revision"
 
 
 def test_partition_and_accepted_only_export(tmp_path: Path) -> None:
@@ -105,3 +118,29 @@ def test_export_cli_is_explicit_and_accepted_only(tmp_path: Path, capsys, access
     ]) == 0
     assert "exported 1" in capsys.readouterr().out
     assert len(output.read_text(encoding="utf-8").splitlines()) == 1
+
+
+def test_review_cli_persists_language_then_technical_approval(tmp_path: Path, capsys, access_files) -> None:
+    record = pending(load("valid_single_tool.json"))
+    source = tmp_path / "pending.json"
+    language_output = tmp_path / "language.jsonl"
+    technical_output = tmp_path / "technical.jsonl"
+    source.write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
+    common = ["--policy", access_files["policy"], "--audit-log", access_files["audit"]]
+
+    assert main([
+        "dataset", "review", str(source), str(language_output),
+        "--record-id", record["id"], "--reviewer-id", "rev_language_01",
+        "--role", "language", "--decision", "approve", *common,
+    ]) == 0
+    assert "record_status=needs_revision" in capsys.readouterr().out
+    assert main([
+        "dataset", "review", str(language_output), str(technical_output),
+        "--record-id", record["id"], "--reviewer-id", "rev_technical_01",
+        "--role", "technical", "--decision", "approve", *common,
+    ]) == 0
+    assert "record_status=accepted" in capsys.readouterr().out
+    reviewed = json.loads(technical_output.read_text(encoding="utf-8"))
+    assert [event["decision"] for event in reviewed["metadata"]["review"]["history"]] == [
+        "approve", "approve",
+    ]

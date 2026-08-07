@@ -25,7 +25,7 @@ def policy_value() -> dict:
             },
             {
                 "id": "disabled_01", "active": False, "teams": ["dataset"],
-                "roles": ["contributor"], "permissions": ["generate"],
+                "roles": ["contributor"], "permissions": ["generate", "quality_check"],
             },
         ],
     }

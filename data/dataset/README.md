@@ -19,3 +19,8 @@ Normal `dataset generate` komutu adayları `staging/<job_id>.jsonl`, manifest ve
 checkpoint kanıtlarını ise `runs/dataset/<job_id>/` altında oluşturur. Model
 çıktısı doğrudan kabul edilmez; tamamlanmamış kalite kontrolleri `not_run` ve
 review durumu `needs_revision` olarak tutulur. Boş job klasörleri depoda tutulmaz.
+
+`dataset quality`, otomatik execution/duplicate/semantic kanıtlarını yeniden
+hesaplayıp kayıtları `needs_revision/` altında yazar; ayrıntılı rapor `review/`
+alanında tutulur. İnsan dil ve gerektiğinde teknik reviewer kararları ayrı
+olmadan kayıt `accepted/` alanına geçirilemez.

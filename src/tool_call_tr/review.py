@@ -11,11 +11,7 @@ from typing import Any, Iterable
 from tool_call_tr.validation import RuleBasedValidator
 
 
-ALLOWED_TRANSITIONS = {
-    "needs_revision": {"needs_revision", "accepted", "rejected"},
-    "rejected": {"needs_revision", "rejected"},
-    "accepted": {"accepted", "needs_revision", "rejected"},
-}
+REVIEW_DECISIONS = {"approve", "needs_revision", "reject"}
 
 
 class ReviewError(ValueError):
@@ -37,46 +33,68 @@ def apply_review(
     *,
     reviewer_id: str,
     reviewer_role: str,
-    new_status: str,
+    decision: str,
     notes: str | None = None,
     timestamp: str | None = None,
 ) -> dict[str, Any]:
     if reviewer_role not in {"language", "technical"}:
         raise ReviewError(f"unsupported reviewer role: {reviewer_role}")
+    if decision not in REVIEW_DECISIONS:
+        raise ReviewError(f"unsupported review decision: {decision}")
     review = record["metadata"]["review"]
     current_status = review["status"]
-    if new_status not in ALLOWED_TRANSITIONS.get(current_status, set()):
-        raise ReviewError(f"invalid review transition: {current_status} -> {new_status}")
+    if current_status == "rejected" and decision == "approve":
+        raise ReviewError("a rejected record must be reopened with needs_revision before approval")
     contributor_id = review.get("contributor_id")
-    if new_status == "accepted" and contributor_id == reviewer_id:
-        raise ReviewError("a contributor cannot provide final approval for their own record")
+    if decision == "approve" and contributor_id == reviewer_id:
+        raise ReviewError("a contributor cannot approve their own record")
 
     updated = copy.deepcopy(record)
     target = updated["metadata"]["review"]
     if reviewer_id not in target["reviewer_ids"]:
         target["reviewer_ids"].append(reviewer_id)
-    target.setdefault("history", []).append(
-        {
-            "reviewer_id": reviewer_id,
-            "reviewer_role": reviewer_role,
-            "from_status": current_status,
-            "to_status": new_status,
-            "notes": notes,
-            "timestamp": timestamp or datetime.now(timezone.utc).isoformat(),
-        }
-    )
+    if reviewer_role == "language":
+        updated["metadata"]["validation"]["language"] = (
+            "passed" if decision == "approve" else "failed"
+        )
+    event = {
+        "reviewer_id": reviewer_id,
+        "reviewer_role": reviewer_role,
+        "decision": decision,
+        "from_status": current_status,
+        "to_status": "needs_revision",
+        "notes": notes,
+        "timestamp": timestamp or datetime.now(timezone.utc).isoformat(),
+    }
+    target.setdefault("history", []).append(event)
+    if decision == "reject":
+        new_status = "rejected"
+    elif decision == "needs_revision":
+        new_status = "needs_revision"
+    else:
+        new_status = "accepted" if _ready_for_acceptance(updated) else "needs_revision"
+    event["to_status"] = new_status
     target["status"] = new_status
     target["notes"] = notes
-    if new_status == "accepted":
-        if not target["reviewer_ids"]:
-            raise ReviewError("accepted records require a reviewer")
-        if record_requires_two_reviewers(updated):
-            if len(target["reviewer_ids"]) < 2:
-                raise ReviewError("this record requires two distinct reviewers")
-            roles = {event["reviewer_role"] for event in target["history"]}
-            if not {"language", "technical"} <= roles:
-                raise ReviewError("two-reviewer acceptance requires language and technical perspectives")
     return updated
+
+
+def _ready_for_acceptance(record: dict[str, Any]) -> bool:
+    validation = record["metadata"]["validation"]
+    if any(status in {"failed", "not_run"} for status in validation.values()):
+        return False
+    latest_by_role: dict[str, dict[str, Any]] = {}
+    for event in record["metadata"]["review"].get("history", []):
+        latest_by_role[event["reviewer_role"]] = event
+    if any(event["decision"] != "approve" for event in latest_by_role.values()):
+        return False
+    required_roles = {"technical"} if record.get("id", "").startswith("bench_") else {"language"}
+    if record_requires_two_reviewers(record):
+        required_roles.update({"language", "technical"})
+    if not required_roles <= set(latest_by_role):
+        return False
+    approver_ids = {latest_by_role[role]["reviewer_id"] for role in required_roles}
+    return len(approver_ids) == len(required_roles)
 
 
 def partition_by_review_status(records: Iterable[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
@@ -108,4 +126,3 @@ def export_accepted(
     text = "\n".join(json.dumps(record, ensure_ascii=False, sort_keys=True) for record in accepted)
     output_path.write_text(text + ("\n" if text else ""), encoding="utf-8")
     return len(accepted)
-

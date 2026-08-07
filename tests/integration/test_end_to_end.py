@@ -60,7 +60,7 @@ def test_minimal_deterministic_infrastructure_flow(tmp_path: Path) -> None:
         candidate,
         reviewer_id="rev_technical_fixture",
         reviewer_role="technical",
-        new_status="accepted",
+        decision="approve",
         notes="Deterministik uçtan uca altyapı testi.",
         timestamp="2026-08-06T00:00:00+00:00",
     )

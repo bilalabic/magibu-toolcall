@@ -27,7 +27,8 @@ The deterministic flows are parallel and independent:
 
 ```text
 shared registry/schema/category infrastructure
-  -> dataset candidate -> dataset review -> accepted training data
+  -> dataset candidate -> automatic quality evidence -> human review
+     -> accepted training data
   -> benchmark candidate -> benchmark review -> contamination gate
      -> frozen gold + checksum manifest -> isolated run logs
 ```
@@ -35,8 +36,9 @@ shared registry/schema/category infrastructure
 Dataset records remain under `data/dataset`; benchmark candidates and frozen gold
 remain under `data/benchmark`; predictions and evaluation output belong under
 `runs/<model_name>/<run_id>.jsonl`. Adapters route only to the
-requested execution type. Review events distinguish language and technical
-perspectives and accepted export revalidates records.
+requested execution type. Quality reports preserve execution and duplicate
+evidence. Review events distinguish reviewer decisions from computed overall
+status, and accepted export revalidates records.
 
 ## 3. Implemented components
 
@@ -128,14 +130,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\verify.ps1
 .venv\Scripts\python.exe -m pip check
 ```
 
-The final suite passes 133 tests, including the original deterministic flow and
+The final suite passes 145 tests, including the original deterministic flow and
 an independent parallel dataset/benchmark lifecycle flow. Added tests cover
 actual xLAM/When2Call shapes, machine-safe localization, source terms gates,
 DeepSeek/OpenAI request parsing, embedding cache/cosine behavior, HTTPS allowlist
 and normalized statuses, access scopes/roles/permissions/audit tamper detection,
 streaming shard plans, checksum/ID/distribution gates, interruption/resume,
 failure queues, dataset/benchmark batch CLI flows, normal dataset job planning,
-active-source enforcement, and provider quality-claim sanitization.
+active-source enforcement, provider quality-claim sanitization, automatic
+execution/result evidence, duplicate/semantic gate state, and computed reviewer
+acceptance.
 The verification script also validates all three registry JSONL records and the
 complete dataset fixture. Compilation succeeds and pip reports no broken
 requirements. Final failures: 0. Remaining warnings: 0.
@@ -175,7 +179,8 @@ budgets. The row-level matrix is in
 ## 7. Next safe step
 
 Before generating data, research and team-approve a small diverse tool subset,
-freeze the next `0.1.x` registry revision, select provider models/rubrics, create
-the real access-policy principal directory plus storage ACLs, then author and
-validate 20–30 blueprints and their separate dataset/benchmark batch manifests.
-Follow `next_stage_checklist.md`; do not start bulk generation automatically.
+freeze the next `0.1.x` registry revision, select provider models/thresholds,
+create the real access-policy principal directory plus storage ACLs, then author
+and validate a small `original_turkish`/`turkey_native` blueprint pilot. Run the
+pilot through generation, automatic quality reports, and real reviewer decisions
+before increasing volume. Translation and benchmark work remain paused.

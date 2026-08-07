@@ -22,7 +22,7 @@
           },
           "permissions": {
             "type": "array", "uniqueItems": true,
-            "items": {"enum": ["source_import", "localize", "generate", "review", "accept", "export", "freeze", "benchmark_run", "real_api"]}
+            "items": {"enum": ["source_import", "localize", "generate", "quality_check", "review", "accept", "export", "freeze", "benchmark_run", "real_api"]}
           }
         },
         "additionalProperties": false

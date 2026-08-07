@@ -77,6 +77,10 @@ Politika biçimi [access_policy.schema.json](schemas/access_policy.schema.json)
 tarafından tanımlanır. Gerçek ekip kimlikleri bu depoda örnek olarak
 uydurulmaz; dataset ve benchmark sorumluları tarafından atanır.
 
+Dataset kalite operatörü `quality_check`, reviewer’lar ise rollerine göre
+`review` ve `accept` izinlerine sahip olmalıdır. Gerçek API’nin kalite kontrolü
+aynı actor için ayrıca `platform/real_api` yetkisi gerektirir.
+
 ```text
 magibu-toolcall access validate configs/access-policy.json
 magibu-toolcall access check configs/access-policy.json --actor-id rev_language_01 --lifecycle dataset --permission accept --reviewer-role language
@@ -172,6 +176,26 @@ edilmez. CLI bunları kanıta dayalı draft durumuna çevirir:
 - Çalıştırılmayan execution, semantik, dil ve tekrar kontrolleri `not_run` kalır.
 - `not_run` veya `failed` bir kalite aşaması varken kayıt `accepted` olamaz.
 
+Üretimden sonra otomatik kalite kanıtları ayrı komutla hesaplanır:
+
+```text
+magibu-toolcall dataset quality data/dataset/staging/dataset-pilot-001.jsonl data/dataset/needs_revision/dataset-pilot-001.jsonl --reference data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --report review/dataset/dataset-pilot-001.quality.json --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+```
+
+Bu komut şema ve tool-call yapısını yeniden doğrular; local/mock çağrıları
+gerçekten çalıştırıp kayıt içindeki tool result ile karşılaştırır. Exact ve
+normalize tekrar kontrolü her zaman yapılır. `openai` seçildiğinde üretim
+embedding modeliyle semantik karşılaştırma yapılır. `token-test-double` yalnız
+test içindir ve semantik kapısını `passed` yapamaz. Karşılaştırılacak başka kayıt
+yoksa semantik kapısı `not_applicable` olur. `--reference` dosyaları yalnızca
+önceden kabul edilmiş dataset kayıtları içerebilir; aynı ID’nin yeniden
+kullanılması engellenir.
+
+`real_api` execution yalnız `--confirm-live` ve gerekli platform izniyle
+çalıştırılır. Yetki veya adaptör bulunmayan execution türü sessizce geçilmiş
+sayılmaz; `not_run` kalır. Ayrıntılı execution ve duplicate kanıtları kalite
+raporuna yazılır. Otomatik kalite komutu insan onayı vermez.
+
 Hedef dağılım dosyası örneği:
 
 ```json
@@ -235,7 +259,7 @@ MAGIBU_TOOLCALL_SEMANTIC_CACHE_DIR
 ```
 
 ```text
-magibu-toolcall dataset check-duplicates data/dataset/staging/candidates.jsonl --semantic-provider openai --semantic-threshold 0.90 --semantic-cache .cache/semantic --output json
+magibu-toolcall dataset quality data/dataset/staging/candidates.jsonl data/dataset/needs_revision/candidates.jsonl --reference data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --semantic-cache .cache/semantic --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
 
 magibu-toolcall benchmark contamination-check --benchmark data/benchmark/staging/candidates.jsonl --dataset data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --semantic-cache .cache/semantic --output json
 ```
@@ -247,14 +271,19 @@ onaylanmalıdır.
 ## 6. İnceleme ve export
 
 ```text
-magibu-toolcall dataset review data/dataset/staging/candidates.jsonl review/dataset/reviewed.jsonl --record-id tctr_ot_000001 --reviewer-id rev_language_01 --role language --status accepted --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset review data/dataset/needs_revision/candidates.jsonl review/dataset/language-reviewed.jsonl --record-id tctr_ot_000001 --reviewer-id rev_language_01 --role language --decision approve --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
 
-magibu-toolcall dataset export review/dataset/reviewed.jsonl data/dataset/accepted/dataset.jsonl --actor-id dataset_lead_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset review review/dataset/language-reviewed.jsonl review/dataset/fully-reviewed.jsonl --record-id tctr_ot_000001 --reviewer-id rev_technical_01 --role technical --decision approve --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+
+magibu-toolcall dataset export review/dataset/fully-reviewed.jsonl data/dataset/accepted/dataset.jsonl --actor-id dataset_lead_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
 ```
 
-Contributor kendi kaydına final onayı veremez. Multi-tool, sequential ve açıkça
-işaretlenmiş kayıtlar iki farklı reviewer ile hem dil hem teknik perspektifi
-gerektirir.
+`--decision approve`, reviewer’ın kendi perspektifindeki onayını kaydeder; genel
+kayıt durumunu doğrudan zorlamaz. Dil onayı `validation.language` kapısını
+tamamlar. Multi-tool, sequential ve açıkça işaretlenmiş kayıtlar iki farklı
+reviewer ile hem dil hem teknik perspektifi gerektirir. Diğer kalite kapıları
+eksikse reviewer onayı kaydedilir fakat kayıt `needs_revision` kalır. Contributor
+kendi kaydını onaylayamaz.
 
 Benchmark freeze/run komutları altyapıda korunur ancak güncel çalışma odağında
 değildir ve bu aşamada kullanılmaz.

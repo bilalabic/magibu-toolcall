@@ -33,6 +33,9 @@ conversation rules that JSON Schema cannot express clearly.
 - `dataset_workflow`: normal-mode blueprint preflight, active-source enforcement,
   automatic job paths/ID continuation, frozen input distributions, and removal
   of untrusted provider quality/review claims.
+- `quality`: automatic dataset evidence recomputation, declared-mode tool
+  execution, recorded-result comparison, deterministic/semantic duplicate
+  decisions, and per-record quality reports without human acceptance.
 - `access`: active principals, lifecycle scopes, permissions, reviewer roles,
   dataset/benchmark team separation, and hash-chained audit events.
 - `evaluation`: exact success, five diagnostic criteria, category metrics,
@@ -101,6 +104,15 @@ provider identity in provenance, forces human review back to `needs_revision`,
 and marks any gate without evidence as `not_run`. Provider-supplied `accepted`
 or `passed` claims cannot make a draft exportable.
 
+The dataset quality command recomputes deterministic gates, executes local/mock
+calls in their declared mode, and compares actual data with recorded tool-result
+messages. Real API execution additionally requires explicit live confirmation
+and platform permission. Exact/normalized duplicate checks are always run.
+Production semantic status can be passed only by the configured OpenAI embedding
+path; the token test double can produce diagnostics but not production evidence.
+A separate report records execution evidence, pair decisions, model identity,
+threshold, actor, and time.
+
 ## Execution flow
 
 An adapter declares exactly one execution type. Calls return a normalized result
@@ -114,9 +126,12 @@ credentials, and no side effects.
 ## Review flow
 
 Automated success makes a record reviewable, not accepted. Review events record
-reviewer, role (`language` or `technical`), previous/new status, notes, and time.
-Final acceptance rejects contributor self-approval and enforces two distinct
-reviewers for marked records. Export revalidates and emits accepted records only.
+reviewer, role (`language` or `technical`), reviewer decision, previous/computed
+overall status, notes, and time. A language approval completes the language gate,
+but the overall status remains `needs_revision` while any automatic gate or
+required reviewer role is incomplete. Final acceptance rejects contributor
+self-approval and enforces two distinct reviewers for marked records. Export
+revalidates and emits accepted records only.
 CLI mutations additionally require an active scoped principal and permission.
 Dataset and benchmark teams can be exclusive, and authorization decisions are
 written to a verifiable audit hash chain. Filesystem/object-store ACLs remain a
