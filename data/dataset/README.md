@@ -11,8 +11,11 @@ türüne göre `tctr_tr_*`, `tctr_ot_*` veya `tctr_tn_*` biçimindedir.
 
 Dataset kayıtları benchmark gold alanına kopyalanmaz.
 
-xLAM/When2Call içe aktarma kayıtları kanonik dataset değildir; `raw/` altında
-source work item olarak tutulur. Lokalizasyon ve üretim job manifestleri için
-önerilen yer `staging/jobs/<job_id>/` yoludur. CLI gerekli klasörleri iş
-oluşturulurken açar; boş job klasörleri depoda tutulmaz. Checkpoint part dosyaları
-tamamlanan işin yeniden başlatma ve audit kanıtıdır.
+xLAM/When2Call çeviri-lokalizasyon hattı şimdilik askıdadır. Aktif üretim hattı
+`original_turkish` ve `turkey_native` blueprint’lerinden review bekleyen dataset
+adayları üretir.
+
+Normal `dataset generate` komutu adayları `staging/<job_id>.jsonl`, manifest ve
+checkpoint kanıtlarını ise `runs/dataset/<job_id>/` altında oluşturur. Model
+çıktısı doğrudan kabul edilmez; tamamlanmamış kalite kontrolleri `not_run` ve
+review durumu `needs_revision` olarak tutulur. Boş job klasörleri depoda tutulmaz.

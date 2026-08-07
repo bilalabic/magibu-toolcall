@@ -41,6 +41,7 @@ name the implemented rule or test family.
 | Production semantic similarity | `semantic.py`, OpenAI embedding transport, dedupe/contamination CLI | cosine, batching, cache, malformed response, config-gate tests | implemented; threshold approval decision-pending |
 | Reviewer directory and access policy | access-policy schema, `access.py`, review/export/freeze/run gates | active principal, role, permission, lifecycle scope, self-approval, benchmark isolation tests | implemented; actual staff identities decision-pending |
 | Large-scale distribution plans | job-manifest schema, `batch.py`, `reporting.py` | target/input equality, shard coverage, input hash, checkpoint and distribution-delta tests | implemented-infrastructure; 250/1,000 and 100/150-200 production runs deferred |
+| Quality-first normal dataset generation | `dataset_workflow.py`, `dataset generate`, `dataset batch run` | full blueprint preflight, active source restriction, automatic distribution/ID plan, provider self-certification rejection, resume tests | implemented; live provider run and remaining quality gates pending |
 
 ## Completion categories at handover
 

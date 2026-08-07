@@ -128,13 +128,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\verify.ps1
 .venv\Scripts\python.exe -m pip check
 ```
 
-The final suite passes 125 tests, including the original deterministic flow and
+The final suite passes 133 tests, including the original deterministic flow and
 an independent parallel dataset/benchmark lifecycle flow. Added tests cover
 actual xLAM/When2Call shapes, machine-safe localization, source terms gates,
 DeepSeek/OpenAI request parsing, embedding cache/cosine behavior, HTTPS allowlist
 and normalized statuses, access scopes/roles/permissions/audit tamper detection,
 streaming shard plans, checksum/ID/distribution gates, interruption/resume,
-failure queues, and dataset/benchmark batch CLI flows.
+failure queues, dataset/benchmark batch CLI flows, normal dataset job planning,
+active-source enforcement, and provider quality-claim sanitization.
 The verification script also validates all three registry JSONL records and the
 complete dataset fixture. Compilation succeeds and pip reports no broken
 requirements. Final failures: 0. Remaining warnings: 0.

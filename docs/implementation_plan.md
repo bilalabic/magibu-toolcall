@@ -24,6 +24,7 @@ pilot or any production-sized dataset/benchmark activity.
 | 17 | Production providers and integrations (`network.py`, `generation/providers.py`, `semantic.py`, `execution/http_api.py`) | Injected-transport tests prove request/response parsing, secret redaction, embedding cache/cosine behavior, HTTPS/read-only enforcement, and normalized API statuses without live calls |
 | 18 | Reviewer access and scalable jobs (`access.py`, `batch.py`, access/job schemas, CLI) | Active principal, role/scope/permission, benchmark isolation, shard/checkpoint/resume, collision, and failure-queue tests pass |
 | 19 | Production CLI and handover (`cli.py`, Turkish README files, architecture/traceability docs) | Source import/localization, batch plan/status, semantic provider selection, policy-gated review/export/freeze/run, full suite, and deterministic end-to-end tests pass |
+| 20 | Quality-first normal dataset generation (`dataset_workflow.py`, dataset CLI) | Blueprint preflight, active-source restriction, automatic paths/IDs/distributions, provider-claim sanitization, advanced resume, and full-suite tests pass |
 
 Each stage is implemented as the smallest complete slice, tested before the next
 stage, and reflected in the traceability matrix. Failures are fixed or recorded;
@@ -31,7 +32,12 @@ no failed gate is silently skipped.
 
 ## Completion
 
-All 19 infrastructure stages completed on 2026-08-06. Stages 16-19 add the
+All 20 infrastructure stages completed by 2026-08-07. Stages 16-19 add the
 production-operation foundation requested after the initial handover. They do
 not authorize or perform bulk dataset/benchmark production, gated dataset
 download, live provider spend, or final Turkish API selection.
+
+Stage 20 narrows the active workflow to original Turkish and Türkiye-native
+dataset generation. It automates routine job mechanics without bypassing
+manifest, provenance, access, validation, review, or audit gates. Translation
+and benchmark operations are retained but operationally paused.

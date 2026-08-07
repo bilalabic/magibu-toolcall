@@ -160,7 +160,7 @@ def test_batch_cli_plans_reports_and_runs_validated_candidate_job(
             return ProviderResponse(candidate, ModelIdentity("fake", self.model, "1", "dataset_candidate_generator"))
 
     monkeypatch.setattr("tool_call_tr.cli.DeepSeekIntegration.from_settings", lambda settings: FakeProvider())
-    assert main(["dataset", "generate", str(manifest), "--execute-live", *access]) == 0
+    assert main(["dataset", "batch", "run", str(manifest), "--execute-live", *access]) == 0
     result = json.loads(capsys.readouterr().out)
     assert result["status"] == "completed"
     generated = json.loads(output.read_text(encoding="utf-8"))
@@ -169,3 +169,57 @@ def test_batch_cli_plans_reports_and_runs_validated_candidate_job(
     assert main(["dataset", "batch", "report", str(manifest), "--output", "json"]) == 0
     report = json.loads(capsys.readouterr().out)
     assert report["distribution_targets_met"]
+
+
+def test_normal_dataset_generation_plans_paths_and_sanitizes_provider_quality_claims(
+    tmp_path: Path, capsys, access_files, monkeypatch,
+) -> None:
+    root = Path(__file__).resolve().parents[2]
+    blueprint = root / "tests" / "fixtures" / "blueprints" / "valid" / "no_tool.json"
+    output = tmp_path / "staging" / "pilot.jsonl"
+    candidate_template = json.loads(
+        (root / "tests" / "fixtures" / "dataset" / "valid_no_tool.json").read_text(encoding="utf-8")
+    )
+
+    class FakeProvider:
+        model = "fixture-model"
+
+        def require_configured(self):
+            return None
+
+        def generate_candidate(self, *, lifecycle, blueprint, record_id):
+            candidate = json.loads(json.dumps(candidate_template))
+            candidate["id"] = record_id
+            return ProviderResponse(
+                candidate,
+                ModelIdentity("fake", self.model, "2026-08-07", "dataset_candidate_generator"),
+            )
+
+    monkeypatch.setattr("tool_call_tr.cli.DeepSeekIntegration.from_settings", lambda settings: FakeProvider())
+    access = [
+        "--actor-id", "dataset_operator_01", "--policy", access_files["policy"],
+        "--audit-log", access_files["audit"],
+    ]
+    assert main([
+        "dataset", "generate", str(blueprint),
+        "--job-id", "dataset-pilot-001",
+        "--runs-dir", str(tmp_path / "runs"),
+        "--output", str(output),
+        "--timestamp", "2026-08-07T00:00:00+00:00",
+        "--execute-live",
+        *access,
+    ]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["job_id"] == "dataset-pilot-001"
+    assert result["status"] == "completed"
+    assert Path(result["manifest"]).exists()
+    assert result["output"] == str(output.resolve())
+
+    generated = json.loads(output.read_text(encoding="utf-8"))
+    assert generated["id"] == "tctr_ot_000001"
+    assert generated["metadata"]["review"]["status"] == "needs_revision"
+    assert generated["metadata"]["review"]["reviewer_ids"] == []
+    assert generated["metadata"]["validation"]["language"] == "not_run"
+    assert generated["metadata"]["validation"]["duplicate"] == "not_run"
+    assert generated["metadata"]["provenance"]["generator_model"] == "fixture-model"
+    assert generated["metadata"]["provenance"]["generator_version"] == "2026-08-07"

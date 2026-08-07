@@ -19,6 +19,18 @@ Bu depo hâlâ tamamlanmış dataset veya benchmark değildir. Gerçek kaynak
 dosyaları, reviewer kimlikleri, API/model kimlik bilgileri ve üretim çıktıları
 depoya eklenmez. `schema_version` ve `tool_registry_version` şimdilik `0.1.0`’dır.
 
+## Güncel çalışma odağı
+
+Aktif geliştirme odağı doğrudan Türkçe genel senaryolar (`original_turkish`) ve
+Türkiye-native senaryolardır (`turkey_native`). xLAM/When2Call çeviri-lokalizasyon
+hattı ile benchmark yaşam döngüsü şimdilik askıdadır. Bu altyapılar silinmez;
+üretim, veri indirme, lokalizasyon veya benchmark çalıştırması yapılmaz.
+
+Aktif dataset hattında sade komut kullanımı kalite kapılarını kaldırmaz. Manifest,
+input checksum, checkpoint, provenance, registry/şema kontrolü, ID çakışma
+kontrolü, hata kuyruğu ve audit kaydı otomatik olarak korunur. Model çıktısı kendi
+başına kalite onayı sayılmaz.
+
 ## Temel ayrım
 
 Üç dataset kaynağı aynı kanonik dataset hattında yönetilir:
@@ -35,7 +47,8 @@ dataset’e kopyalanmaz ve ayrı ekip/kapsam ile üretilir:
 ```text
 data/dataset/...   -> tctr_tr_*, tctr_ot_*, tctr_tn_*
 data/benchmark/... -> bench_tr_*, bench_ot_*, bench_tn_*
-runs/...           -> yalnız model tahminleri ve değerlendirme sonuçları
+runs/dataset/...   -> üretim manifest, checkpoint ve hata kayıtları
+runs/...           -> diğer kontrollü çalışma ve değerlendirme sonuçları
 ```
 
 ## Kurulum
@@ -75,7 +88,7 @@ benchmark ekibinde yer alamaz. CLI politikası dosya sistemi güvenliği yerine
 geçmez; benchmark klasörlerine ayrıca işletim sistemi veya nesne depolama ACL’i
 uygulanmalıdır.
 
-## 1. xLAM ve When2Call içe aktarma
+## 1. xLAM ve When2Call içe aktarma — askıda
 
 xLAM dosyaları Hugging Face üzerinde koşul kabulü gerektirir. CLI bu koşulları
 kullanıcı adına kabul etmez ve kaynağı otomatik indirmez. Operatör, erişim
@@ -108,7 +121,7 @@ magibu-toolcall dataset batch status data/dataset/staging/jobs/xlam-import/job.j
 lisans zinciri, ham satır SHA-256 özeti, normalize araçlar ve lokalizasyon durumu
 taşır. Bu kayıt yanlışlıkla `accepted` alanına aktarılamaz.
 
-## 2. Türkçe lokalizasyon
+## 2. Türkçe lokalizasyon — askıda
 
 Manuel veya haricî olarak hazırlanmış patch dosyası; `source_example_id`, Türkçe
 `query`, araç açıklamaları, parametre açıklamaları, gerekiyorsa Türkçe `response`,
@@ -132,44 +145,56 @@ magibu-toolcall dataset source generate-localizations data/dataset/staging/jobs/
 Üretilen lokalizasyonlar `localized_needs_review` veya
 `localized_needs_source_review` durumunda kalır; insan onayı otomatik verilmez.
 
-## 3. Toplu Türkçe senaryo üretimi
+## 3. Türkçe senaryo üretimi
 
-Dataset ve benchmark üretimi ayrı manifestlerle yapılır. Her input blueprint bir
-aday üretir. Manifest; input checksum’ını, shard sınırlarını, output/error yollarını,
-hedef dağılımı ve ayrılmış ID aralığını sabitler. `--existing` ile verilen mevcut
-dosyalardaki ID’lerle çakışma plan aşamasında engellenir.
+Normal akışta blueprint dosyası doğrudan `dataset generate` komutuna verilir.
+CLI bütün blueprint’leri canlı model çağrısından önce doğrular; tek job içinde
+yalnızca bir kaynak türüne izin verir. Manifest, input checksum, shard,
+checkpoint, hata kuyruğu, hedef dağılım ve ID planı otomatik oluşturulur.
+
+```text
+magibu-toolcall dataset generate blueprints/pilot.jsonl --job-id dataset-pilot-001 --execute-live --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+```
+
+`--output` verilmezse adaylar
+`data/dataset/staging/<job_id>.jsonl` yoluna yazılır. İş kanıtları
+`runs/dataset/<job_id>/` altında tutulur. `--start-number` verilmezse ilgili
+kaynak türünün mevcut dataset kayıtları taranarak sıradaki çakışmasız numara
+seçilir. Blueprint’lerdeki `source_type` yalnız `original_turkish` veya
+`turkey_native` olabilir.
+
+Modelin döndürdüğü `accepted`, reviewer veya validation beyanları güvenilir kabul
+edilmez. CLI bunları kanıta dayalı draft durumuna çevirir:
+
+- Blueprint metadata’sı, exposed tool listesi, beklenen tool call ve tool result değiştirilemez.
+- Provider/model kimliği ve blueprint bağlantısı provenance’a sistem tarafından yazılır.
+- Kayıt daima `needs_revision` ve reviewersız başlar.
+- Çalıştırılmayan execution, semantik, dil ve tekrar kontrolleri `not_run` kalır.
+- `not_run` veya `failed` bir kalite aşaması varken kayıt `accepted` olamaz.
 
 Hedef dağılım dosyası örneği:
 
 ```json
 {
   "main_category": {"single_tool": 40, "no_tool": 15, "missing_parameter": 15, "multi_turn": 20, "multi_tool": 10},
-  "source_type": {"translated": 35, "original_turkish": 35, "turkey_native": 30}
+  "source_type": {"original_turkish": 70, "turkey_native": 30}
 }
 ```
 
-Bu toplamlar input blueprint sayısıyla ve blueprint metadata dağılımıyla birebir
-eşleşmek zorundadır.
+`--targets` verilmezse `main_category`, `source_type`, `domain` ve `difficulty`
+dağılımları blueprint girdisinden otomatik dondurulur. Özel hedef dosyası
+verilirse toplamlar ve metadata dağılımı blueprint girdisiyle birebir eşleşmek
+zorundadır.
 
 ```text
-magibu-toolcall dataset batch plan blueprints/dataset.jsonl data/dataset/staging/jobs/pilot/job.json --job-id dataset-pilot-001 --operation scenario_generation --output data/dataset/staging/candidates.jsonl --checkpoint data/dataset/staging/jobs/pilot/checkpoint.json --errors data/dataset/staging/jobs/pilot/errors.jsonl --shard-size 25 --targets configs/dataset-targets.json --source-type original_turkish --start-number 1 --existing data/dataset/accepted/dataset.jsonl --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
-
-magibu-toolcall dataset generate data/dataset/staging/jobs/pilot/job.json --provider deepseek --execute-live --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
-
-magibu-toolcall dataset batch report data/dataset/staging/jobs/pilot/job.json --output json
+magibu-toolcall dataset batch status runs/dataset/dataset-pilot-001/manifest.json --output json
+magibu-toolcall dataset batch run runs/dataset/dataset-pilot-001/manifest.json --execute-live --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset batch report runs/dataset/dataset-pilot-001/manifest.json --output json
 ```
 
-Benchmark için `benchmark_generation`, `bench_*` ID aralığı, benchmark kapsamlı
-principal ve ayrı output yolları kullanılır:
-
-```text
-magibu-toolcall benchmark batch plan blueprints/benchmark.jsonl data/benchmark/staging/jobs/pilot/job.json --job-id benchmark-pilot-001 --operation benchmark_generation --output data/benchmark/staging/candidates.jsonl --checkpoint data/benchmark/staging/jobs/pilot/checkpoint.json --errors data/benchmark/staging/jobs/pilot/errors.jsonl --shard-size 25 --source-type original_turkish --start-number 1 --actor-id benchmark_lead_01 --policy configs/access-policy.json --audit-log review/benchmark/audit.jsonl
-
-magibu-toolcall benchmark generate data/benchmark/staging/jobs/pilot/job.json --provider deepseek --execute-live --actor-id benchmark_lead_01 --policy configs/access-policy.json --audit-log review/benchmark/audit.jsonl
-```
-
-Yarıda kalan iş aynı manifestle devam eder. Tamamlanan iş immutable kabul edilir;
-yeniden çalıştırmak için yeni `job_id` ve yeni yollar gerekir.
+`dataset batch run` yalnız önceden planlanmış veya kesilmiş işi devam ettirmek
+için ileri seviye komuttur. Tamamlanan iş immutable kabul edilir; yeniden
+çalıştırmak için yeni `job_id` gerekir.
 
 ## 4. Türkiye-native gerçek API araçları
 
@@ -219,7 +244,7 @@ Embedding’ler provider model kimliğine ve metin SHA-256 değerine göre önbe
 alınır. Model veya eşik seçimi raporda sabitlenmeli ve ekip tarafından
 onaylanmalıdır.
 
-## 6. İnceleme, export ve benchmark freeze
+## 6. İnceleme ve export
 
 ```text
 magibu-toolcall dataset review data/dataset/staging/candidates.jsonl review/dataset/reviewed.jsonl --record-id tctr_ot_000001 --reviewer-id rev_language_01 --role language --status accepted --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
@@ -231,19 +256,8 @@ Contributor kendi kaydına final onayı veremez. Multi-tool, sequential ve açı
 işaretlenmiş kayıtlar iki farklı reviewer ile hem dil hem teknik perspektifi
 gerektirir.
 
-Benchmark ancak kabul edilmiş dataset snapshot’ına karşı kontaminasyon kapısını
-geçerse dondurulur:
-
-```text
-magibu-toolcall benchmark freeze data/benchmark/accepted/benchmark.jsonl data/benchmark/gold/gold.jsonl --dataset data/dataset/accepted/dataset.jsonl --freeze-id pilot-001 --semantic-provider openai --actor-id benchmark_lead_01 --policy configs/access-policy.json --audit-log review/benchmark/audit.jsonl
-
-magibu-toolcall benchmark verify-freeze data/benchmark/gold/gold.jsonl data/benchmark/gold/gold.jsonl.manifest.json
-
-magibu-toolcall benchmark run data/benchmark/gold/gold.jsonl predictions.jsonl --model-name model-name --run-id run-001 --actor-id benchmark_lead_01 --policy configs/access-policy.json --audit-log review/benchmark/audit.jsonl
-```
-
-Gold kayıtlar değiştirilmez; tahminler `runs/<model_name>/<run_id>.jsonl`
-altında tutulur.
+Benchmark freeze/run komutları altyapıda korunur ancak güncel çalışma odağında
+değildir ve bu aşamada kullanılmaz.
 
 ## Dizinler
 
@@ -253,7 +267,8 @@ altında tutulur.
 - `data/dataset/`: `raw`, `staging`, `needs_revision`, `rejected`, `accepted`
 - `data/benchmark/`: Ayrı lifecycle ve ek olarak immutable `gold`
 - `review/dataset/`, `review/benchmark/`: Ayrı review çıktıları ve audit logları
-- `runs/`: Yalnız benchmark model çalıştırma kayıtları
+- `runs/dataset/`: Dataset job manifest, checkpoint, part ve hata kayıtları
+- `runs/`: Diğer kontrollü çalışma ve değerlendirme kayıtları
 - `src/tool_call_tr/`: CLI ve bütün uygulama modülleri
 - `tests/`: Canlı credential veya ağ gerektirmeyen deterministik testler
 

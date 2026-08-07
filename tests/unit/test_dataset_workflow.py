@@ -1,0 +1,117 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+from tool_call_tr.dataset_workflow import (
+    DatasetWorkflowError,
+    default_job_paths,
+    inspect_blueprints,
+    next_dataset_number,
+    prepare_generated_candidate,
+)
+from tool_call_tr.generation.providers import ModelIdentity
+from tool_call_tr.validation import RuleBasedValidator
+
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def load(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_blueprint_preflight_derives_frozen_quality_distribution() -> None:
+    path = ROOT / "tests" / "fixtures" / "blueprints" / "valid" / "no_tool.json"
+    plan = inspect_blueprints(path)
+    assert plan.total_items == 1
+    assert plan.source_type == "original_turkish"
+    assert plan.target_distributions == {
+        "main_category": {"no_tool": 1},
+        "source_type": {"original_turkish": 1},
+        "domain": {"general": 1},
+        "difficulty": {"easy": 1},
+    }
+
+
+def test_blueprint_preflight_blocks_paused_translation(tmp_path: Path) -> None:
+    blueprint = load(ROOT / "tests" / "fixtures" / "blueprints" / "valid" / "no_tool.json")
+    blueprint["metadata"]["source_type"] = "translated"
+    path = tmp_path / "translated.json"
+    path.write_text(json.dumps(blueprint), encoding="utf-8")
+    with pytest.raises(DatasetWorkflowError, match="translation is paused"):
+        inspect_blueprints(path)
+
+
+def test_next_dataset_number_is_scoped_by_source_type() -> None:
+    assert next_dataset_number({"tctr_ot_000004", "tctr_tn_000099"}, "original_turkish") == 5
+    assert next_dataset_number({"tctr_ot_000004", "tctr_tn_000099"}, "turkey_native") == 100
+
+
+def test_job_id_cannot_escape_the_runs_directory(tmp_path: Path) -> None:
+    with pytest.raises(DatasetWorkflowError, match="job_id"):
+        default_job_paths(
+            project_root=tmp_path,
+            runs_dir=tmp_path / "runs",
+            job_id="../outside",
+        )
+
+
+def test_provider_cannot_self_certify_quality_or_human_review() -> None:
+    blueprint = load(ROOT / "tests" / "fixtures" / "blueprints" / "valid" / "single_tool.json")
+    candidate = load(ROOT / "tests" / "fixtures" / "dataset" / "valid_single_tool.json")
+    prepared = prepare_generated_candidate(
+        candidate,
+        blueprint=blueprint,
+        record_id="tctr_ot_000001",
+        identity=ModelIdentity("fake", "fixture-model", "v1", "dataset_candidate_generator"),
+        actor_id="dataset_operator_01",
+        generated_at="2026-08-07T00:00:00+00:00",
+    )
+    assert prepared["metadata"]["review"]["status"] == "needs_revision"
+    assert prepared["metadata"]["review"]["reviewer_ids"] == []
+    assert prepared["metadata"]["execution"] == {"type": "local_executable", "status": "not_called"}
+    assert prepared["metadata"]["validation"]["tool_call"] == "passed"
+    assert prepared["metadata"]["validation"]["execution"] == "not_run"
+    assert prepared["metadata"]["validation"]["semantic"] == "not_run"
+    assert prepared["metadata"]["validation"]["language"] == "not_run"
+    assert prepared["metadata"]["validation"]["duplicate"] == "not_run"
+    assert prepared["metadata"]["provenance"]["generator_model"] == "fixture-model"
+    assert RuleBasedValidator().validate_record("dataset", prepared).valid
+    prepared["metadata"]["review"]["status"] = "accepted"
+    prepared["metadata"]["review"]["reviewer_ids"] = ["rev_language_01", "rev_technical_01"]
+    report = RuleBasedValidator().validate_record("dataset", prepared)
+    assert not report.valid
+    assert "REVIEW_ACCEPTED_BEFORE_VALIDATION" in {issue.code for issue in report.issues}
+
+
+def test_provider_tool_call_must_match_blueprint() -> None:
+    blueprint = load(ROOT / "tests" / "fixtures" / "blueprints" / "valid" / "single_tool.json")
+    candidate = load(ROOT / "tests" / "fixtures" / "dataset" / "valid_single_tool.json")
+    candidate["messages"][1]["tool_calls"][0]["function"]["arguments"]["left"] = 999
+    with pytest.raises(DatasetWorkflowError, match="do not match"):
+        prepare_generated_candidate(
+            candidate,
+            blueprint=blueprint,
+            record_id="tctr_ot_000001",
+            identity=ModelIdentity("fake", "fixture-model", "v1", "dataset_candidate_generator"),
+            actor_id="dataset_operator_01",
+            generated_at="2026-08-07T00:00:00+00:00",
+        )
+
+
+def test_provider_tool_result_must_match_blueprint() -> None:
+    blueprint = load(ROOT / "tests" / "fixtures" / "blueprints" / "valid" / "single_tool.json")
+    candidate = load(ROOT / "tests" / "fixtures" / "dataset" / "valid_single_tool.json")
+    candidate["messages"][2]["content"] = json.dumps({"result": 999})
+    with pytest.raises(DatasetWorkflowError, match="tool results do not match"):
+        prepare_generated_candidate(
+            candidate,
+            blueprint=blueprint,
+            record_id="tctr_ot_000001",
+            identity=ModelIdentity("fake", "fixture-model", "v1", "dataset_candidate_generator"),
+            actor_id="dataset_operator_01",
+            generated_at="2026-08-07T00:00:00+00:00",
+        )

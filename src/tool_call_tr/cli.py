@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Sequence
+from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -31,6 +32,15 @@ from tool_call_tr.batch import (
 )
 from tool_call_tr.contamination import compare_corpora
 from tool_call_tr.deduplication import DeterministicTokenSimilarity, compare_records
+from tool_call_tr.dataset_workflow import (
+    DatasetWorkflowError,
+    dataset_record_paths,
+    default_job_id,
+    default_job_paths,
+    inspect_blueprints,
+    next_dataset_number,
+    prepare_generated_candidate,
+)
 from tool_call_tr.evaluation import BenchmarkEvaluator, BenchmarkRunError, run_benchmark
 from tool_call_tr.freeze import FreezeError, freeze_benchmark, verify_benchmark_freeze
 from tool_call_tr.generation.providers import (
@@ -86,7 +96,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_record_commands(dataset_commands, "dataset", include_corpus_report=True)
     _add_dataset_source_commands(dataset_commands)
     _add_batch_commands(dataset_commands, "dataset")
-    _add_generation_command(dataset_commands, "dataset")
+    _add_dataset_generation_command(dataset_commands)
 
     benchmark = subparsers.add_parser("benchmark", help="Manage isolated benchmark gold and runs only.")
     benchmark_commands = benchmark.add_subparsers(dest="benchmark_command", metavar="COMMAND", required=True)
@@ -291,6 +301,39 @@ def _add_batch_commands(subparsers: argparse._SubParsersAction, lifecycle: str) 
     report.add_argument("manifest_path", type=Path)
     report.add_argument("--output", choices=OUTPUT_FORMATS, default="json")
     report.set_defaults(handler=_cmd_batch_corpus_report, record_kind=lifecycle)
+
+    if lifecycle == "dataset":
+        run = commands.add_parser("run", help="Resume an already planned dataset generation manifest.")
+        run.add_argument("manifest_path", type=Path)
+        run.add_argument("--provider", choices=("deepseek",), default="deepseek")
+        run.add_argument("--execute-live", action="store_true")
+        run.add_argument("--actor-id", required=True)
+        run.add_argument("--policy", type=Path, required=True)
+        run.add_argument("--audit-log", type=Path, required=True)
+        run.set_defaults(handler=_cmd_generate_candidates, record_kind="dataset")
+
+
+def _add_dataset_generation_command(subparsers: argparse._SubParsersAction) -> None:
+    generate = subparsers.add_parser(
+        "generate",
+        help="Validate blueprints, plan a resumable job, and generate review-required dataset drafts.",
+    )
+    generate.add_argument("blueprints_path", type=Path)
+    generate.add_argument("--output", type=Path)
+    generate.add_argument("--job-id")
+    generate.add_argument("--runs-dir", type=Path)
+    generate.add_argument("--targets", type=Path)
+    generate.add_argument("--source-type", choices=("original_turkish", "turkey_native"))
+    generate.add_argument("--start-number", type=int)
+    generate.add_argument("--existing", type=Path, action="append", default=[])
+    generate.add_argument("--shard-size", type=int, default=50)
+    generate.add_argument("--timestamp")
+    generate.add_argument("--provider", choices=("deepseek",), default="deepseek")
+    generate.add_argument("--execute-live", action="store_true")
+    generate.add_argument("--actor-id", required=True)
+    generate.add_argument("--policy", type=Path, required=True)
+    generate.add_argument("--audit-log", type=Path, required=True)
+    generate.set_defaults(handler=_cmd_generate_dataset, record_kind="dataset")
 
 
 def _add_generation_command(subparsers: argparse._SubParsersAction, lifecycle: str) -> None:
@@ -681,38 +724,163 @@ def _cmd_generate_candidates(args: argparse.Namespace) -> int:
         settings = Settings.from_env()
         provider = DeepSeekIntegration.from_settings(settings)
         provider.require_configured()
-        validator = RuleBasedValidator()
-
-        def process(blueprint: dict[str, Any], index: int, record_id: str | None) -> dict[str, Any]:
-            if record_id is None:
-                raise BatchError("generation item has no assigned record ID")
-            blueprint_report = validator.validate_record("blueprint", blueprint)
-            if not blueprint_report.valid:
-                raise BatchError(blueprint_report.human())
-            response = _provider_retry(
-                lambda: provider.generate_candidate(
-                    lifecycle=args.record_kind, blueprint=blueprint, record_id=record_id,
-                ),
-                settings,
-            )
-            value = response.value
-            if value.get("id") != record_id:
-                raise BatchError(f"provider returned an unexpected record ID for item {index}")
-            review = value.get("metadata", {}).get("review", {})
-            if review.get("status") != "needs_revision" or review.get("reviewer_ids"):
-                raise BatchError("generated candidates must remain unreviewed needs_revision records")
-            report = validator.validate_record(args.record_kind, value)
-            if not report.valid:
-                raise BatchError(report.human())
-            return value
-
-        completed = run_job(args.manifest_path, process)
-    except (AccessPolicyError, AccessDenied, BatchError, ProviderNotConfigured) as exc:
+        completed = _execute_candidate_generation(
+            args,
+            manifest_path=args.manifest_path,
+            settings=settings,
+            provider=provider,
+        )
+    except (AccessPolicyError, AccessDenied, BatchError, ProviderNotConfigured, DatasetWorkflowError) as exc:
         print(f"ERROR GENERATION_BLOCKED: {exc}")
         return 1
     _audit_cli_allowed(args, args.actor_id, args.record_kind, "generate", completed["job_id"])
     _print_payload({"job_id": completed["job_id"], "status": completed["status"], "counts": completed["counts"]}, "json")
     return 0 if completed["counts"]["failed"] == 0 else 1
+
+
+def _cmd_generate_dataset(args: argparse.Namespace) -> int:
+    if not args.execute_live:
+        print("ERROR GENERATION_BLOCKED: --execute-live is required")
+        return 1
+    try:
+        settings = Settings.from_env()
+        validator = RuleBasedValidator()
+        plan = inspect_blueprints(args.blueprints_path, validator=validator)
+        source_type = args.source_type or plan.source_type
+        if source_type != plan.source_type:
+            raise DatasetWorkflowError(
+                f"--source-type {source_type} does not match blueprint source_type {plan.source_type}"
+            )
+        targets = plan.target_distributions
+        if args.targets:
+            targets = json.loads(args.targets.read_text(encoding="utf-8"))
+            if not isinstance(targets, dict):
+                raise DatasetWorkflowError("target distributions must be a JSON object")
+
+        provider = DeepSeekIntegration.from_settings(settings)
+        provider.require_configured()
+        job_id = args.job_id or default_job_id(args.blueprints_path)
+        paths = default_job_paths(
+            project_root=settings.project_root,
+            runs_dir=(args.runs_dir or settings.runs_dir),
+            job_id=job_id,
+            output_path=args.output,
+        )
+        existing_paths = dataset_record_paths(settings.project_root)
+        existing_paths.extend(args.existing)
+        existing_ids = collect_existing_ids(sorted(set(existing_paths)))
+        start_number = (
+            args.start_number
+            if args.start_number is not None
+            else next_dataset_number(existing_ids, source_type)
+        )
+
+        _authorize_cli_action(
+            args,
+            actor_id=args.actor_id,
+            lifecycle="dataset",
+            permission="generate",
+            resource_id=job_id,
+        )
+        manifest = create_job_manifest(
+            job_id=job_id,
+            lifecycle="dataset",
+            operation="scenario_generation",
+            input_path=args.blueprints_path,
+            output_path=paths.output,
+            checkpoint_path=paths.checkpoint,
+            error_path=paths.errors,
+            shard_size=args.shard_size,
+            targets=targets,
+            source_type=source_type,
+            start_number=start_number,
+            existing_ids=existing_ids,
+            timestamp=args.timestamp,
+        )
+        write_manifest(paths.manifest, manifest)
+        completed = _execute_candidate_generation(
+            args,
+            manifest_path=paths.manifest,
+            settings=settings,
+            provider=provider,
+        )
+    except (
+        AccessPolicyError,
+        AccessDenied,
+        BatchError,
+        DatasetWorkflowError,
+        IdError,
+        JsonSchemaValidationError,
+        ProviderNotConfigured,
+        OSError,
+        json.JSONDecodeError,
+    ) as exc:
+        print(f"ERROR GENERATION_BLOCKED: {exc}")
+        return 1
+
+    _audit_cli_allowed(args, args.actor_id, "dataset", "generate", completed["job_id"])
+    _print_payload(
+        {
+            "job_id": completed["job_id"],
+            "status": completed["status"],
+            "counts": completed["counts"],
+            "manifest": str(paths.manifest),
+            "output": str(paths.output),
+            "errors": str(paths.errors),
+            "pending_quality_gates": ["execution_when_applicable", "semantic", "language", "duplicate"],
+        },
+        "json",
+    )
+    return 0 if completed["counts"]["failed"] == 0 else 1
+
+
+def _execute_candidate_generation(
+    args: argparse.Namespace,
+    *,
+    manifest_path: Path,
+    settings: Settings,
+    provider: DeepSeekIntegration,
+) -> dict[str, Any]:
+    manifest = load_manifest(manifest_path)
+    validator = RuleBasedValidator()
+    generated_at = getattr(args, "timestamp", None) or datetime.now(timezone.utc).isoformat()
+
+    def process(blueprint: dict[str, Any], index: int, record_id: str | None) -> dict[str, Any]:
+        if record_id is None:
+            raise BatchError("generation item has no assigned record ID")
+        blueprint_report = validator.validate_record("blueprint", blueprint)
+        if not blueprint_report.valid:
+            raise BatchError(blueprint_report.human())
+        response = _provider_retry(
+            lambda: provider.generate_candidate(
+                lifecycle=args.record_kind,
+                blueprint=blueprint,
+                record_id=record_id,
+            ),
+            settings,
+        )
+        value = response.value
+        if args.record_kind == "dataset":
+            value = prepare_generated_candidate(
+                value,
+                blueprint=blueprint,
+                record_id=record_id,
+                identity=response.identity,
+                actor_id=args.actor_id,
+                generated_at=generated_at,
+            )
+        else:
+            if not isinstance(value, dict) or value.get("id") != record_id:
+                raise BatchError(f"provider returned an unexpected record ID for item {index}")
+            review = value.get("metadata", {}).get("review", {})
+            if review.get("status") != "needs_revision" or review.get("reviewer_ids"):
+                raise BatchError("generated candidates must remain unreviewed needs_revision records")
+        report = validator.validate_record(args.record_kind, value)
+        if not report.valid:
+            raise BatchError(report.human())
+        return value
+
+    return run_job(manifest_path, process)
 
 
 def _cmd_generate_localizations(args: argparse.Namespace) -> int:

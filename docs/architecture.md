@@ -30,6 +30,9 @@ conversation rules that JSON Schema cannot express clearly.
   batches, cosine similarity, and model/text-keyed vector cache.
 - `batch`: checksum-bound inputs, target distributions, ID reservations, shards,
   atomic record parts, checkpoint/resume, and failure queues.
+- `dataset_workflow`: normal-mode blueprint preflight, active-source enforcement,
+  automatic job paths/ID continuation, frozen input distributions, and removal
+  of untrusted provider quality/review claims.
 - `access`: active principals, lifecycle scopes, permissions, reviewer roles,
   dataset/benchmark team separation, and hash-chained audit events.
 - `evaluation`: exact success, five diagnostic criteria, category metrics,
@@ -66,6 +69,12 @@ and deterministic components, but never share record content. Benchmark gold is
 authored and reviewed independently, checked against the accepted dataset, then
 frozen by checksum. Evaluation writes only to `runs/`.
 
+The current operational focus is `original_turkish` and `turkey_native` dataset
+generation. Translation/localization and benchmark operations remain available
+but paused. Normal `dataset generate` creates the manifest/checkpoint/error paths
+under `runs/dataset/<job_id>`; `dataset batch` remains the advanced planning and
+resume interface.
+
 Upstream xLAM/When2Call rows first become source localization work items. These
 operational records cannot be exported as canonical dataset records. Bulk jobs
 bind an immutable input checksum to one lifecycle, one output, one ID range, and
@@ -85,6 +94,12 @@ cannot be rerun in place.
 
 Schema diagnostics and semantic diagnostics are intentionally separate. An LLM
 is never required for deterministic validation.
+
+Generated dataset records cross a trust boundary before validation. The system
+checks blueprint metadata, exposed tools, and expected calls, records the actual
+provider identity in provenance, forces human review back to `needs_revision`,
+and marks any gate without evidence as `not_run`. Provider-supplied `accepted`
+or `passed` claims cannot make a draft exportable.
 
 ## Execution flow
 

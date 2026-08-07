@@ -239,8 +239,20 @@ class RuleBasedValidator:
         execution = metadata["execution"]
         if call_count == 0 and (execution["type"] != "not_applicable" or execution["status"] != "not_called"):
             issues.append(ValidationIssue("NO_CALL_EXECUTION_INVALID", "records without calls require not_applicable/not_called execution", "$.metadata.execution", record_id=record_id, line=line))
-        if call_count > 0 and (execution["type"] == "not_applicable" or execution["status"] == "not_called"):
-            issues.append(ValidationIssue("CALLED_EXECUTION_INVALID", "records with calls must record an applicable execution type and status", "$.metadata.execution", record_id=record_id, line=line))
+        if call_count > 0 and execution["type"] == "not_applicable":
+            issues.append(ValidationIssue("CALLED_EXECUTION_INVALID", "records with calls require an applicable execution type", "$.metadata.execution", record_id=record_id, line=line))
+        if (
+            call_count > 0
+            and execution["status"] == "not_called"
+            and metadata["validation"]["execution"] != "not_run"
+        ):
+            issues.append(ValidationIssue(
+                "UNEXECUTED_RECORD_CLAIMS_VALIDATION",
+                "an unexecuted draft must keep validation.execution as not_run",
+                "$.metadata.validation.execution",
+                record_id=record_id,
+                line=line,
+            ))
         last_result = max((position for _, position in results.values()), default=-1)
         has_final = any(position > last_result for position in direct_positions) if results else False
         method_present = "final_response_method" in metadata
