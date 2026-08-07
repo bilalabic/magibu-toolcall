@@ -26,6 +26,7 @@ pilot or any production-sized dataset/benchmark activity.
 | 19 | Production CLI and handover (`cli.py`, Turkish README files, architecture/traceability docs) | Source import/localization, batch plan/status, semantic provider selection, policy-gated review/export/freeze/run, full suite, and deterministic end-to-end tests pass |
 | 20 | Quality-first normal dataset generation (`dataset_workflow.py`, dataset CLI) | Blueprint preflight, active-source restriction, automatic paths/IDs/distributions, provider-claim sanitization, advanced resume, and full-suite tests pass |
 | 21 | Evidence-backed dataset quality and computed review (`quality.py`, review schema/CLI) | Declared-mode execution, result comparison, deterministic/semantic duplicate gates, durable reports, reviewer decisions, computed acceptance, and full-suite tests pass |
+| 22 | 1,000-record provider and quality readiness (`config.py`, `generation/providers.py`, `batch.py`, `quality.py`, CLI) | Local `.env` loading, OpenAI primary/escalation rubric evidence, batched compact duplicate scan, bounded generation concurrency, retry classification, usage evidence, and token-budget tests pass without live calls |
 
 Each stage is implemented as the smallest complete slice, tested before the next
 stage, and reflected in the traceability matrix. Failures are fixed or recorded;
@@ -33,7 +34,7 @@ no failed gate is silently skipped.
 
 ## Completion
 
-All 21 infrastructure stages completed by 2026-08-07. Stages 16-19 add the
+All 22 infrastructure stages completed by 2026-08-07. Stages 16-19 add the
 production-operation foundation requested after the initial handover. They do
 not authorize or perform bulk dataset/benchmark production, gated dataset
 download, live provider spend, or final Turkish API selection.
@@ -47,3 +48,10 @@ Stage 21 adds an explicit quality boundary between generation and human review.
 Automatic checks produce evidence and update only the gates they actually ran;
 reviewer decisions are persisted separately and overall acceptance is computed
 from completed gates and required perspectives.
+
+Stage 22 prepares the active dataset path for a gated 30/100/250/1,000 ramp.
+DeepSeek remains the generator; OpenAI structured-output primary and escalation
+models independently judge every record or the configured escalation subset.
+Embedding work is batched per unique text, only findings are retained, provider
+work is concurrency- and token-budget bounded, and secrets can be loaded from an
+ignored local `.env`. This stage still performs no live provider request.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -133,7 +134,10 @@ def run_job(
     processor: Processor,
     *,
     timestamp: Callable[[], str] | None = None,
+    max_workers: int = 1,
 ) -> dict[str, Any]:
+    if not 1 <= max_workers <= 32:
+        raise BatchError("max_workers must be between 1 and 32")
     manifest = load_manifest(manifest_path)
     if manifest["status"] in {"completed", "completed_with_errors"}:
         raise BatchError("completed jobs are immutable; create a new job to rerun")
@@ -156,6 +160,7 @@ def run_job(
     for shard in manifest["shards"]:
         indexes = range(shard["start"], shard["end"])
         shard["status"] = "running"
+        pending: list[tuple[int, dict[str, Any], str | None]] = []
         for index in indexes:
             try:
                 _, row = next(rows)
@@ -163,9 +168,12 @@ def run_job(
                 raise BatchError("job input ended before the planned item count") from exc
             if index in checkpoint["processed"]:
                 continue
-            record_id = planned_record_id(manifest, index)
+            pending.append((index, row, planned_record_id(manifest, index)))
+
+        def persist(index: int, record_id: str | None, result: dict[str, Any] | None, exc: Exception | None) -> None:
             try:
-                result = processor(row, index, record_id)
+                if exc is not None:
+                    raise exc
                 if not isinstance(result, dict):
                     raise BatchError("batch processor must return a JSON object")
                 _write_part(parts_dir / f"{index:09d}.json", result)
@@ -184,6 +192,29 @@ def run_job(
             checkpoint["succeeded"].sort()
             checkpoint["failed"].sort()
             _replace_json(checkpoint_path, checkpoint)
+
+        if max_workers == 1:
+            for index, row, record_id in pending:
+                try:
+                    result = processor(row, index, record_id)
+                except Exception as exc:  # job boundary records item failures and continues
+                    persist(index, record_id, None, exc)
+                else:
+                    persist(index, record_id, result, None)
+        elif pending:
+            with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="magibu-provider") as executor:
+                futures: dict[Future[dict[str, Any]], tuple[int, str | None]] = {
+                    executor.submit(processor, row, index, record_id): (index, record_id)
+                    for index, row, record_id in pending
+                }
+                for future in as_completed(futures):
+                    index, record_id = futures[future]
+                    try:
+                        result = future.result()
+                    except Exception as exc:  # job boundary records item failures and continues
+                        persist(index, record_id, None, exc)
+                    else:
+                        persist(index, record_id, result, None)
         shard_failed = any(index in checkpoint["failed"] for index in indexes)
         shard["status"] = "completed_with_errors" if shard_failed else "completed"
     try:

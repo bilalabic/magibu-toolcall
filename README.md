@@ -8,9 +8,9 @@ Proje artık şu üretim temellerini içerir:
 
 - Gerçek xLAM ve When2Call JSON/JSONL biçimlerini okuyan kaynak adaptörleri
 - Makine alanlarını değiştirmeyen Türkçe lokalizasyon iş akışı
-- DeepSeek üzerinden yapılandırılmış ve devam ettirilebilir toplu aday üretimi
+- DeepSeek üzerinden token bütçeli, sınırlı paralel ve devam ettirilebilir toplu aday üretimi
 - Türkiye-native araçlar için yalnız HTTPS `GET` kullanan gerçek JSON API adaptörü
-- OpenAI embedding, cosine similarity, batching ve model-kimlikli disk önbelleği
+- OpenAI embedding/cosine tekrar taraması ve primary/escalation kalite judge akışı
 - Aktif reviewer/operator dizini, lifecycle kapsamı, izin kontrolü ve hash-zincirli audit kaydı
 - Checksum, shard, checkpoint, hata kuyruğu, ID çakışma ve dağılım kapıları
 - Dataset’ten bağımsız benchmark üretimi, kontaminasyon kontrolü, freeze ve run kayıtları
@@ -66,6 +66,41 @@ Windows üzerinde bütün doğrulamaları tek komutla çalıştırmak için:
 ```text
 powershell -File scripts/verify.ps1
 ```
+
+### API anahtarlarını yerel olarak tanımlama
+
+Anahtarları sohbete, komut satırı argümanına veya Git ile izlenen bir dosyaya
+yazmayın. Proje kökündeki `.env` dosyası `.gitignore` kapsamındadır ve CLI
+tarafından otomatik okunur. İlk kurulum:
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+
+`.env` içinde en az şu değerleri doldurun; gerçek değerlerin çevresine `< >`
+yazmayın:
+
+```text
+MAGIBU_TOOLCALL_DEEPSEEK_API_KEY=<DeepSeek anahtarınız>
+MAGIBU_TOOLCALL_DEEPSEEK_MODEL=deepseek-v4-pro
+MAGIBU_TOOLCALL_OPENAI_API_KEY=<OpenAI proje anahtarınız>
+MAGIBU_TOOLCALL_OPENAI_MODEL=gpt-5.4-mini-2026-03-17
+MAGIBU_TOOLCALL_OPENAI_ESCALATION_MODEL=gpt-5.4-2026-03-05
+MAGIBU_TOOLCALL_OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+```
+
+Anahtarların değerlerini göstermeden yapılandırmayı kontrol edin:
+
+```powershell
+.\.venv\Scripts\magibu-toolcall.exe config
+```
+
+Çıktıda iki anahtar da yalnızca `<configured>` görünmelidir. OpenAI tarafında
+ücretsiz paylaşımlı trafik kullanılacaksa aynı API projesi için data sharing
+etkinleştirilmeli, teklif durumunun `enrolled` olduğu görülmeli ve hesapta pozitif
+bakiye bulunmalıdır. Dataset'e gerçek kişi verisi, erişim anahtarı veya başka bir
+secret konulmamalıdır.
 
 Dağıtım ve CLI adı `magibu-toolcall`, teknik Python import paketi
 `tool_call_tr`’dir.
@@ -157,7 +192,7 @@ yalnızca bir kaynak türüne izin verir. Manifest, input checksum, shard,
 checkpoint, hata kuyruğu, hedef dağılım ve ID planı otomatik oluşturulur.
 
 ```text
-magibu-toolcall dataset generate blueprints/pilot.jsonl --job-id dataset-pilot-001 --execute-live --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset generate blueprints/pilot.jsonl --job-id dataset-pilot-001 --max-workers 4 --token-budget 250000 --execute-live --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
 ```
 
 `--output` verilmezse adaylar
@@ -171,7 +206,8 @@ Modelin döndürdüğü `accepted`, reviewer veya validation beyanları güvenil
 edilmez. CLI bunları kanıta dayalı draft durumuna çevirir:
 
 - Blueprint metadata’sı, exposed tool listesi, beklenen tool call ve tool result değiştirilemez.
-- Provider/model kimliği ve blueprint bağlantısı provenance’a sistem tarafından yazılır.
+- Provider/model kimliği ve blueprint bağlantısı provenance'a sistem tarafından yazılır.
+- Provider response modeli, request ID, deneme sayısı ve token kullanımı provenance'a yazılır.
 - Kayıt daima `needs_revision` ve reviewersız başlar.
 - Çalıştırılmayan execution, semantik, dil ve tekrar kontrolleri `not_run` kalır.
 - `not_run` veya `failed` bir kalite aşaması varken kayıt `accepted` olamaz.
@@ -179,17 +215,25 @@ edilmez. CLI bunları kanıta dayalı draft durumuna çevirir:
 Üretimden sonra otomatik kalite kanıtları ayrı komutla hesaplanır:
 
 ```text
-magibu-toolcall dataset quality data/dataset/staging/dataset-pilot-001.jsonl data/dataset/needs_revision/dataset-pilot-001.jsonl --reference data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --report review/dataset/dataset-pilot-001.quality.json --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset quality data/dataset/staging/dataset-pilot-001.jsonl data/dataset/needs_revision/dataset-pilot-001.jsonl --reference data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --judge-provider openai --judge-escalation --judge-escalation-sample-rate 0.10 --judge-max-workers 4 --report review/dataset/dataset-pilot-001.quality.json --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
 ```
 
 Bu komut şema ve tool-call yapısını yeniden doğrular; local/mock çağrıları
 gerçekten çalıştırıp kayıt içindeki tool result ile karşılaştırır. Exact ve
-normalize tekrar kontrolü her zaman yapılır. `openai` seçildiğinde üretim
-embedding modeliyle semantik karşılaştırma yapılır. `token-test-double` yalnız
-test içindir ve semantik kapısını `passed` yapamaz. Karşılaştırılacak başka kayıt
-yoksa semantik kapısı `not_applicable` olur. `--reference` dosyaları yalnızca
-önceden kabul edilmiş dataset kayıtları içerebilir; aynı ID’nin yeniden
-kullanılması engellenir.
+normalize tekrar kontrolü her zaman yapılır. `--semantic-provider openai`, bütün
+benzersiz metinleri toplu embed eder ve yalnızca eşik üstü duplicate bulgularını
+raporda tutar. Üretim embedding'i olmadan tamamlanması gereken karşılaştırmalar
+varsa duplicate kapısı `not_run` kalır. `token-test-double` yalnız test içindir ve
+üretim duplicate kapısını onaylayamaz.
+
+`--judge-provider openai`, her kaydı strict JSON rubric ile bağımsız olarak
+değerlendirir ve `validation.semantic` kapısını yönetir. Birincil model bütün
+kayıtları inceler. `--judge-escalation` verildiğinde birincil modelin geçiremediği
+kayıtlar ile geçenlerin deterministik örneklemi ikinci modele gönderilir; model
+anlaşmazlığı kaydı bloke eder. Model snapshot'ları, rubric sürümü, skorlar,
+request ID, token kullanımı ve system fingerprint kalite raporuna yazılır.
+`--reference` dosyaları yalnızca önceden kabul edilmiş dataset kayıtları
+içerebilir; aynı ID'nin yeniden kullanılması engellenir.
 
 `real_api` execution yalnız `--confirm-live` ve gerekli platform izniyle
 çalıştırılır. Yetki veya adaptör bulunmayan execution türü sessizce geçilmiş
@@ -212,7 +256,7 @@ zorundadır.
 
 ```text
 magibu-toolcall dataset batch status runs/dataset/dataset-pilot-001/manifest.json --output json
-magibu-toolcall dataset batch run runs/dataset/dataset-pilot-001/manifest.json --execute-live --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset batch run runs/dataset/dataset-pilot-001/manifest.json --max-workers 4 --token-budget 250000 --execute-live --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
 magibu-toolcall dataset batch report runs/dataset/dataset-pilot-001/manifest.json --output json
 ```
 
@@ -253,19 +297,25 @@ embedding modeli açıkça yapılandırılır:
 
 ```text
 MAGIBU_TOOLCALL_OPENAI_API_KEY
+MAGIBU_TOOLCALL_OPENAI_MODEL
+MAGIBU_TOOLCALL_OPENAI_ESCALATION_MODEL
 MAGIBU_TOOLCALL_OPENAI_EMBEDDING_MODEL
 MAGIBU_TOOLCALL_OPENAI_BASE_URL
 MAGIBU_TOOLCALL_SEMANTIC_CACHE_DIR
+MAGIBU_TOOLCALL_OPENAI_DAILY_TOKEN_BUDGET
+MAGIBU_TOOLCALL_OPENAI_ESCALATION_DAILY_TOKEN_BUDGET
 ```
 
 ```text
-magibu-toolcall dataset quality data/dataset/staging/candidates.jsonl data/dataset/needs_revision/candidates.jsonl --reference data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --semantic-cache .cache/semantic --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset quality data/dataset/staging/candidates.jsonl data/dataset/needs_revision/candidates.jsonl --reference data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --semantic-cache .cache/semantic --judge-provider openai --judge-escalation --judge-escalation-sample-rate 0.10 --judge-max-workers 4 --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
 
 magibu-toolcall benchmark contamination-check --benchmark data/benchmark/staging/candidates.jsonl --dataset data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --semantic-cache .cache/semantic --output json
 ```
 
-Embedding’ler provider model kimliğine ve metin SHA-256 değerine göre önbelleğe
-alınır. Model veya eşik seçimi raporda sabitlenmeli ve ekip tarafından
+Embedding'ler provider model kimliğine ve metin SHA-256 değerine göre önbelleğe
+alınır. 1000 kayıtlık taramada her benzersiz metin bir kez toplu embed edilir;
+bütün çiftler yerine yalnız duplicate bulguları kalıcı rapora yazılır. Model,
+eşik, judge rubric'i ve token bütçeleri raporda sabitlenmeli ve ekip tarafından
 onaylanmalıdır.
 
 ## 6. İnceleme ve export

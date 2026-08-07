@@ -22,20 +22,22 @@ conversation rules that JSON Schema cannot express clearly.
 - `provenance` and `deduplication`: provenance comparison, deterministic hashes,
   schema fingerprints, duplicate reports, and semantic-similarity protocol.
 - `generation`: provider role protocols, mock provider, final-response request
-  models, grounding/conflict hooks, and a configuration-gated DeepSeek
-  structured-JSON transport.
+  models, grounding/conflict hooks, configuration-gated DeepSeek generation,
+  and OpenAI strict structured-output dataset judging.
 - `sources` and `localization`: actual xLAM/When2Call source-shape adapters,
   source/license hashes, and natural-language-only Turkish localization patches.
 - `network` and `semantic`: injectable JSON HTTP transport, OpenAI embedding
   batches, cosine similarity, and model/text-keyed vector cache.
 - `batch`: checksum-bound inputs, target distributions, ID reservations, shards,
-  atomic record parts, checkpoint/resume, and failure queues.
+  bounded worker concurrency, atomic record parts, checkpoint/resume, and
+  failure queues.
 - `dataset_workflow`: normal-mode blueprint preflight, active-source enforcement,
   automatic job paths/ID continuation, frozen input distributions, and removal
   of untrusted provider quality/review claims.
 - `quality`: automatic dataset evidence recomputation, declared-mode tool
-  execution, recorded-result comparison, deterministic/semantic duplicate
-  decisions, and per-record quality reports without human acceptance.
+  execution, recorded-result comparison, compact batched duplicate decisions,
+  primary/escalation judge evidence, token budgets, and per-record quality
+  reports without human acceptance.
 - `access`: active principals, lifecycle scopes, permissions, reviewer roles,
   dataset/benchmark team separation, and hash-chained audit events.
 - `evaluation`: exact success, five diagnostic criteria, category metrics,
@@ -107,11 +109,25 @@ or `passed` claims cannot make a draft exportable.
 The dataset quality command recomputes deterministic gates, executes local/mock
 calls in their declared mode, and compares actual data with recorded tool-result
 messages. Real API execution additionally requires explicit live confirmation
-and platform permission. Exact/normalized duplicate checks are always run.
-Production semantic status can be passed only by the configured OpenAI embedding
-path; the token test double can produce diagnostics but not production evidence.
-A separate report records execution evidence, pair decisions, model identity,
-threshold, actor, and time.
+and platform permission. Exact/normalized duplicate checks are always run. The
+duplicate gate is certified by deterministic fingerprints plus the configured
+production embedding provider. Unique texts are embedded in batches, vectors
+are compared in memory, and only threshold findings are retained in the durable
+report.
+
+The semantic gate is independently certified by the OpenAI dataset-quality
+judge. An optional escalation model checks every primary non-pass and a
+deterministic sample of primary passes; disagreement blocks the record. Test
+doubles can diagnose but cannot certify either production gate. The quality
+report records execution, duplicate and judge evidence, rubric/model identity,
+request IDs, token use, system fingerprint, thresholds, budgets, actor, and
+time.
+
+Provider retry policy distinguishes retryable failures, honors numeric
+`Retry-After`, and adds bounded jitter. Generation records response model,
+request ID, attempt count, system fingerprint, and token use in provenance.
+Run-level generation and primary/escalation judge budgets fail closed before a
+request whose conservative estimate would exceed its configured limit.
 
 ## Execution flow
 

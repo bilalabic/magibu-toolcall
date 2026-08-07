@@ -60,9 +60,11 @@ status, and accepted export revalidates records.
 - Actual xLAM/When2Call format adapters and machine-safe Turkish localization:
   `sources.py` and `localization.py`.
 - Injectable JSON transport, DeepSeek structured generation, OpenAI embedding
-  batches/cosine/cache: `network.py`, `generation/providers.py`, `semantic.py`.
+  batches/cosine/cache, and strict primary/escalation dataset judging:
+  `network.py`, `generation/providers.py`, `semantic.py`.
 - Checksum-bound resumable jobs with ID collision preflight, target distribution
-  validation, streaming shards, atomic parts, checkpoints, and error queues:
+  validation, bounded concurrency, provider token budgets, atomic parts,
+  checkpoints, and error queues:
   `batch.py` and the dataset/benchmark CLI namespaces.
 - Active principals, role/scope/permission checks, dataset/benchmark team
   isolation, and hash-chained audit events: `access.py` and the access-policy
@@ -93,9 +95,11 @@ API is thereby approved.
 
 ### 20–30-example pilot
 
-Actual pilot blueprints/candidates, live provider configuration, production
-semantic threshold/model approval, contributor ranges, reviewer assignments,
-and pilot-driven schema/validator revisions are deferred. Dataset and benchmark
+Actual pilot blueprints/candidates, live provider calls, threshold/rubric
+calibration, contributor ranges, reviewer assignments, and pilot-driven
+schema/validator revisions are deferred. Pinned model defaults, ignored local
+`.env` loading, redacted config diagnostics, provider usage evidence, and quota
+guards are implemented. Dataset and benchmark
 ownership, directories, CLI namespaces, policy scopes, batch manifests, and
 contamination/freeze gates are structurally isolated; real staff assignments and
 storage ACLs remain deferred.
@@ -108,10 +112,11 @@ results were not produced.
 
 ### 1,000-example second stage
 
-The 1,000 accepted records, 150–200 benchmark records, 300 Türkiye-native
-records, production semantic deduplication/contamination runs, targeted
-error-driven generation, final Dataset Card, and quality/error report are
-deferred.
+The infrastructure can bound parallel generation, batch each unique embedding,
+avoid materializing all pair reports, run two-level OpenAI judgment, and enforce
+token budgets. The actual 1,000 accepted records, 300 Türkiye-native records,
+targeted error-driven generation, final Dataset Card, and quality/error report
+remain deferred. Benchmark volume remains independently paused.
 
 ### Final benchmark evaluation
 
@@ -130,10 +135,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\verify.ps1
 .venv\Scripts\python.exe -m pip check
 ```
 
-The final suite passes 145 tests, including the original deterministic flow and
+The final suite passes 156 tests, including the original deterministic flow and
 an independent parallel dataset/benchmark lifecycle flow. Added tests cover
 actual xLAM/When2Call shapes, machine-safe localization, source terms gates,
-DeepSeek/OpenAI request parsing, embedding cache/cosine behavior, HTTPS allowlist
+DeepSeek/OpenAI request parsing, strict judge rubrics, primary/escalation
+disagreement, token-budget exhaustion, unique-text embedding batches, compact
+duplicate findings, embedding cache/cosine behavior, HTTPS allowlist
 and normalized statuses, access scopes/roles/permissions/audit tamper detection,
 streaming shard plans, checksum/ID/distribution gates, interruption/resume,
 failure queues, dataset/benchmark batch CLI flows, normal dataset job planning,
@@ -155,8 +162,8 @@ was skipped.
 
 Known limitations are listed in `known_limitations.md`; most notably, production
 transports/adapters were tested without live credentials or network calls, no
-final Türkiye-native tool is approved, and free-text semantic/Turkish judgment
-still requires a provider plus humans.
+final Türkiye-native tool is approved, and model judgment still requires live
+calibration plus humans.
 
 ## 6. Requirement traceability
 
@@ -166,11 +173,12 @@ mock execution, explicit fallback policy, provenance/hashes/fingerprints,
 benchmark scoring/metrics/run separation, review/export, CLI, and end-to-end
 verification.
 
-Production infrastructure now includes semantic embedding similarity,
-DeepSeek structured generation, read-only real API execution, source import and
-localization, access policy, and resumable scale controls. Partially implemented
-by deliberate scope: free-text semantic/Turkish judging, state-changing external
-sandboxes, and production final-answer generation. Execution of volume targets
+Production infrastructure now includes semantic embedding similarity, DeepSeek
+structured generation, primary/escalation OpenAI dataset judging, read-only real
+API execution, source import/localization, access policy, and resumable bounded
+scale controls. Partially implemented by deliberate scope: benchmark free-text
+response judging, state-changing external sandboxes, and production final-answer
+generation. Execution of volume targets
 and final publications is deferred. External decisions remain: approved
 tools/licenses, model versions/thresholds, reviewer IDs, storage ACLs, and
 budgets. The row-level matrix is in
@@ -179,8 +187,10 @@ budgets. The row-level matrix is in
 ## 7. Next safe step
 
 Before generating data, research and team-approve a small diverse tool subset,
-freeze the next `0.1.x` registry revision, select provider models/thresholds,
-create the real access-policy principal directory plus storage ACLs, then author
-and validate a small `original_turkish`/`turkey_native` blueprint pilot. Run the
-pilot through generation, automatic quality reports, and real reviewer decisions
-before increasing volume. Translation and benchmark work remain paused.
+freeze the next `0.1.x` registry revision, create the real access-policy
+principal directory plus storage ACLs, then author and validate a 30-record
+`original_turkish`/`turkey_native` blueprint pilot. Confirm local credentials via
+redacted config output, run with conservative concurrency/budgets, reconcile
+provider usage, calibrate rubric/thresholds against real reviewers, then progress
+through 100 and 250 records before four 250-record runs. Translation and
+benchmark work remain paused.

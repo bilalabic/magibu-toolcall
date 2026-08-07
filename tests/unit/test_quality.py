@@ -3,10 +3,13 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
+import threading
+import time
 
 import pytest
 
 from tool_call_tr.cli import main
+from tool_call_tr.generation.providers import ModelIdentity, ProviderResponse
 from tool_call_tr.quality import QualityError, run_dataset_quality
 from tool_call_tr.registry import ToolRegistry
 
@@ -54,7 +57,7 @@ def test_quality_keeps_human_language_review_pending_for_no_tool_record() -> Non
     record = result.records[0]
     assert result.passed
     assert record["metadata"]["execution"] == {"type": "not_applicable", "status": "not_called"}
-    assert record["metadata"]["validation"]["semantic"] == "not_applicable"
+    assert record["metadata"]["validation"]["semantic"] == "not_run"
     assert record["metadata"]["validation"]["duplicate"] == "passed"
     assert record["metadata"]["validation"]["language"] == "not_run"
     assert record["metadata"]["review"]["status"] == "needs_revision"
@@ -135,7 +138,22 @@ class LowSimilarity:
         return 0.1
 
 
-def test_production_semantic_possible_duplicate_fails_both_gates() -> None:
+class BatchSimilarity:
+    def __init__(self) -> None:
+        self.calls: list[list[str]] = []
+
+    def vectors(self, texts: list[str]) -> list[list[float]]:
+        self.calls.append(list(texts))
+        return [
+            [1.0 if left == right else 0.0 for right in range(len(texts))]
+            for left in range(len(texts))
+        ]
+
+    def score(self, left: str, right: str) -> float:
+        raise AssertionError("batched quality scan must not call pairwise score")
+
+
+def test_production_semantic_possible_duplicate_fails_duplicate_gate() -> None:
     candidate = draft("valid_no_tool.json")
     reference = load("valid_missing_parameter.json")
     result = run_dataset_quality(
@@ -150,7 +168,7 @@ def test_production_semantic_possible_duplicate_fails_both_gates() -> None:
     )
     validation = result.records[0]["metadata"]["validation"]
     assert not result.passed
-    assert validation["semantic"] == "failed"
+    assert validation["semantic"] == "not_run"
     assert validation["duplicate"] == "failed"
 
 
@@ -164,8 +182,164 @@ def test_nonproduction_semantic_double_cannot_certify_gate() -> None:
         semantic_provider="token-test-double",
         production_semantic=False,
     )
-    assert result.records[0]["metadata"]["validation"]["duplicate"] == "passed"
+    assert result.records[0]["metadata"]["validation"]["duplicate"] == "not_run"
     assert result.records[0]["metadata"]["validation"]["semantic"] == "not_run"
+
+
+def test_quality_batches_unique_embeddings_and_retains_only_findings() -> None:
+    records = []
+    for number, query in enumerate(("Birinci özgün soru", "İkinci özgün soru", "Üçüncü özgün soru"), 1):
+        record = draft("valid_no_tool.json")
+        record["id"] = f"tctr_ot_{number:06d}"
+        record["messages"][0]["content"] = query
+        records.append(record)
+    semantic = BatchSimilarity()
+    result = run_dataset_quality(
+        records,
+        references=[],
+        registry=registry(),
+        actor_id="dataset_operator_01",
+        semantic=semantic,
+        semantic_provider="openai-test-transport",
+        production_semantic=True,
+    )
+    assert len(semantic.calls) == 1
+    assert len(semantic.calls[0]) == 3
+    assert result.report["duplicate_scan"] == {
+        "pairs_checked": 3,
+        "semantic_comparisons": 3,
+        "findings_retained": 0,
+    }
+    assert result.report["duplicate_pairs"] == []
+    assert all(record["metadata"]["validation"]["duplicate"] == "passed" for record in result.records)
+
+
+def judgment(verdict: str = "pass", score: int = 5) -> dict:
+    return {
+        "verdict": verdict,
+        "scores": {
+            name: score
+            for name in (
+                "language_naturalness", "tool_necessity", "tool_selection",
+                "argument_grounding", "clarification_behavior", "result_grounding",
+                "turkey_context",
+            )
+        },
+        "issues": [],
+        "summary": "Kalite değerlendirmesi tamamlandı.",
+    }
+
+
+class FakeJudge:
+    def __init__(self, model: str, value: dict) -> None:
+        self.model = model
+        self.value = value
+        self.calls = 0
+
+    def judge_record(self, record: dict) -> ProviderResponse:
+        self.calls += 1
+        return ProviderResponse(
+            self.value,
+            ModelIdentity("openai", self.model, self.model, "dataset_quality_judge"),
+            usage={"input_tokens": 100, "output_tokens": 20, "total_tokens": 120},
+            request_id=f"req-{self.calls}",
+        )
+
+
+def test_production_judge_certifies_semantic_gate_and_records_usage() -> None:
+    judge = FakeJudge("gpt-test-primary", judgment())
+    result = run_dataset_quality(
+        [draft("valid_no_tool.json")],
+        references=[],
+        registry=registry(),
+        actor_id="dataset_operator_01",
+        judge=judge,
+        judge_provider="openai",
+        production_judge=True,
+        judge_token_budget=10000,
+    )
+    assert result.records[0]["metadata"]["validation"]["semantic"] == "passed"
+    assert result.report["judge"]["primary_tokens_used"] == 120
+    assert result.report["records"][0]["judge_evidence"]["primary"]["request_id"] == "req-1"
+
+
+def test_escalation_disagreement_blocks_semantic_gate() -> None:
+    primary = FakeJudge("gpt-test-primary", judgment())
+    escalation = FakeJudge("gpt-test-escalation", judgment("fail", 2))
+    result = run_dataset_quality(
+        [draft("valid_no_tool.json")],
+        references=[],
+        registry=registry(),
+        actor_id="dataset_operator_01",
+        judge=primary,
+        judge_provider="openai",
+        production_judge=True,
+        escalation_judge=escalation,
+        escalation_sample_rate=1.0,
+    )
+    assert not result.passed
+    assert result.records[0]["metadata"]["validation"]["semantic"] == "failed"
+    assert result.report["records"][0]["judge_evidence"]["agreement"] is False
+
+
+def test_judge_budget_exhaustion_blocks_without_api_call() -> None:
+    judge = FakeJudge("gpt-test-primary", judgment())
+    result = run_dataset_quality(
+        [draft("valid_single_tool.json")],
+        references=[],
+        registry=registry(),
+        actor_id="dataset_operator_01",
+        judge=judge,
+        judge_provider="openai",
+        production_judge=True,
+        judge_token_budget=1,
+    )
+    assert judge.calls == 0
+    assert result.records[0]["metadata"]["validation"]["semantic"] == "failed"
+    assert result.report["records"][0]["judge_evidence"]["primary"]["status"] == "token_budget_exhausted"
+
+
+def test_quality_judge_uses_bounded_parallel_workers() -> None:
+    records = []
+    for number in range(1, 5):
+        record = draft("valid_no_tool.json")
+        record["id"] = f"tctr_ot_{number:06d}"
+        record["messages"][0]["content"] = f"Özgün soru {number}"
+        records.append(record)
+
+    class ConcurrentJudge(FakeJudge):
+        def __init__(self) -> None:
+            super().__init__("gpt-test-primary", judgment())
+            self.lock = threading.Lock()
+            self.active = 0
+            self.maximum_active = 0
+
+        def judge_record(self, record: dict) -> ProviderResponse:
+            with self.lock:
+                self.active += 1
+                self.maximum_active = max(self.maximum_active, self.active)
+            time.sleep(0.02)
+            response = super().judge_record(record)
+            with self.lock:
+                self.active -= 1
+            return response
+
+    judge = ConcurrentJudge()
+    result = run_dataset_quality(
+        records,
+        references=[],
+        registry=registry(),
+        actor_id="dataset_operator_01",
+        judge=judge,
+        judge_provider="openai",
+        production_judge=True,
+        judge_max_workers=2,
+        judge_token_budget=100000,
+    )
+    assert judge.maximum_active == 2
+    assert result.report["judge"]["max_workers"] == 2
+    assert result.report["judge"]["primary_tokens_used"] == 480
+    assert all(record["metadata"]["validation"]["semantic"] == "passed" for record in result.records)
 
 
 def test_quality_cli_writes_verified_draft_report_and_audit(tmp_path: Path, capsys, access_files) -> None:

@@ -3,13 +3,24 @@
 from __future__ import annotations
 
 import copy
-from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
+import hashlib
 import json
+import math
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
-from tool_call_tr.deduplication import DuplicateReport, SemanticSimilarity, compare_records
+from tool_call_tr.deduplication import (
+    DuplicateReport,
+    SemanticSimilarity,
+    combined_query_schema_hash,
+    exact_query_hash,
+    normalized_query_hash,
+    tool_schema_fingerprint,
+)
 from tool_call_tr.execution import (
     ExecutionEngine,
     ExecutionRequest,
@@ -22,6 +33,8 @@ from tool_call_tr.execution import (
     StatefulSimulationAdapter,
 )
 from tool_call_tr.registry import ToolRegistry
+from tool_call_tr.generation.providers import ProviderError, RecordQualityJudge
+from tool_call_tr.semantic import cosine_similarity
 from tool_call_tr.validation import RuleBasedValidator
 
 
@@ -42,6 +55,29 @@ class QualityResult:
         return self.report["summary"]["records_with_automatic_failures"] == 0
 
 
+@dataclass(slots=True)
+class _TokenBudget:
+    limit: int | None
+    accounted: int = 0
+    observed: int = 0
+    reserved: int = 0
+    lock: Lock = field(default_factory=Lock, repr=False)
+
+    def reserve(self, estimate: int) -> bool:
+        with self.lock:
+            if self.limit is not None and self.accounted + self.reserved + estimate > self.limit:
+                return False
+            self.reserved += estimate
+            return True
+
+    def consume(self, actual: int | None, estimate: int) -> None:
+        with self.lock:
+            self.reserved -= estimate
+            self.accounted += max(estimate, actual or 0)
+            if actual is not None:
+                self.observed += actual
+
+
 def run_dataset_quality(
     records: list[dict[str, Any]],
     *,
@@ -52,6 +88,14 @@ def run_dataset_quality(
     semantic_provider: str = "none",
     production_semantic: bool = False,
     semantic_threshold: float = 0.9,
+    judge: RecordQualityJudge | None = None,
+    judge_provider: str = "none",
+    production_judge: bool = False,
+    escalation_judge: RecordQualityJudge | None = None,
+    escalation_sample_rate: float = 0.0,
+    judge_max_workers: int = 1,
+    judge_token_budget: int | None = None,
+    escalation_token_budget: int | None = None,
     allow_real_api: bool = False,
     timestamp: str | None = None,
 ) -> QualityResult:
@@ -61,6 +105,18 @@ def run_dataset_quality(
         raise QualityError("semantic threshold must be between 0 and 1")
     if production_semantic and semantic is None:
         raise QualityError("production semantic mode requires a configured similarity provider")
+    if production_judge and judge is None:
+        raise QualityError("production judge mode requires a configured quality judge")
+    if not 0.0 <= escalation_sample_rate <= 1.0:
+        raise QualityError("escalation sample rate must be between 0 and 1")
+    if escalation_judge is None and escalation_sample_rate:
+        raise QualityError("escalation sampling requires an escalation judge")
+    if not 1 <= judge_max_workers <= 32:
+        raise QualityError("judge_max_workers must be between 1 and 32")
+    if judge_token_budget is not None and judge_token_budget < 1:
+        raise QualityError("judge token budget must be positive")
+    if escalation_token_budget is not None and escalation_token_budget < 1:
+        raise QualityError("escalation token budget must be positive")
     if not records:
         raise QualityError("quality input cannot be empty")
 
@@ -80,8 +136,11 @@ def run_dataset_quality(
         raise QualityError("quality input IDs already exist in reference corpus: " + ", ".join(id_collisions))
     updated = copy.deepcopy(records)
     record_evidence: dict[str, list[dict[str, Any]]] = {}
+    judge_evidence: dict[str, dict[str, Any]] = {}
     now = timestamp or datetime.now(timezone.utc).isoformat()
     semantic_model = getattr(getattr(semantic, "provider", None), "model", None)
+    primary_budget = _TokenBudget(judge_token_budget)
+    escalation_budget = _TokenBudget(escalation_token_budget)
 
     for record in updated:
         metadata = record["metadata"]
@@ -116,7 +175,21 @@ def run_dataset_quality(
         )
         record_evidence[record["id"]] = evidence
 
-    pair_reports, semantic_state = _scan_duplicates(
+    semantic_statuses, judge_evidence = _judge_records(
+        updated,
+        judge=judge,
+        judge_provider=judge_provider,
+        production_judge=production_judge,
+        escalation_judge=escalation_judge,
+        escalation_sample_rate=escalation_sample_rate,
+        primary_budget=primary_budget,
+        escalation_budget=escalation_budget,
+        max_workers=judge_max_workers,
+    )
+    for record in updated:
+        record["metadata"]["validation"]["semantic"] = semantic_statuses[record["id"]]
+
+    pair_reports, duplicate_state, duplicate_summary = _scan_duplicates(
         updated,
         references,
         semantic=semantic,
@@ -124,17 +197,16 @@ def run_dataset_quality(
         semantic_threshold=semantic_threshold,
     )
     for record in updated:
-        state = semantic_state[record["id"]]
-        record["metadata"]["validation"]["duplicate"] = "failed" if state["duplicate"] else "passed"
-        if state["semantic_required"] == 0:
-            semantic_status = "not_applicable"
-        elif state["semantic_failed"]:
-            semantic_status = "failed"
-        elif production_semantic and state["semantic_evaluated"] == state["semantic_required"]:
-            semantic_status = "passed"
+        state = duplicate_state[record["id"]]
+        if state["duplicate"]:
+            duplicate_status = "failed"
+        elif state["comparisons_required"] == 0:
+            duplicate_status = "passed"
+        elif production_semantic and state["comparisons_evaluated"] == state["comparisons_required"]:
+            duplicate_status = "passed"
         else:
-            semantic_status = "not_run"
-        record["metadata"]["validation"]["semantic"] = semantic_status
+            duplicate_status = "not_run"
+        record["metadata"]["validation"]["duplicate"] = duplicate_status
         validation = record["metadata"]["validation"]
         automatic_failures = [
             name for name, status in validation.items()
@@ -148,6 +220,7 @@ def run_dataset_quality(
                 "actor_id": actor_id,
                 "details": (
                     f"semantic_provider={semantic_provider}; semantic_model={semantic_model or 'none'}; "
+                    f"judge_provider={judge_provider}; judge_model={getattr(judge, 'model', None) or 'none'}; "
                     f"threshold={semantic_threshold}; "
                     f"automatic_failures={','.join(automatic_failures) or 'none'}; "
                     f"pending={','.join(pending) or 'none'}"
@@ -173,10 +246,11 @@ def run_dataset_quality(
                 "automatic_failures": automatic_failures,
                 "pending_gates": [name for name, status in validation.items() if status == "not_run"],
                 "execution_evidence": record_evidence[record["id"]],
+                "judge_evidence": judge_evidence[record["id"]],
             }
         )
     report = {
-        "quality_version": "0.1.0",
+        "quality_version": "0.2.0",
         "actor_id": actor_id,
         "created_at": now,
         "semantic": {
@@ -185,13 +259,32 @@ def run_dataset_quality(
             "production": production_semantic,
             "threshold": semantic_threshold,
         },
+        "judge": {
+            "provider": judge_provider,
+            "model": getattr(judge, "model", None),
+            "production": production_judge,
+            "escalation_model": getattr(escalation_judge, "model", None),
+            "escalation_sample_rate": escalation_sample_rate,
+            "max_workers": judge_max_workers,
+            "primary_token_budget": judge_token_budget,
+            "primary_tokens_used": primary_budget.observed,
+            "primary_budget_accounted_tokens": primary_budget.accounted,
+            "escalation_token_budget": escalation_token_budget,
+            "escalation_tokens_used": escalation_budget.observed,
+            "escalation_budget_accounted_tokens": escalation_budget.accounted,
+        },
         "records": record_reports,
         "duplicate_pairs": [item.to_dict() for item in pair_reports],
+        "duplicate_scan": duplicate_summary,
         "summary": {
             "records_checked": len(updated),
             "reference_records": len(references),
-            "pairs_checked": len(pair_reports),
+            "pairs_checked": duplicate_summary["pairs_checked"],
+            "duplicate_findings": len(pair_reports),
             "records_with_automatic_failures": sum(bool(item["automatic_failures"]) for item in record_reports),
+            "records_with_model_pass": sum(
+                item["validation"]["semantic"] == "passed" for item in record_reports
+            ),
             "records_pending_human_language_review": sum(
                 item["validation"]["language"] == "not_run" for item in record_reports
             ),
@@ -351,6 +444,179 @@ def _verify_execution(
     return execution, evidence
 
 
+def _judge_records(
+    records: list[dict[str, Any]],
+    *,
+    judge: RecordQualityJudge | None,
+    judge_provider: str,
+    production_judge: bool,
+    escalation_judge: RecordQualityJudge | None,
+    escalation_sample_rate: float,
+    primary_budget: _TokenBudget,
+    escalation_budget: _TokenBudget,
+    max_workers: int,
+) -> tuple[dict[str, str], dict[str, dict[str, Any]]]:
+    def evaluate(record: dict[str, Any]) -> tuple[str, str, dict[str, Any]]:
+        status, evidence = _judge_record(
+            record,
+            judge=judge,
+            judge_provider=judge_provider,
+            production_judge=production_judge,
+            escalation_judge=escalation_judge,
+            escalation_sample_rate=escalation_sample_rate,
+            primary_budget=primary_budget,
+            escalation_budget=escalation_budget,
+        )
+        return record["id"], status, evidence
+
+    if max_workers == 1 or len(records) == 1:
+        evaluated = [evaluate(record) for record in records]
+    else:
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="magibu-judge") as executor:
+            evaluated = list(executor.map(evaluate, records))
+    statuses = {record_id: status for record_id, status, _ in evaluated}
+    evidence = {record_id: item for record_id, _, item in evaluated}
+    return statuses, evidence
+
+
+def _judge_record(
+    record: dict[str, Any],
+    *,
+    judge: RecordQualityJudge | None,
+    judge_provider: str,
+    production_judge: bool,
+    escalation_judge: RecordQualityJudge | None,
+    escalation_sample_rate: float,
+    primary_budget: _TokenBudget,
+    escalation_budget: _TokenBudget,
+) -> tuple[str, dict[str, Any]]:
+    if judge is None:
+        return "not_run", {"status": "not_run", "reason": "quality judge was not selected"}
+
+    primary, failure = _call_judge(record, judge=judge, budget=primary_budget)
+    if failure is not None:
+        return "failed", {
+            "status": "failed",
+            "provider": judge_provider,
+            "model": judge.model,
+            "primary": failure,
+            "escalation": None,
+        }
+    primary_value = primary.value
+    should_escalate = escalation_judge is not None and (
+        primary_value["verdict"] != "pass"
+        or _sample_record(record["id"], escalation_sample_rate)
+    )
+    escalation = None
+    escalation_failure = None
+    if should_escalate and escalation_judge is not None:
+        escalation, escalation_failure = _call_judge(
+            record,
+            judge=escalation_judge,
+            budget=escalation_budget,
+        )
+
+    primary_pass = _judgment_passes(primary_value)
+    escalation_pass = escalation is None or _judgment_passes(escalation.value)
+    certified = production_judge and primary_pass and escalation_pass and escalation_failure is None
+    status = "passed" if certified else "failed" if production_judge else "not_run"
+    evidence = {
+        "status": status,
+        "provider": judge_provider,
+        "model": judge.model,
+        "rubric_version": "dataset-quality-0.1.0",
+        "primary": _response_evidence(primary),
+        "escalation": (
+            escalation_failure
+            if escalation_failure is not None
+            else _response_evidence(escalation) if escalation is not None else None
+        ),
+        "agreement": (
+            None
+            if escalation is None
+            else primary.value["verdict"] == escalation.value["verdict"]
+        ),
+    }
+    return status, evidence
+
+
+def _call_judge(
+    record: dict[str, Any],
+    *,
+    judge: RecordQualityJudge,
+    budget: _TokenBudget,
+):
+    estimate = _estimated_judge_tokens(record, judge)
+    if not budget.reserve(estimate):
+        return None, {
+            "status": "token_budget_exhausted",
+            "estimated_tokens": estimate,
+            "tokens_accounted_before_request": budget.accounted,
+            "token_budget": budget.limit,
+        }
+    try:
+        response = judge.judge_record(record)
+    except ProviderError as exc:
+        budget.consume(None, estimate)
+        return None, {
+            "status": "provider_error",
+            "error_type": type(exc).__name__,
+            "status_code": exc.status_code,
+            "retryable": exc.retryable,
+        }
+    actual = response.usage.get("total_tokens") if response.usage else None
+    budget.consume(actual, estimate)
+    return response, None
+
+
+def _estimated_judge_tokens(record: dict[str, Any], judge: RecordQualityJudge) -> int:
+    serialized = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    provider = getattr(judge, "provider", judge)
+    max_output = getattr(provider, "max_output_tokens", 1200)
+    return math.ceil(len(serialized) / 2) + int(max_output) + 400
+
+
+def _judgment_passes(value: dict[str, Any]) -> bool:
+    return bool(
+        value["verdict"] == "pass"
+        and min(value["scores"].values()) >= 4
+        and not any(issue["severity"] in {"major", "critical"} for issue in value["issues"])
+    )
+
+
+def _response_evidence(response) -> dict[str, Any]:
+    return {
+        "verdict": response.value["verdict"],
+        "scores": copy.deepcopy(response.value["scores"]),
+        "issues": copy.deepcopy(response.value["issues"]),
+        "summary": response.value["summary"],
+        "requested_model": response.identity.model,
+        "response_model": response.identity.model_version,
+        "attempts": response.attempts,
+        "usage": copy.deepcopy(response.usage),
+        "request_id": response.request_id,
+        "system_fingerprint": response.system_fingerprint,
+    }
+
+
+def _sample_record(record_id: str, sample_rate: float) -> bool:
+    if sample_rate <= 0:
+        return False
+    bucket = int(hashlib.sha256(record_id.encode("utf-8")).hexdigest()[:12], 16) / float(16**12)
+    return bucket < sample_rate
+
+
+@dataclass(frozen=True, slots=True)
+class _DuplicateSignature:
+    record: dict[str, Any]
+    query: str
+    exact_hash: str
+    normalized_hash: str
+    schema_hashes: tuple[str, ...]
+    combined_hash: str
+    source_key: tuple[str, str] | None
+
+
 def _scan_duplicates(
     records: list[dict[str, Any]],
     references: list[dict[str, Any]],
@@ -358,50 +624,110 @@ def _scan_duplicates(
     semantic: SemanticSimilarity | None,
     production_semantic: bool,
     semantic_threshold: float,
-) -> tuple[list[DuplicateReport], dict[str, dict[str, int | bool]]]:
+) -> tuple[list[DuplicateReport], dict[str, dict[str, int | bool]], dict[str, int]]:
     state: dict[str, dict[str, int | bool]] = {
         record["id"]: {
             "duplicate": False,
-            "semantic_required": 0,
-            "semantic_evaluated": 0,
-            "semantic_failed": False,
+            "comparisons_required": 0,
+            "comparisons_evaluated": 0,
         }
         for record in records
     }
     reports: list[DuplicateReport] = []
-    pairs: list[tuple[dict[str, Any], dict[str, Any], list[str]]] = []
-    for left_index, left in enumerate(records):
-        for right in records[left_index + 1:]:
-            pairs.append((left, right, [left["id"], right["id"]]))
-        for reference in references:
-            if left["id"] != reference["id"]:
-                pairs.append((left, reference, [left["id"]]))
+    signatures = [_duplicate_signature(record) for record in [*records, *references]]
+    record_signatures = signatures[:len(records)]
+    reference_signatures = signatures[len(records):]
+    vector_by_query: dict[str, list[float]] | None = None
+    if semantic is not None and hasattr(semantic, "vectors"):
+        unique_queries = list(dict.fromkeys(signature.query for signature in signatures))
+        vectors = semantic.vectors(unique_queries)  # type: ignore[attr-defined]
+        vector_by_query = dict(zip(unique_queries, vectors, strict=True))
 
-    for left, right, affected_ids in pairs:
-        deterministic = compare_records(left, right, semantic=None, semantic_threshold=semantic_threshold)
-        if deterministic.decision == "duplicate":
-            report = deterministic
-        else:
-            for record_id in affected_ids:
-                state[record_id]["semantic_required"] = int(state[record_id]["semantic_required"]) + 1
-            if semantic is None:
-                report = deterministic
-            else:
-                report = compare_records(
-                    left,
-                    right,
-                    semantic=semantic,
-                    semantic_threshold=semantic_threshold,
-                )
+    pairs_checked = 0
+    semantic_comparisons = 0
+    for left_index, left in enumerate(record_signatures):
+        pairs = [
+            *((right, [left.record["id"], right.record["id"]]) for right in record_signatures[left_index + 1:]),
+            *((right, [left.record["id"]]) for right in reference_signatures),
+        ]
+        for right, affected_ids in pairs:
+            pairs_checked += 1
+            report = _deterministic_duplicate_report(left, right)
+            if report.decision != "duplicate":
                 for record_id in affected_ids:
-                    state[record_id]["semantic_evaluated"] = int(state[record_id]["semantic_evaluated"]) + 1
-        if report.decision == "duplicate":
-            for record_id in affected_ids:
-                state[record_id]["duplicate"] = True
-        elif report.decision == "possible_duplicate":
-            for record_id in affected_ids:
-                state[record_id]["duplicate"] = True
-                if production_semantic:
-                    state[record_id]["semantic_failed"] = True
-        reports.append(report)
-    return reports, state
+                    state[record_id]["comparisons_required"] = int(state[record_id]["comparisons_required"]) + 1
+                if semantic is not None:
+                    score = (
+                        cosine_similarity(vector_by_query[left.query], vector_by_query[right.query])
+                        if vector_by_query is not None
+                        else semantic.score(left.query, right.query)
+                    )
+                    semantic_comparisons += 1
+                    for record_id in affected_ids:
+                        state[record_id]["comparisons_evaluated"] = int(state[record_id]["comparisons_evaluated"]) + 1
+                    report = DuplicateReport(
+                        report.left_id,
+                        report.right_id,
+                        report.exact_query,
+                        report.normalized_query,
+                        report.entity_shape,
+                        report.tool_schema_match,
+                        report.combined_match,
+                        report.source_example_match,
+                        score,
+                        "possible_duplicate" if score >= semantic_threshold else "distinct",
+                    )
+            if report.decision in {"duplicate", "possible_duplicate"}:
+                for record_id in affected_ids:
+                    state[record_id]["duplicate"] = True
+                reports.append(report)
+    return reports, state, {
+        "pairs_checked": pairs_checked,
+        "semantic_comparisons": semantic_comparisons,
+        "findings_retained": len(reports),
+    }
+
+
+def _duplicate_signature(record: dict[str, Any]) -> _DuplicateSignature:
+    query = "\n".join(
+        message["content"]
+        for message in record.get("messages", [])
+        if message.get("role") == "user"
+    )
+    schemas = [tool["function"]["parameters"] for tool in record.get("tools", [])]
+    provenance = record["metadata"]["provenance"]
+    source_key = None
+    if provenance.get("source_dataset") is not None and provenance.get("source_example_id") is not None:
+        source_key = (provenance["source_dataset"], provenance["source_example_id"])
+    return _DuplicateSignature(
+        record=record,
+        query=query,
+        exact_hash=exact_query_hash(query),
+        normalized_hash=normalized_query_hash(query),
+        schema_hashes=tuple(sorted(tool_schema_fingerprint(schema) for schema in schemas)),
+        combined_hash=combined_query_schema_hash(query, schemas),
+        source_key=source_key,
+    )
+
+
+def _deterministic_duplicate_report(
+    left: _DuplicateSignature,
+    right: _DuplicateSignature,
+) -> DuplicateReport:
+    exact = left.exact_hash == right.exact_hash
+    normalized = left.normalized_hash == right.normalized_hash
+    schema_match = left.schema_hashes == right.schema_hashes
+    combined = left.combined_hash == right.combined_hash
+    source_match = left.source_key is not None and left.source_key == right.source_key
+    return DuplicateReport(
+        left.record["id"],
+        right.record["id"],
+        exact,
+        normalized,
+        False,
+        schema_match,
+        combined,
+        source_match,
+        None,
+        "duplicate" if exact or combined or source_match else "needs_semantic_review",
+    )

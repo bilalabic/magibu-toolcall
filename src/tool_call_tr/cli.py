@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+from threading import Lock
 import time
 from typing import Any
 
@@ -46,8 +48,10 @@ from tool_call_tr.freeze import FreezeError, freeze_benchmark, verify_benchmark_
 from tool_call_tr.generation.providers import (
     DeepSeekIntegration,
     MockSemanticJudge,
+    OpenAIQualityJudge,
     ProviderError,
     ProviderNotConfigured,
+    RetryingRecordQualityJudge,
     RetryPolicy,
     run_with_retry,
 )
@@ -309,6 +313,8 @@ def _add_batch_commands(subparsers: argparse._SubParsersAction, lifecycle: str) 
         run.add_argument("manifest_path", type=Path)
         run.add_argument("--provider", choices=("deepseek",), default="deepseek")
         run.add_argument("--execute-live", action="store_true")
+        run.add_argument("--max-workers", type=int)
+        run.add_argument("--token-budget", type=int)
         run.add_argument("--actor-id", required=True)
         run.add_argument("--policy", type=Path, required=True)
         run.add_argument("--audit-log", type=Path, required=True)
@@ -332,6 +338,8 @@ def _add_dataset_generation_command(subparsers: argparse._SubParsersAction) -> N
     generate.add_argument("--timestamp")
     generate.add_argument("--provider", choices=("deepseek",), default="deepseek")
     generate.add_argument("--execute-live", action="store_true")
+    generate.add_argument("--max-workers", type=int)
+    generate.add_argument("--token-budget", type=int)
     generate.add_argument("--actor-id", required=True)
     generate.add_argument("--policy", type=Path, required=True)
     generate.add_argument("--audit-log", type=Path, required=True)
@@ -348,6 +356,21 @@ def _add_dataset_quality_command(subparsers: argparse._SubParsersAction) -> None
     quality.add_argument("--report", type=Path)
     quality.add_argument("--reference", type=Path, action="append", default=[])
     _add_semantic_arguments(quality)
+    quality.add_argument(
+        "--judge-provider",
+        choices=("none", "openai"),
+        default="none",
+        help="Select no model judge or the production OpenAI structured-output judge.",
+    )
+    quality.add_argument(
+        "--judge-escalation",
+        action="store_true",
+        help="Use the configured escalation model for non-passes and a deterministic pass sample.",
+    )
+    quality.add_argument("--judge-escalation-sample-rate", type=float, default=0.1)
+    quality.add_argument("--judge-max-workers", type=int)
+    quality.add_argument("--judge-token-budget", type=int)
+    quality.add_argument("--judge-escalation-token-budget", type=int)
     quality.add_argument("--confirm-live", action="store_true")
     quality.add_argument("--timestamp")
     quality.add_argument("--overwrite", action="store_true")
@@ -362,6 +385,8 @@ def _add_generation_command(subparsers: argparse._SubParsersAction, lifecycle: s
     generate.add_argument("manifest_path", type=Path)
     generate.add_argument("--provider", choices=("deepseek",), default="deepseek")
     generate.add_argument("--execute-live", action="store_true")
+    generate.add_argument("--max-workers", type=int)
+    generate.add_argument("--token-budget", type=int)
     generate.add_argument("--actor-id", required=True)
     generate.add_argument("--policy", type=Path, required=True)
     generate.add_argument("--audit-log", type=Path, required=True)
@@ -447,12 +472,21 @@ def _cmd_config(args: argparse.Namespace) -> int:
     print(f"deepseek_api_key={redact_secret(settings.deepseek_api_key)}")
     print(f"deepseek_model={settings.deepseek_model}")
     print(f"deepseek_base_url={settings.deepseek_base_url}")
+    print(f"deepseek_max_output_tokens={settings.deepseek_max_output_tokens}")
     print(f"openai_api_key={redact_secret(settings.openai_api_key)}")
+    print(f"openai_model={settings.openai_model}")
+    print(f"openai_escalation_model={settings.openai_escalation_model}")
     print(f"openai_embedding_model={settings.openai_embedding_model}")
     print(f"openai_base_url={settings.openai_base_url}")
+    print(f"openai_reasoning_effort={settings.openai_reasoning_effort}")
+    print(f"openai_max_output_tokens={settings.openai_max_output_tokens}")
+    print(f"openai_daily_token_budget={settings.openai_daily_token_budget}")
+    print(f"openai_escalation_daily_token_budget={settings.openai_escalation_daily_token_budget}")
     print(f"semantic_cache_dir={settings.semantic_cache_dir}")
     print(f"request_timeout_seconds={settings.request_timeout_seconds}")
     print(f"max_retries={settings.max_retries}")
+    print(f"provider_max_workers={settings.provider_max_workers}")
+    print(f"env_file={'loaded' if (settings.project_root / '.env').is_file() else 'not_found'}")
     return 0
 
 
@@ -621,7 +655,14 @@ def _cmd_source_import_job(args: argparse.Namespace) -> int:
         print(f"ERROR SOURCE_IMPORT_BLOCKED: {exc}")
         return 1
     _audit_cli_allowed(args, args.actor_id, "dataset", "source_import", completed["job_id"])
-    _print_payload({"job_id": completed["job_id"], "status": completed["status"], "counts": completed["counts"]}, "json")
+    _print_payload(
+        {
+            "job_id": completed["job_id"],
+            "status": completed["status"],
+            "counts": completed["counts"],
+        },
+        "json",
+    )
     return 0 if completed["counts"]["failed"] == 0 else 1
 
 
@@ -755,7 +796,17 @@ def _cmd_generate_candidates(args: argparse.Namespace) -> int:
         print(f"ERROR GENERATION_BLOCKED: {exc}")
         return 1
     _audit_cli_allowed(args, args.actor_id, args.record_kind, "generate", completed["job_id"])
-    _print_payload({"job_id": completed["job_id"], "status": completed["status"], "counts": completed["counts"]}, "json")
+    _print_payload(
+        {
+            "job_id": completed["job_id"],
+            "status": completed["status"],
+            "counts": completed["counts"],
+            "provider_tokens_used": completed["provider_tokens_used"],
+            "provider_budget_accounted_tokens": completed["provider_budget_accounted_tokens"],
+            "provider_token_budget": completed["provider_token_budget"],
+        },
+        "json",
+    )
     return 0 if completed["counts"]["failed"] == 0 else 1
 
 
@@ -848,6 +899,9 @@ def _cmd_generate_dataset(args: argparse.Namespace) -> int:
             "manifest": str(paths.manifest),
             "output": str(paths.output),
             "errors": str(paths.errors),
+            "provider_tokens_used": completed["provider_tokens_used"],
+            "provider_budget_accounted_tokens": completed["provider_budget_accounted_tokens"],
+            "provider_token_budget": completed["provider_token_budget"],
             "pending_quality_gates": ["execution_when_applicable", "semantic", "language", "duplicate"],
         },
         "json",
@@ -865,6 +919,7 @@ def _execute_candidate_generation(
     manifest = load_manifest(manifest_path)
     validator = RuleBasedValidator()
     generated_at = getattr(args, "timestamp", None) or datetime.now(timezone.utc).isoformat()
+    budget = _ConcurrentTokenBudget(getattr(args, "token_budget", None))
 
     def process(blueprint: dict[str, Any], index: int, record_id: str | None) -> dict[str, Any]:
         if record_id is None:
@@ -872,14 +927,24 @@ def _execute_candidate_generation(
         blueprint_report = validator.validate_record("blueprint", blueprint)
         if not blueprint_report.valid:
             raise BatchError(blueprint_report.human())
-        response = _provider_retry(
-            lambda: provider.generate_candidate(
-                lifecycle=args.record_kind,
-                blueprint=blueprint,
-                record_id=record_id,
-            ),
-            settings,
+        estimate = _estimated_generation_tokens(
+            blueprint,
+            getattr(provider, "max_output_tokens", settings.deepseek_max_output_tokens),
         )
+        budget.reserve(estimate)
+        response = None
+        try:
+            response = _provider_retry(
+                lambda: provider.generate_candidate(
+                    lifecycle=args.record_kind,
+                    blueprint=blueprint,
+                    record_id=record_id,
+                ),
+                settings,
+            )
+        finally:
+            actual = response.usage.get("total_tokens") if response is not None and response.usage else None
+            budget.settle(estimate, actual)
         value = response.value
         if args.record_kind == "dataset":
             value = prepare_generated_candidate(
@@ -889,6 +954,10 @@ def _execute_candidate_generation(
                 identity=response.identity,
                 actor_id=args.actor_id,
                 generated_at=generated_at,
+                provider_usage=response.usage,
+                provider_request_id=response.request_id,
+                provider_system_fingerprint=response.system_fingerprint,
+                provider_attempts=response.attempts,
             )
         else:
             if not isinstance(value, dict) or value.get("id") != record_id:
@@ -901,7 +970,15 @@ def _execute_candidate_generation(
             raise BatchError(report.human())
         return value
 
-    return run_job(manifest_path, process)
+    completed = run_job(
+        manifest_path,
+        process,
+        max_workers=(args.max_workers if args.max_workers is not None else settings.provider_max_workers),
+    )
+    completed["provider_tokens_used"] = budget.observed
+    completed["provider_budget_accounted_tokens"] = budget.accounted
+    completed["provider_token_budget"] = budget.limit
+    return completed
 
 
 def _cmd_dataset_quality(args: argparse.Namespace) -> int:
@@ -933,6 +1010,43 @@ def _cmd_dataset_quality(args: argparse.Namespace) -> int:
         semantic = _semantic_similarity(args)
         if args.semantic_provider == "openai":
             semantic.provider.require_configured()
+        judge = None
+        escalation_judge = None
+        judge_token_budget = args.judge_token_budget
+        escalation_token_budget = args.judge_escalation_token_budget
+        escalation_sample_rate = 0.0
+        judge_max_workers = 1
+        if args.judge_provider == "openai":
+            settings = Settings.from_env()
+            policy = RetryPolicy(
+                max_attempts=settings.max_retries + 1,
+                base_seconds=settings.retry_base_seconds,
+            )
+            primary_provider = OpenAIQualityJudge.from_settings(settings)
+            primary_provider.require_configured()
+            judge = RetryingRecordQualityJudge(primary_provider, policy)
+            judge_max_workers = (
+                args.judge_max_workers
+                if args.judge_max_workers is not None
+                else settings.provider_max_workers
+            )
+            judge_token_budget = (
+                args.judge_token_budget
+                if args.judge_token_budget is not None
+                else settings.openai_daily_token_budget
+            )
+            if args.judge_escalation:
+                escalation_provider = OpenAIQualityJudge.from_settings(settings, escalation=True)
+                escalation_provider.require_configured()
+                escalation_judge = RetryingRecordQualityJudge(escalation_provider, policy)
+                escalation_token_budget = (
+                    args.judge_escalation_token_budget
+                    if args.judge_escalation_token_budget is not None
+                    else settings.openai_escalation_daily_token_budget
+                )
+                escalation_sample_rate = args.judge_escalation_sample_rate
+        elif args.judge_escalation:
+            raise QualityError("--judge-escalation requires --judge-provider openai")
         result = run_dataset_quality(
             records,
             references=references,
@@ -942,6 +1056,14 @@ def _cmd_dataset_quality(args: argparse.Namespace) -> int:
             semantic_provider=args.semantic_provider,
             production_semantic=args.semantic_provider == "openai",
             semantic_threshold=args.semantic_threshold,
+            judge=judge,
+            judge_provider=args.judge_provider,
+            production_judge=args.judge_provider == "openai",
+            escalation_judge=escalation_judge,
+            escalation_sample_rate=escalation_sample_rate,
+            judge_max_workers=judge_max_workers,
+            judge_token_budget=judge_token_budget,
+            escalation_token_budget=escalation_token_budget,
             allow_real_api=args.confirm_live,
             timestamp=args.timestamp,
         )
@@ -1396,20 +1518,56 @@ def _semantic_similarity(args: argparse.Namespace):
     return CachedEmbeddingSimilarity(OpenAIEmbeddingProvider.from_settings(settings), cache_dir)
 
 
+class _ConcurrentTokenBudget:
+    def __init__(self, limit: int | None) -> None:
+        if limit is not None and limit < 1:
+            raise ValueError("provider token budget must be positive")
+        self.limit = limit
+        self.accounted = 0
+        self.observed = 0
+        self._reserved = 0
+        self._lock = Lock()
+
+    def reserve(self, estimate: int) -> None:
+        with self._lock:
+            if self.limit is not None and self.accounted + self._reserved + estimate > self.limit:
+                raise BatchError(
+                    f"provider token budget exhausted: accounted={self.accounted}; reserved={self._reserved}; "
+                    f"next_estimate={estimate}; limit={self.limit}"
+                )
+            self._reserved += estimate
+
+    def settle(self, estimate: int, actual: int | None) -> None:
+        with self._lock:
+            self._reserved -= estimate
+            self.accounted += max(estimate, actual or 0)
+            if actual is not None:
+                self.observed += actual
+
+
+def _estimated_generation_tokens(blueprint: dict[str, Any], max_output_tokens: int) -> int:
+    serialized = json.dumps(blueprint, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return (len(serialized) + 1) // 2 + max_output_tokens + 400
+
+
 def _provider_retry(operation, settings: Settings):
-    value, _ = run_with_retry(
+    value, attempts = run_with_retry(
         operation,
         RetryPolicy(max_attempts=settings.max_retries + 1, base_seconds=settings.retry_base_seconds),
-        retryable=lambda exc: isinstance(exc, ProviderError),
+        retryable=lambda exc: isinstance(exc, ProviderError) and exc.retryable,
         sleep=time.sleep,
     )
-    return value
+    return replace(value, attempts=attempts)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    settings = Settings.from_env()
+    try:
+        settings = Settings.from_env()
+    except (OSError, ValueError) as exc:
+        print(f"ERROR CONFIG_INVALID: {exc}")
+        return 1
     configure_logging(args.log_level or settings.log_level)
     handler = getattr(args, "handler", None)
     if handler is None:

@@ -4,12 +4,15 @@ import json
 from pathlib import Path
 
 from tool_call_tr.cli import main
+from tool_call_tr.generation.providers import ModelIdentity, ProviderResponse
 
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_dataset_draft_quality_two_reviews_and_export(tmp_path: Path, capsys, access_files) -> None:
+def test_dataset_draft_quality_two_reviews_and_export(
+    tmp_path: Path, capsys, access_files, monkeypatch,
+) -> None:
     record = json.loads(
         (ROOT / "tests" / "fixtures" / "dataset" / "valid_single_tool.json").read_text(encoding="utf-8")
     )
@@ -38,9 +41,34 @@ def test_dataset_draft_quality_two_reviews_and_export(tmp_path: Path, capsys, ac
     ]
     review_access = ["--policy", access_files["policy"], "--audit-log", access_files["audit"]]
 
+    class PassingJudge:
+        model = "gpt-test-primary"
+
+        def require_configured(self) -> None:
+            return None
+
+        def judge_record(self, candidate: dict) -> ProviderResponse:
+            scores = {
+                name: 5 for name in (
+                    "language_naturalness", "tool_necessity", "tool_selection",
+                    "argument_grounding", "clarification_behavior", "result_grounding",
+                    "turkey_context",
+                )
+            }
+            return ProviderResponse(
+                {"verdict": "pass", "scores": scores, "issues": [], "summary": "Uygun."},
+                ModelIdentity("openai", self.model, self.model, "dataset_quality_judge"),
+                usage={"total_tokens": 100},
+            )
+
+    monkeypatch.setattr(
+        "tool_call_tr.cli.OpenAIQualityJudge.from_settings",
+        lambda settings, escalation=False: PassingJudge(),
+    )
+
     assert main([
         "dataset", "quality", str(draft), str(checked),
-        "--report", str(quality_report), *operator,
+        "--report", str(quality_report), "--judge-provider", "openai", *operator,
     ]) == 0
     capsys.readouterr()
     assert main([

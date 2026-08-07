@@ -150,6 +150,10 @@ def prepare_generated_candidate(
     identity: ModelIdentity,
     actor_id: str,
     generated_at: str,
+    provider_usage: dict[str, int] | None = None,
+    provider_request_id: str | None = None,
+    provider_system_fingerprint: str | None = None,
+    provider_attempts: int = 1,
 ) -> dict[str, Any]:
     """Replace provider quality claims with evidence-backed draft state and enforce the blueprint contract."""
 
@@ -212,7 +216,11 @@ def prepare_generated_candidate(
             "actor_id": actor_id,
             "details": (
                 f"blueprint={blueprint['id']}; provider={identity.provider}; "
-                f"model={identity.model}; role={identity.role}"
+                f"model={identity.model}; response_model={identity.model_version or 'unknown'}; "
+                f"role={identity.role}; attempts={provider_attempts}; "
+                f"request_id={provider_request_id or 'unknown'}; "
+                f"system_fingerprint={provider_system_fingerprint or 'unknown'}; "
+                f"usage={json.dumps(provider_usage, sort_keys=True, separators=(',', ':')) if provider_usage else 'unknown'}"
             ),
         }
     )

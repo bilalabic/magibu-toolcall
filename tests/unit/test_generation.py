@@ -104,6 +104,12 @@ def test_retry_policy_records_attempts_without_live_calls() -> None:
             raise RuntimeError("temporary")
         return "ok"
 
-    value, used = run_with_retry(operation, RetryPolicy(3, 0.5), retryable=lambda exc: True, sleep=sleeps.append)
+    value, used = run_with_retry(
+        operation,
+        RetryPolicy(3, 0.5),
+        retryable=lambda exc: True,
+        sleep=sleeps.append,
+        random_value=lambda: 0.5,
+    )
     assert (value, used) == ("ok", 3)
     assert sleeps == [0.5, 1.0]

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import threading
+import time
 
 import pytest
 
@@ -83,6 +85,29 @@ def test_job_continues_item_failures_and_assembles_ordered_outputs(tmp_path: Pat
     assert errors[0]["record_id"] == "tctr_ot_000012"
     with pytest.raises(BatchError, match="immutable"):
         run_job(manifest_path, processor)
+
+
+def test_job_supports_bounded_parallel_processing_with_ordered_output(tmp_path: Path) -> None:
+    manifest_path, _ = manifest_for(tmp_path, count=4)
+    lock = threading.Lock()
+    active = 0
+    maximum_active = 0
+
+    def processor(row, index, record_id):
+        nonlocal active, maximum_active
+        with lock:
+            active += 1
+            maximum_active = max(maximum_active, active)
+        time.sleep(0.02)
+        with lock:
+            active -= 1
+        return {"id": record_id, "value": row["value"]}
+
+    completed = run_job(manifest_path, processor, max_workers=2)
+    output = [json.loads(line) for line in (tmp_path / "output.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert completed["status"] == "completed"
+    assert maximum_active == 2
+    assert [record["value"] for record in output] == [0, 1, 2, 3]
 
 
 def test_job_resumes_after_process_interruption_without_duplicate_parts(tmp_path: Path) -> None:

@@ -10,6 +10,14 @@ localization, repetition, and whether the final answer completes the request.
 Technical review checks category priority, tool choice, schemas, arguments,
 call/result linkage, execution evidence, grounding, provenance, and duplicates.
 
+Before human review, the production quality run must include the OpenAI primary
+judge and, when enabled for the run, escalation evidence. The model rubric
+covers language naturalness, tool necessity/selection, argument grounding,
+clarification, result grounding, and Turkey-specific realism. Any non-pass,
+budget exhaustion, provider failure, or primary/escalation disagreement blocks
+acceptance. Model evidence informs reviewers but never counts as a reviewer
+identity or decision.
+
 A contributor cannot approve their own record. Language approval sets the
 language validation gate to passed. The overall record becomes accepted only
 when all automatic gates are complete and the required reviewer perspectives

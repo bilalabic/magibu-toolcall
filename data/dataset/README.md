@@ -20,7 +20,14 @@ checkpoint kanıtlarını ise `runs/dataset/<job_id>/` altında oluşturur. Mode
 çıktısı doğrudan kabul edilmez; tamamlanmamış kalite kontrolleri `not_run` ve
 review durumu `needs_revision` olarak tutulur. Boş job klasörleri depoda tutulmaz.
 
-`dataset quality`, otomatik execution/duplicate/semantic kanıtlarını yeniden
-hesaplayıp kayıtları `needs_revision/` altında yazar; ayrıntılı rapor `review/`
-alanında tutulur. İnsan dil ve gerektiğinde teknik reviewer kararları ayrı
-olmadan kayıt `accepted/` alanına geçirilemez.
+`dataset quality`, otomatik execution, toplu embedding tabanlı duplicate ve
+OpenAI structured-output kalite judge kanıtlarını yeniden hesaplayıp kayıtları
+`needs_revision/` altında yazar; ayrıntılı rapor `review/` alanında tutulur.
+Birincil judge bütün kayıtları, escalation judge ise başarısız/belirsiz kayıtlar
+ile geçenlerin belirlenmiş örneklemini denetler. İnsan dil ve gerektiğinde teknik
+reviewer kararları ayrı olmadan kayıt `accepted/` alanına geçirilemez.
+
+1000 kayıt tek kontrolsüz çağrı olarak çalıştırılmaz. Önce 30, sonra 100 ve 250
+kayıtlık kapılar geçilir; tam üretim dört adet 250 kayıtlık run olarak yürütülür.
+Her run ayrı manifest, checkpoint, hata dosyası, token bütçesi ve kalite raporu
+taşır.

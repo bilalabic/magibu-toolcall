@@ -6,7 +6,12 @@ from typing import Any, Mapping
 
 import pytest
 
-from tool_call_tr.generation.providers import DeepSeekIntegration, ProviderError, ProviderNotConfigured
+from tool_call_tr.generation.providers import (
+    DeepSeekIntegration,
+    OpenAIQualityJudge,
+    ProviderError,
+    ProviderNotConfigured,
+)
 from tool_call_tr.network import JsonHttpResponse
 from tool_call_tr.semantic import CachedEmbeddingSimilarity, OpenAIEmbeddingProvider, cosine_similarity
 
@@ -29,6 +34,9 @@ class FakeTransport:
 
 def test_deepseek_structured_provider_parses_json_and_records_identity() -> None:
     transport = FakeTransport([JsonHttpResponse(200, {
+        "id": "deepseek-request-1",
+        "model": "deepseek-model-revision",
+        "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
         "choices": [{"finish_reason": "stop", "message": {"content": json.dumps({"ok": True})}}]
     }, {})])
     provider = DeepSeekIntegration("secret", "configured-model", transport=transport)
@@ -37,6 +45,10 @@ def test_deepseek_structured_provider_parses_json_and_records_identity() -> None
     assert response.identity.provider == "deepseek"
     assert transport.requests[0]["url"] == "https://api.deepseek.com/chat/completions"
     assert transport.requests[0]["body"]["response_format"] == {"type": "json_object"}
+    assert transport.requests[0]["body"]["max_tokens"] == 8192
+    assert response.usage == {"input_tokens": 10, "output_tokens": 5, "total_tokens": 15}
+    assert response.request_id == "deepseek-request-1"
+    assert response.identity.model_version == "deepseek-model-revision"
 
 
 def test_deepseek_errors_never_echo_secret_or_response_body() -> None:
@@ -46,6 +58,29 @@ def test_deepseek_errors_never_echo_secret_or_response_body() -> None:
         provider.generate_json(system_prompt="Return JSON.", payload={}, role="scenario_generator")
     assert "top-secret" not in str(raised.value)
     assert "contains-sensitive" not in str(raised.value)
+
+
+def test_provider_errors_classify_retry_and_retry_after_without_exposing_body() -> None:
+    limited = DeepSeekIntegration(
+        "secret",
+        "configured-model",
+        transport=FakeTransport([JsonHttpResponse(429, {"error": "hidden"}, {"Retry-After": "2.5"})]),
+    )
+    with pytest.raises(ProviderError) as limited_error:
+        limited.generate_json(system_prompt="Return JSON.", payload={}, role="scenario_generator")
+    assert limited_error.value.retryable
+    assert limited_error.value.retry_after_seconds == 2.5
+    assert limited_error.value.status_code == 429
+
+    invalid = DeepSeekIntegration(
+        "secret",
+        "configured-model",
+        transport=FakeTransport([JsonHttpResponse(400, {"error": "hidden"}, {})]),
+    )
+    with pytest.raises(ProviderError) as invalid_error:
+        invalid.generate_json(system_prompt="Return JSON.", payload={}, role="scenario_generator")
+    assert not invalid_error.value.retryable
+    assert invalid_error.value.status_code == 400
 
 
 def test_openai_embedding_provider_batches_and_validates_response() -> None:
@@ -61,6 +96,59 @@ def test_openai_embedding_provider_batches_and_validates_response() -> None:
     assert provider.embed(["bir", "iki"]) == [[1.0, 0.0], [0.0, 1.0]]
     assert transport.requests[0]["url"] == "https://api.openai.com/v1/embeddings"
     assert transport.requests[0]["body"]["encoding_format"] == "float"
+
+
+def test_openai_quality_judge_uses_strict_schema_and_records_evidence() -> None:
+    scores = {
+        name: 5 for name in (
+            "language_naturalness", "tool_necessity", "tool_selection",
+            "argument_grounding", "clarification_behavior", "result_grounding",
+            "turkey_context",
+        )
+    }
+    transport = FakeTransport([JsonHttpResponse(200, {
+        "id": "chatcmpl-quality-1",
+        "model": "gpt-quality-snapshot",
+        "system_fingerprint": "fp_quality",
+        "usage": {"prompt_tokens": 200, "completion_tokens": 30, "total_tokens": 230},
+        "choices": [{
+            "finish_reason": "stop",
+            "message": {"content": json.dumps({
+                "verdict": "pass", "scores": scores, "issues": [], "summary": "Uygun."
+            })},
+        }],
+    }, {})])
+    provider = OpenAIQualityJudge("secret", "gpt-quality", transport=transport)
+    response = provider.judge_record({"id": "tctr_ot_000001"})
+    request = transport.requests[0]
+    assert request["url"] == "https://api.openai.com/v1/chat/completions"
+    assert request["body"]["response_format"]["type"] == "json_schema"
+    assert request["body"]["response_format"]["json_schema"]["strict"] is True
+    assert response.value["verdict"] == "pass"
+    assert response.identity.model_version == "gpt-quality-snapshot"
+    assert response.usage["total_tokens"] == 230
+    assert response.request_id == "chatcmpl-quality-1"
+    assert response.system_fingerprint == "fp_quality"
+
+
+def test_openai_quality_judge_rejects_rubric_contradiction() -> None:
+    scores = {
+        name: 3 for name in (
+            "language_naturalness", "tool_necessity", "tool_selection",
+            "argument_grounding", "clarification_behavior", "result_grounding",
+            "turkey_context",
+        )
+    }
+    transport = FakeTransport([JsonHttpResponse(200, {
+        "choices": [{
+            "finish_reason": "stop",
+            "message": {"content": json.dumps({
+                "verdict": "pass", "scores": scores, "issues": [], "summary": "Çelişkili."
+            })},
+        }],
+    }, {})])
+    with pytest.raises(ProviderError, match="valid judgment"):
+        OpenAIQualityJudge("secret", "gpt-quality", transport=transport).judge_record({"id": "x"})
 
 
 def test_embedding_provider_requires_explicit_model_and_key() -> None:
