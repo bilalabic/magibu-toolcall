@@ -7,12 +7,14 @@ import pytest
 
 from tool_call_tr.dataset_workflow import (
     DatasetWorkflowError,
+    build_candidate_from_language_plan,
     default_job_paths,
     inspect_blueprints,
     next_dataset_number,
     prepare_generated_candidate,
 )
 from tool_call_tr.generation.providers import ModelIdentity
+from tool_call_tr.registry import ToolRegistry
 from tool_call_tr.validation import RuleBasedValidator
 
 
@@ -56,6 +58,73 @@ def test_job_id_cannot_escape_the_runs_directory(tmp_path: Path) -> None:
             project_root=tmp_path,
             runs_dir=tmp_path / "runs",
             job_id="../outside",
+        )
+
+
+def test_language_plan_rejects_han_characters() -> None:
+    blueprint = load(ROOT / "tests" / "fixtures" / "blueprints" / "valid" / "no_tool.json")
+    with pytest.raises(DatasetWorkflowError, match="Han characters"):
+        build_candidate_from_language_plan(
+            {
+                "user_messages": ["Merhaba"],
+                "intermediate_assistant_response": None,
+                "final_response": "你好",
+            },
+            blueprint=blueprint,
+            record_id="tctr_ot_000001",
+            registry=ToolRegistry.load(),
+        )
+
+
+def test_language_plan_rejects_other_non_latin_script_leakage() -> None:
+    blueprint = load(ROOT / "tests" / "fixtures" / "blueprints" / "valid" / "no_tool.json")
+    with pytest.raises(DatasetWorkflowError, match="unexpected non-Latin"):
+        build_candidate_from_language_plan(
+            {
+                "user_messages": ["Merhaba"],
+                "intermediate_assistant_response": None,
+                "final_response": "Bu kullanım उचित.",
+            },
+            blueprint=blueprint,
+            record_id="tctr_ot_000001",
+            registry=ToolRegistry.load(),
+        )
+
+
+def test_language_plan_allows_micro_unit_symbols() -> None:
+    blueprint = load(ROOT / "tests" / "fixtures" / "blueprints" / "valid" / "no_tool.json")
+    candidate = build_candidate_from_language_plan(
+        {
+            "user_messages": ["PM2.5 değeri nedir?"],
+            "intermediate_assistant_response": None,
+            "final_response": "Değer 14,2 µg/m³ olarak ölçülmüştür.",
+        },
+        blueprint=blueprint,
+        record_id="tctr_ot_000001",
+        registry=ToolRegistry.load(),
+    )
+    assert candidate["messages"][-1]["content"] == "Değer 14,2 µg/m³ olarak ölçülmüştür."
+
+
+@pytest.mark.parametrize(
+    ("final_response", "message"),
+    [
+        ("Olay 2026-08-07T02:15:00+03:00 tarihinde gerçekleşti.", "raw ISO timestamp"),
+        ("**Sonuç:** gönderi transfer sürecinde.", "markdown formatting"),
+    ],
+)
+def test_language_plan_rejects_machine_style_natural_text(final_response: str, message: str) -> None:
+    blueprint = load(ROOT / "tests" / "fixtures" / "blueprints" / "valid" / "no_tool.json")
+    with pytest.raises(DatasetWorkflowError, match=message):
+        build_candidate_from_language_plan(
+            {
+                "user_messages": ["Gönderi nerede?"],
+                "intermediate_assistant_response": None,
+                "final_response": final_response,
+            },
+            blueprint=blueprint,
+            record_id="tctr_ot_000001",
+            registry=ToolRegistry.load(),
         )
 
 

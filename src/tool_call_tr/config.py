@@ -67,6 +67,7 @@ class Settings:
     log_level: str = "INFO"
     deepseek_api_key: str | None = None
     deepseek_model: str | None = None
+    deepseek_fallback_model: str | None = "deepseek-v4-pro"
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_max_output_tokens: int = 8192
     openai_api_key: str | None = None
@@ -108,6 +109,7 @@ class Settings:
             log_level=(value("LOG_LEVEL", "INFO") or "INFO").upper(),
             deepseek_api_key=value("DEEPSEEK_API_KEY") or None,
             deepseek_model=value("DEEPSEEK_MODEL") or None,
+            deepseek_fallback_model=value("DEEPSEEK_FALLBACK_MODEL", "deepseek-v4-pro") or None,
             deepseek_base_url=value("DEEPSEEK_BASE_URL", "https://api.deepseek.com") or "https://api.deepseek.com",
             deepseek_max_output_tokens=int(value("DEEPSEEK_MAX_OUTPUT_TOKENS", "8192") or "8192"),
             openai_api_key=value("OPENAI_API_KEY") or None,

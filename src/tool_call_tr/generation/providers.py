@@ -9,7 +9,9 @@ import time
 from typing import Any, Callable, Mapping, Protocol, TypeVar
 
 from tool_call_tr.config import Settings
+from tool_call_tr.language_plan import LanguagePlanValidationError, validate_language_plan
 from tool_call_tr.network import JsonTransport, NetworkError, NetworkTimeout, UrllibJsonTransport
+from tool_call_tr.text_quality import contains_unexpected_script
 
 
 class ProviderError(RuntimeError):
@@ -101,6 +103,8 @@ class MockSemanticJudge:
 class DeepSeekIntegration:
     """Structured JSON generator over DeepSeek's Chat Completions endpoint."""
 
+    language_plan_max_output_tokens = 1600
+
     def __init__(
         self,
         api_key: str | None,
@@ -132,23 +136,36 @@ class DeepSeekIntegration:
         if not self.api_key or not self.model:
             raise ProviderNotConfigured("DeepSeek generation/tool-call integration is not configured")
 
-    def generate_json(self, *, system_prompt: str, payload: dict[str, Any], role: str) -> ProviderResponse:
+    def generate_json(
+        self,
+        *,
+        system_prompt: str,
+        payload: dict[str, Any],
+        role: str,
+        max_output_tokens: int | None = None,
+        thinking: str | None = None,
+    ) -> ProviderResponse:
         self.require_configured()
+        if thinking not in {None, "enabled", "disabled"}:
+            raise ValueError("DeepSeek thinking mode must be enabled or disabled")
+        body = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": json.dumps(payload, ensure_ascii=False, sort_keys=True)},
+            ],
+            "response_format": {"type": "json_object"},
+            "max_tokens": max_output_tokens or self.max_output_tokens,
+            "stream": False,
+        }
+        if thinking is not None:
+            body["thinking"] = {"type": thinking}
         try:
             response = self.transport.request_json(
                 method="POST",
                 url=f"{self.base_url}/chat/completions",
                 headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
-                body={
-                    "model": self.model,
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": json.dumps(payload, ensure_ascii=False, sort_keys=True)},
-                    ],
-                    "response_format": {"type": "json_object"},
-                    "max_tokens": self.max_output_tokens,
-                    "stream": False,
-                },
+                body=body,
                 timeout_seconds=self.timeout_seconds,
             )
         except NetworkTimeout as exc:
@@ -210,6 +227,64 @@ class DeepSeekIntegration:
             role="scenario_generator",
         )
 
+    def generate_language_plan(self, blueprint: dict[str, Any]) -> ProviderResponse:
+        user_message_count = 2 if blueprint["metadata"]["main_category"] == "multi_turn" else 1
+        intermediate_rule = (
+            "a Turkish clarification question containing '?' that does not assume details only supplied by the second user message"
+            if user_message_count == 2
+            else "null"
+        )
+        chronology_rule = (
+            "Chronology is user_messages[0], intermediate_assistant_response, user_messages[1], tool use, then "
+            "final_response. The intermediate response sees only user_messages[0]; it must ask for the detail "
+            "that user_messages[1] later supplies. "
+            if user_message_count == 2
+            else ""
+        )
+        example = (
+            '{"user_messages":["Gelecek eğitim yılının tatilleri ne zaman?",'
+            '"2026-2027 eğitim öğretim yılını kastediyorum."],'
+            '"intermediate_assistant_response":"Hangi eğitim öğretim yılını kastediyorsunuz?",'
+            '"final_response":"2026-2027 takvimini paylaşıyorum."}'
+            if user_message_count == 2
+            else '{"user_messages":["Ankara için hava nasıl?"],'
+            '"intermediate_assistant_response":null,"final_response":"Ankara için sonuç hazır."}'
+        )
+        response = self.generate_json(
+            system_prompt=(
+                "Write only the natural-language parts of one Turkey-Turkish tool-calling dataset scenario. "
+                "Return one JSON object with exactly this shape and no other keys: "
+                '{"user_messages":["..."],"intermediate_assistant_response":null,"final_response":"..."}. '
+                f"user_messages must contain exactly {user_message_count} non-empty string(s). "
+                f"intermediate_assistant_response must be {intermediate_rule}. "
+                f"{chronology_rule}"
+                "final_response must follow expected_final_behavior and must_avoid, and every factual or numeric claim "
+                "must be grounded in expected_tool_result or the user's messages. Translate machine enum values into "
+                "natural Turkish and render ISO timestamps as natural Turkish dates and times. Include relevant result "
+                "context such as event locations when the blueprint asks for it. Use natural Turkey Turkish only. "
+                "Do not emit Chinese Han characters, reasoning text, <think> tags, markdown, machine metadata, tool calls, "
+                f"or tool results. Example JSON output: {example}"
+            ),
+            payload={"blueprint": blueprint},
+            role="dataset_language_generator",
+            max_output_tokens=min(self.max_output_tokens, self.language_plan_max_output_tokens),
+            thinking="disabled",
+        )
+        try:
+            validate_language_plan(
+                response.value,
+                multi_turn=blueprint["metadata"]["main_category"] == "multi_turn",
+                requires_clarification=(
+                    "clarification" in blueprint["metadata"].get("secondary_tags", [])
+                ),
+            )
+        except (KeyError, TypeError, LanguagePlanValidationError) as exc:
+            reason = str(exc) if isinstance(exc, LanguagePlanValidationError) else "invalid blueprint context"
+            raise ProviderError(
+                f"DeepSeek language plan failed deterministic validation: {reason}"
+            ) from exc
+        return response
+
     def generate_tool_call(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ProviderResponse:
         return self.generate_json(
             system_prompt="Return JSON containing only the tool-call decision for the supplied messages and tools.",
@@ -227,20 +302,6 @@ class DeepSeekIntegration:
             payload={"source_item": item, "actor_id": actor_id, "provider": "deepseek", "provider_version": self.model},
             role="localization_generator",
         )
-
-    def generate_candidate(self, *, lifecycle: str, blueprint: dict[str, Any], record_id: str) -> ProviderResponse:
-        if lifecycle not in {"dataset", "benchmark"}:
-            raise ValueError(f"unsupported generation lifecycle: {lifecycle}")
-        return self.generate_json(
-            system_prompt=(
-                f"Produce one Turkish {lifecycle} candidate as a JSON object matching the project's canonical {lifecycle} schema. "
-                f"The record ID must be {record_id}. Preserve every machine identifier, function name, parameter key, enum value "
-                "and expected argument. Set review.status to needs_revision with no reviewer IDs; never claim human approval."
-            ),
-            payload={"lifecycle": lifecycle, "record_id": record_id, "blueprint": blueprint},
-            role=f"{lifecycle}_candidate_generator",
-        )
-
 
 @dataclass(frozen=True, slots=True)
 class OpenAISemanticIntegration:
@@ -350,6 +411,10 @@ class OpenAIQualityJudge:
                         "clarification behavior, result grounding, and Turkey-specific realism. Machine identifiers may "
                         "remain English. Score each dimension from 1 to 5. Use pass only when every dimension is at least "
                         "4 and there are no major or critical issues. Use uncertain when evidence is insufficient. "
+                        "Write summary and issue messages in natural Turkey Turkish using the Latin script only. "
+                        "For missing_parameter and no_tool records, absent tool calls and results can be the correct "
+                        "behavior. Evaluate whether the record correctly avoids a call and, when needed, asks for "
+                        "the missing information; do not use uncertain solely because no tool result exists. "
                         f"Rubric version: {QUALITY_RUBRIC_VERSION}."
                     ),
                 },
@@ -541,6 +606,8 @@ def _validate_quality_judgment(value: Any) -> None:
         raise ValueError("invalid judgment score")
     if not isinstance(value["summary"], str) or not value["summary"].strip():
         raise ValueError("invalid judgment summary")
+    if contains_unexpected_script(value["summary"]):
+        raise ValueError("judgment summary contains unexpected non-Latin letters")
     issues = value["issues"]
     if not isinstance(issues, list):
         raise ValueError("invalid judgment issues")
@@ -553,6 +620,8 @@ def _validate_quality_judgment(value: Any) -> None:
             raise ValueError("invalid judgment issue code")
         if not isinstance(issue["message"], str) or not issue["message"]:
             raise ValueError("invalid judgment issue message")
+        if contains_unexpected_script(issue["message"]):
+            raise ValueError("judgment issue contains unexpected non-Latin letters")
         if issue["message_index"] is not None and (
             not isinstance(issue["message_index"], int) or isinstance(issue["message_index"], bool) or issue["message_index"] < 0
         ):

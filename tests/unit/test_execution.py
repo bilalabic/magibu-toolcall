@@ -104,3 +104,33 @@ def test_stateful_simulation_can_be_reset() -> None:
 def test_fixture_execution_cli(capsys) -> None:
     assert main(["tool", "run-fixture", "utility.add.basic", "--mode", "mock"]) == 0
     assert '"status": "passed"' in capsys.readouterr().out
+
+
+def test_proposal_fixture_execution_cli_uses_declared_modes(capsys) -> None:
+    proposal_registry = ROOT / "registry" / "proposals" / "pilot_candidates.jsonl"
+    assert main([
+        "tool", "run-fixture", "calculator.evaluate.basic",
+        "--registry", str(proposal_registry),
+    ]) == 0
+    local_output = capsys.readouterr().out
+    assert '"execution_type": "local_executable"' in local_output
+    assert '"status": "passed"' in local_output
+
+    assert main([
+        "tool", "run-fixture", "calendar.create_event.confirmed",
+        "--registry", str(proposal_registry),
+    ]) == 0
+    simulated_output = capsys.readouterr().out
+    assert '"execution_type": "fully_simulated"' in simulated_output
+    assert '"status": "passed"' in simulated_output
+
+
+def test_blueprint_cli_can_validate_against_proposal_registry(capsys) -> None:
+    proposal_registry = ROOT / "registry" / "proposals" / "pilot_candidates.jsonl"
+    blueprints = ROOT / "blueprints" / "pilot_general.jsonl"
+    assert main([
+        "blueprint", "validate", str(blueprints),
+        "--registry", str(proposal_registry),
+        "--output", "json",
+    ]) == 0
+    assert '"records_checked": 15' in capsys.readouterr().out

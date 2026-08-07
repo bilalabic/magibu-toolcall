@@ -1,0 +1,7 @@
+{
+  "fixture_id": "weather.forecast.ankara",
+  "function_name": "weather_get_forecast",
+  "arguments": {"place": "Ankara", "forecast_date": "2026-08-10", "unit": "celsius"},
+  "result": {"place": "Ankara", "forecast_date": "2026-08-10", "temperature_min": 18, "temperature_max": 31, "unit": "celsius", "retrieved_at": "2026-08-07T09:00:00+03:00", "source": "synthetic_pilot_fixture"},
+  "provenance": "Synthetic weather-shaped fixture; not an Open-Meteo observation or forecast."
+}

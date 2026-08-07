@@ -1,0 +1,7 @@
+{
+  "fixture_id": "research.publications.turkish_nlp",
+  "function_name": "research_search_publications",
+  "arguments": {"query": "Türkçe doğal dil işleme", "year": 2025, "limit": 10},
+  "result": {"publications": [{"record_id": "SYN-PUB-001", "title": "Türkçe Doğal Dil İşleme İçin Sentetik Bir Çalışma", "authors": ["Sentetik Yazar"], "year": 2025, "doi": null, "source": "synthetic_pilot_fixture", "record_license": null}]},
+  "provenance": "Fully synthetic publication metadata; no real author, paper, DOI, TR Dizin, or Aperta record."
+}

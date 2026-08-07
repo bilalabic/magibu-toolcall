@@ -51,6 +51,58 @@ def test_deepseek_structured_provider_parses_json_and_records_identity() -> None
     assert response.identity.model_version == "deepseek-model-revision"
 
 
+def test_deepseek_language_plan_uses_bounded_non_thinking_json_contract() -> None:
+    plan = {
+        "user_messages": ["Merhaba"],
+        "intermediate_assistant_response": None,
+        "final_response": "Merhaba!",
+    }
+    transport = FakeTransport([JsonHttpResponse(200, {
+        "model": "deepseek-v4-flash",
+        "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(plan)}}],
+    }, {})])
+    provider = DeepSeekIntegration("secret", "deepseek-v4-flash", transport=transport)
+    response = provider.generate_language_plan({"metadata": {"main_category": "no_tool"}})
+    request = transport.requests[0]["body"]
+    assert response.value == plan
+    assert request["thinking"] == {"type": "disabled"}
+    assert request["max_tokens"] == 1600
+    assert "Example JSON output" in request["messages"][0]["content"]
+    assert "exactly 1 non-empty" in request["messages"][0]["content"]
+
+
+def test_deepseek_language_plan_rejects_missing_multi_turn_response() -> None:
+    plan = {
+        "user_messages": ["Hangi yıl?", "2026-2027"],
+        "intermediate_assistant_response": None,
+        "final_response": "Takvimi paylaşıyorum.",
+    }
+    transport = FakeTransport([JsonHttpResponse(200, {
+        "model": "deepseek-v4-pro",
+        "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(plan)}}],
+    }, {})])
+    provider = DeepSeekIntegration("secret", "deepseek-v4-pro", transport=transport)
+    with pytest.raises(ProviderError, match="deterministic validation"):
+        provider.generate_language_plan({"metadata": {"main_category": "multi_turn"}})
+
+
+def test_deepseek_language_plan_rejects_non_question_clarification() -> None:
+    plan = {
+        "user_messages": ["Londra'da saat kaç?", "Kaynak dilim Europe/Istanbul."],
+        "intermediate_assistant_response": "Kaynak saat dilimini belirttiniz.",
+        "final_response": "Londra'da saat 13.00.",
+    }
+    transport = FakeTransport([JsonHttpResponse(200, {
+        "model": "deepseek-v4-flash",
+        "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(plan)}}],
+    }, {})])
+    provider = DeepSeekIntegration("secret", "deepseek-v4-flash", transport=transport)
+    with pytest.raises(ProviderError, match="requires an intermediate question"):
+        provider.generate_language_plan({
+            "metadata": {"main_category": "multi_turn", "secondary_tags": ["clarification"]}
+        })
+
+
 def test_deepseek_errors_never_echo_secret_or_response_body() -> None:
     transport = FakeTransport([JsonHttpResponse(500, {"error": "contains-sensitive-upstream-text"}, {})])
     provider = DeepSeekIntegration("top-secret", "configured-model", transport=transport)
@@ -144,6 +196,26 @@ def test_openai_quality_judge_rejects_rubric_contradiction() -> None:
             "finish_reason": "stop",
             "message": {"content": json.dumps({
                 "verdict": "pass", "scores": scores, "issues": [], "summary": "Çelişkili."
+            })},
+        }],
+    }, {})])
+    with pytest.raises(ProviderError, match="valid judgment"):
+        OpenAIQualityJudge("secret", "gpt-quality", transport=transport).judge_record({"id": "x"})
+
+
+def test_openai_quality_judge_rejects_non_latin_script_leakage() -> None:
+    scores = {
+        name: 5 for name in (
+            "language_naturalness", "tool_necessity", "tool_selection",
+            "argument_grounding", "clarification_behavior", "result_grounding",
+            "turkey_context",
+        )
+    }
+    transport = FakeTransport([JsonHttpResponse(200, {
+        "choices": [{
+            "finish_reason": "stop",
+            "message": {"content": json.dumps({
+                "verdict": "pass", "scores": scores, "issues": [], "summary": "Kullanım उचित."
             })},
         }],
     }, {})])

@@ -79,7 +79,8 @@ def test_provider_roles_are_separate_and_mocked() -> None:
     assert judgment.value["passed"]
 
 
-def test_provider_placeholders_require_configuration(monkeypatch) -> None:
+def test_provider_placeholders_require_configuration(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("MAGIBU_TOOLCALL_ROOT", str(tmp_path))
     for name in (
         "MAGIBU_TOOLCALL_DEEPSEEK_API_KEY", "MAGIBU_TOOLCALL_DEEPSEEK_MODEL",
         "MAGIBU_TOOLCALL_OPENAI_API_KEY", "MAGIBU_TOOLCALL_OPENAI_MODEL",

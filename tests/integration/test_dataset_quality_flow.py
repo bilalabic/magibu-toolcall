@@ -68,7 +68,7 @@ def test_dataset_draft_quality_two_reviews_and_export(
 
     assert main([
         "dataset", "quality", str(draft), str(checked),
-        "--report", str(quality_report), "--judge-provider", "openai", *operator,
+        "--report", str(quality_report), "--judge-provider", "openai", "--confirm-live", *operator,
     ]) == 0
     capsys.readouterr()
     assert main([

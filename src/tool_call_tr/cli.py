@@ -36,6 +36,7 @@ from tool_call_tr.contamination import compare_corpora
 from tool_call_tr.deduplication import DeterministicTokenSimilarity, compare_records
 from tool_call_tr.dataset_workflow import (
     DatasetWorkflowError,
+    build_candidate_from_language_plan,
     dataset_record_paths,
     default_job_id,
     default_job_paths,
@@ -68,9 +69,18 @@ from tool_call_tr.execution import (
     HttpJsonAdapter,
     LocalExecutableAdapter,
     MockAdapter,
+    StatefulSimulationAdapter,
 )
 from tool_call_tr.records import RecordIOError, load_records, write_records
 from tool_call_tr.quality import QualityError, run_dataset_quality, write_quality_report
+from tool_call_tr.provider_preflight import check_provider_models
+from tool_call_tr.provider_comparison import (
+    FLASH_MODEL,
+    PRO_MODEL,
+    RetryingLanguagePlanGenerator,
+    filter_blueprints_by_id,
+    run_generation_comparison,
+)
 from tool_call_tr.registry import ToolRegistry
 from tool_call_tr.reporting import benchmark_run_report, corpus_report
 from tool_call_tr.review import ReviewError, apply_review, export_accepted
@@ -95,6 +105,36 @@ def build_parser() -> argparse.ArgumentParser:
 
     config = subparsers.add_parser("config", help="Show non-secret effective configuration.")
     config.set_defaults(handler=_cmd_config)
+
+    provider = subparsers.add_parser("provider", help="Run read-only provider readiness checks.")
+    provider_commands = provider.add_subparsers(dest="provider_command", metavar="COMMAND", required=True)
+    provider_check = provider_commands.add_parser("check", help="Verify configured model access via GET /models.")
+    provider_check.add_argument("--provider", choices=("all", "deepseek", "openai"), default="all")
+    provider_check.add_argument("--confirm-live", action="store_true")
+    provider_check.add_argument("--output", choices=OUTPUT_FORMATS, default="text")
+    provider_check.set_defaults(handler=_cmd_provider_check)
+    provider_compare = provider_commands.add_parser(
+        "compare-generation",
+        help="Compare Flash and Pro on the same validated pilot blueprints.",
+    )
+    provider_compare.add_argument("blueprints", nargs="+", type=Path)
+    provider_compare.add_argument("--registry", type=Path, required=True)
+    provider_compare.add_argument("--output-dir", type=Path, required=True)
+    provider_compare.add_argument("--models", nargs="+", choices=(FLASH_MODEL, PRO_MODEL), default=[FLASH_MODEL, PRO_MODEL])
+    provider_compare.add_argument("--limit", type=int)
+    provider_compare.add_argument(
+        "--blueprint-id",
+        action="append",
+        default=[],
+        help="Run only the named blueprint; repeat to select multiple records.",
+    )
+    provider_compare.add_argument("--judge-provider", choices=("none", "openai"), default="openai")
+    provider_compare.add_argument("--max-workers", type=int)
+    provider_compare.add_argument("--timestamp")
+    provider_compare.add_argument("--actor-id", required=True)
+    provider_compare.add_argument("--confirm-live", action="store_true")
+    provider_compare.add_argument("--overwrite", action="store_true")
+    provider_compare.set_defaults(handler=_cmd_provider_compare_generation)
 
     dataset = subparsers.add_parser("dataset", help="Manage training-dataset records only.")
     dataset_commands = dataset.add_subparsers(dest="dataset_command", metavar="COMMAND", required=True)
@@ -292,6 +332,7 @@ def _add_batch_commands(subparsers: argparse._SubParsersAction, lifecycle: str) 
     plan.add_argument("--source-type", choices=SOURCE_TYPES)
     plan.add_argument("--start-number", type=int)
     plan.add_argument("--existing", type=Path, action="append", default=[])
+    plan.add_argument("--registry", type=Path)
     plan.add_argument("--timestamp")
     plan.add_argument("--actor-id", required=True)
     plan.add_argument("--policy", type=Path, required=True)
@@ -334,6 +375,7 @@ def _add_dataset_generation_command(subparsers: argparse._SubParsersAction) -> N
     generate.add_argument("--source-type", choices=("original_turkish", "turkey_native"))
     generate.add_argument("--start-number", type=int)
     generate.add_argument("--existing", type=Path, action="append", default=[])
+    generate.add_argument("--registry", type=Path)
     generate.add_argument("--shard-size", type=int, default=50)
     generate.add_argument("--timestamp")
     generate.add_argument("--provider", choices=("deepseek",), default="deepseek")
@@ -355,6 +397,7 @@ def _add_dataset_quality_command(subparsers: argparse._SubParsersAction) -> None
     quality.add_argument("output_path", type=Path)
     quality.add_argument("--report", type=Path)
     quality.add_argument("--reference", type=Path, action="append", default=[])
+    quality.add_argument("--registry", type=Path)
     _add_semantic_arguments(quality)
     quality.add_argument(
         "--judge-provider",
@@ -422,6 +465,7 @@ def _add_support_commands(subparsers: argparse._SubParsersAction) -> None:
     blueprint_commands = blueprint.add_subparsers(dest="blueprint_command", metavar="COMMAND", required=True)
     blueprint_validate = blueprint_commands.add_parser("validate", help="Validate a scenario blueprint.")
     blueprint_validate.add_argument("path", type=Path)
+    blueprint_validate.add_argument("--registry", type=Path, help="Registry JSONL used for tool-contract validation.")
     blueprint_validate.add_argument("--output", choices=OUTPUT_FORMATS, default="text")
     blueprint_validate.set_defaults(handler=_cmd_validate, record_kind="blueprint")
 
@@ -429,7 +473,8 @@ def _add_support_commands(subparsers: argparse._SubParsersAction) -> None:
     tool_commands = tool.add_subparsers(dest="tool_command", metavar="COMMAND", required=True)
     execute = tool_commands.add_parser("run-fixture", help="Run a declared deterministic registry fixture.")
     execute.add_argument("fixture_id")
-    execute.add_argument("--mode", choices=("mock", "local_executable"), default="mock")
+    execute.add_argument("--registry", type=Path, help="Registry JSONL path; defaults to the configured canonical registry.")
+    execute.add_argument("--mode", choices=("mock", "local_executable", "fully_simulated"), help="Execution mode; defaults to the tool contract.")
     execute.set_defaults(handler=_cmd_run_fixture)
     api = tool_commands.add_parser("run-api", help="Run an approved read-only HTTPS JSON tool with explicit live confirmation.")
     api.add_argument("function_name")
@@ -471,6 +516,7 @@ def _cmd_config(args: argparse.Namespace) -> int:
     print(f"log_level={args.log_level or settings.log_level}")
     print(f"deepseek_api_key={redact_secret(settings.deepseek_api_key)}")
     print(f"deepseek_model={settings.deepseek_model}")
+    print(f"deepseek_fallback_model={settings.deepseek_fallback_model}")
     print(f"deepseek_base_url={settings.deepseek_base_url}")
     print(f"deepseek_max_output_tokens={settings.deepseek_max_output_tokens}")
     print(f"openai_api_key={redact_secret(settings.openai_api_key)}")
@@ -488,6 +534,97 @@ def _cmd_config(args: argparse.Namespace) -> int:
     print(f"provider_max_workers={settings.provider_max_workers}")
     print(f"env_file={'loaded' if (settings.project_root / '.env').is_file() else 'not_found'}")
     return 0
+
+
+def _cmd_provider_check(args: argparse.Namespace) -> int:
+    if not args.confirm_live:
+        print("ERROR LIVE_CONFIRMATION_REQUIRED: provider check performs authenticated GET /models requests")
+        return 1
+    settings = Settings.from_env()
+    providers = ("deepseek", "openai") if args.provider == "all" else (args.provider,)
+    results = check_provider_models(settings, providers=providers)
+    payload = {"ok": all(item.ok for item in results), "providers": [item.to_dict() for item in results]}
+    _print_payload(payload, args.output)
+    return 0 if payload["ok"] else 1
+
+
+def _cmd_provider_compare_generation(args: argparse.Namespace) -> int:
+    if not args.confirm_live:
+        print("ERROR LIVE_CONFIRMATION_REQUIRED: generation comparison performs paid provider requests")
+        return 1
+    if args.limit is not None and args.limit < 1:
+        print("ERROR COMPARISON_INVALID: --limit must be positive")
+        return 1
+    try:
+        settings = Settings.from_env()
+        registry = ToolRegistry.load(args.registry)
+        blueprints = [record for path in args.blueprints for record in load_records(path)]
+        blueprints = filter_blueprints_by_id(blueprints, args.blueprint_id)
+        if args.limit is not None:
+            blueprints = blueprints[:args.limit]
+        output_dir = args.output_dir.resolve()
+        output_paths = [output_dir / "report.json", *(
+            output_dir / f"{model}.jsonl" for model in args.models
+        )]
+        occupied = [str(path) for path in output_paths if path.exists()]
+        if occupied and not args.overwrite:
+            raise ValueError("comparison output already exists: " + ", ".join(occupied))
+        retry_policy = RetryPolicy(
+            max_attempts=settings.max_retries + 1,
+            base_seconds=settings.retry_base_seconds,
+        )
+        generators = {}
+        for model in dict.fromkeys(args.models):
+            provider = DeepSeekIntegration(
+                settings.deepseek_api_key,
+                model,
+                base_url=settings.deepseek_base_url,
+                timeout_seconds=settings.request_timeout_seconds,
+                max_output_tokens=settings.deepseek_max_output_tokens,
+            )
+            provider.require_configured()
+            generators[model] = RetryingLanguagePlanGenerator(provider, retry_policy)
+        judge = None
+        if args.judge_provider == "openai":
+            raw_judge = OpenAIQualityJudge.from_settings(settings)
+            raw_judge.require_configured()
+            judge = RetryingRecordQualityJudge(raw_judge, retry_policy)
+        result = run_generation_comparison(
+            blueprints,
+            registry=registry,
+            generators=generators,
+            actor_id=args.actor_id,
+            judge=judge,
+            generated_at=args.timestamp,
+            max_workers=args.max_workers or settings.provider_max_workers,
+        )
+        for model, candidates in result.candidates.items():
+            write_records(output_dir / f"{model}.jsonl", candidates, overwrite=args.overwrite)
+        write_records(output_dir / "report.json", [result.report], overwrite=args.overwrite)
+    except (OSError, ValueError, RecordIOError, ProviderError, ProviderNotConfigured) as exc:
+        print(f"ERROR COMPARISON_FAILED: {exc}")
+        return 1
+    summary = {
+        "report": str(output_dir / "report.json"),
+        "blueprint_count": result.report["blueprint_count"],
+        "models": {
+            model: {
+                "generation_passed": evidence["generation_passed"],
+                "generation_failed": evidence["generation_failed"],
+                "judge_failed": evidence["judge_failed"],
+                "judge_verdicts": evidence["judge_verdicts"],
+                "mean_overall_score": evidence["mean_overall_score"],
+            }
+            for model, evidence in result.report["models"].items()
+        },
+        "decision": result.report["decision"],
+    }
+    _print_payload(summary, "json")
+    failed = any(
+        evidence["generation_failed"] or evidence["judge_failed"]
+        for evidence in result.report["models"].values()
+    )
+    return 1 if failed else 0
 
 
 def _cmd_access_validate(args: argparse.Namespace) -> int:
@@ -544,11 +681,20 @@ def _generate_id(kind: str, number: int, source_type: str | None) -> int:
 
 
 def _cmd_validate(args: argparse.Namespace) -> int:
-    return _validate_schema(args.record_kind, args.path, args.output)
+    validator = None
+    if args.record_kind == "blueprint" and getattr(args, "registry", None) is not None:
+        validator = RuleBasedValidator(registry=ToolRegistry.load(args.registry))
+    return _validate_schema(args.record_kind, args.path, args.output, validator=validator)
 
 
-def _validate_schema(kind: str, path: Path, output: str) -> int:
-    report = RuleBasedValidator().validate_path(kind, path)
+def _validate_schema(
+    kind: str,
+    path: Path,
+    output: str,
+    *,
+    validator: RuleBasedValidator | None = None,
+) -> int:
+    report = (validator or RuleBasedValidator()).validate_path(kind, path)
     if output == "json":
         print(json.dumps(report.to_dict(), ensure_ascii=False, sort_keys=True))
     else:
@@ -557,10 +703,16 @@ def _validate_schema(kind: str, path: Path, output: str) -> int:
 
 
 def _cmd_run_fixture(args: argparse.Namespace) -> int:
-    registry = ToolRegistry.load()
+    registry = ToolRegistry.load(args.registry)
     fixture = registry.load_fixture(args.fixture_id)
-    execution_type = ExecutionType(args.mode)
-    adapter = MockAdapter.from_registry(registry, [args.fixture_id]) if execution_type == ExecutionType.MOCK else LocalExecutableAdapter()
+    tool = registry.by_function_name(fixture["function_name"])
+    execution_type = ExecutionType(args.mode or tool["execution"]["default_type"])
+    if execution_type == ExecutionType.MOCK:
+        adapter = MockAdapter.from_registry(registry, [args.fixture_id])
+    elif execution_type == ExecutionType.LOCAL_EXECUTABLE:
+        adapter = LocalExecutableAdapter()
+    else:
+        adapter = StatefulSimulationAdapter()
     engine = ExecutionEngine(registry, ExecutionRouter([adapter]))
     result = engine.execute(ExecutionRequest("call_001", fixture["function_name"], fixture["arguments"], execution_type))
     print(json.dumps(result.to_dict(), ensure_ascii=False, sort_keys=True))
@@ -721,6 +873,12 @@ def _cmd_batch_plan(args: argparse.Namespace) -> int:
             if not isinstance(targets, dict):
                 raise BatchError("target distributions must be a JSON object")
         existing = collect_existing_ids(args.existing)
+        registry_path = None
+        if args.operation in {"scenario_generation", "benchmark_generation"}:
+            registry_path = (args.registry or Settings.from_env().registry_path).resolve()
+            _load_generation_registry(registry_path)
+        elif args.registry is not None:
+            raise BatchError("--registry is only valid for generation jobs")
         manifest = create_job_manifest(
             job_id=args.job_id,
             lifecycle=args.record_kind,
@@ -734,6 +892,7 @@ def _cmd_batch_plan(args: argparse.Namespace) -> int:
             source_type=args.source_type,
             start_number=args.start_number,
             existing_ids=existing,
+            registry_path=registry_path,
             timestamp=args.timestamp,
         )
         write_manifest(args.manifest_path, manifest)
@@ -763,6 +922,7 @@ def _cmd_batch_status(args: argparse.Namespace) -> int:
         "shards": manifest["shards"],
         "target_distributions": manifest["target_distributions"],
         "input_verified": True,
+        "registry_verified": manifest["registry_binding"] is not None,
     }
     _print_payload(payload, args.output)
     return 0
@@ -786,11 +946,13 @@ def _cmd_generate_candidates(args: argparse.Namespace) -> int:
         settings = Settings.from_env()
         provider = DeepSeekIntegration.from_settings(settings)
         provider.require_configured()
+        fallback_provider = _deepseek_fallback_provider(settings, provider)
         completed = _execute_candidate_generation(
             args,
             manifest_path=args.manifest_path,
             settings=settings,
             provider=provider,
+            fallback_provider=fallback_provider,
         )
     except (AccessPolicyError, AccessDenied, BatchError, ProviderNotConfigured, DatasetWorkflowError) as exc:
         print(f"ERROR GENERATION_BLOCKED: {exc}")
@@ -804,6 +966,7 @@ def _cmd_generate_candidates(args: argparse.Namespace) -> int:
             "provider_tokens_used": completed["provider_tokens_used"],
             "provider_budget_accounted_tokens": completed["provider_budget_accounted_tokens"],
             "provider_token_budget": completed["provider_token_budget"],
+            "provider_fallbacks_used": completed["provider_fallbacks_used"],
         },
         "json",
     )
@@ -816,7 +979,9 @@ def _cmd_generate_dataset(args: argparse.Namespace) -> int:
         return 1
     try:
         settings = Settings.from_env()
-        validator = RuleBasedValidator()
+        registry_path = (args.registry or settings.registry_path).resolve()
+        registry = _load_generation_registry(registry_path)
+        validator = RuleBasedValidator(registry=registry)
         plan = inspect_blueprints(args.blueprints_path, validator=validator)
         source_type = args.source_type or plan.source_type
         if source_type != plan.source_type:
@@ -831,6 +996,7 @@ def _cmd_generate_dataset(args: argparse.Namespace) -> int:
 
         provider = DeepSeekIntegration.from_settings(settings)
         provider.require_configured()
+        fallback_provider = _deepseek_fallback_provider(settings, provider)
         job_id = args.job_id or default_job_id(args.blueprints_path)
         paths = default_job_paths(
             project_root=settings.project_root,
@@ -867,6 +1033,7 @@ def _cmd_generate_dataset(args: argparse.Namespace) -> int:
             source_type=source_type,
             start_number=start_number,
             existing_ids=existing_ids,
+            registry_path=registry_path,
             timestamp=args.timestamp,
         )
         write_manifest(paths.manifest, manifest)
@@ -875,6 +1042,7 @@ def _cmd_generate_dataset(args: argparse.Namespace) -> int:
             manifest_path=paths.manifest,
             settings=settings,
             provider=provider,
+            fallback_provider=fallback_provider,
         )
     except (
         AccessPolicyError,
@@ -902,6 +1070,7 @@ def _cmd_generate_dataset(args: argparse.Namespace) -> int:
             "provider_tokens_used": completed["provider_tokens_used"],
             "provider_budget_accounted_tokens": completed["provider_budget_accounted_tokens"],
             "provider_token_budget": completed["provider_token_budget"],
+            "provider_fallbacks_used": completed["provider_fallbacks_used"],
             "pending_quality_gates": ["execution_when_applicable", "semantic", "language", "duplicate"],
         },
         "json",
@@ -915,56 +1084,78 @@ def _execute_candidate_generation(
     manifest_path: Path,
     settings: Settings,
     provider: DeepSeekIntegration,
+    fallback_provider: DeepSeekIntegration | None = None,
 ) -> dict[str, Any]:
     manifest = load_manifest(manifest_path)
-    validator = RuleBasedValidator()
+    registry = _registry_from_manifest(manifest)
+    validator = RuleBasedValidator(registry=registry)
     generated_at = getattr(args, "timestamp", None) or datetime.now(timezone.utc).isoformat()
     budget = _ConcurrentTokenBudget(getattr(args, "token_budget", None))
+    fallback_lock = Lock()
+    fallbacks_used = 0
 
     def process(blueprint: dict[str, Any], index: int, record_id: str | None) -> dict[str, Any]:
+        nonlocal fallbacks_used
         if record_id is None:
             raise BatchError("generation item has no assigned record ID")
+        if args.record_kind != "dataset":
+            raise BatchError("benchmark generation is paused")
         blueprint_report = validator.validate_record("blueprint", blueprint)
         if not blueprint_report.valid:
             raise BatchError(blueprint_report.human())
-        estimate = _estimated_generation_tokens(
-            blueprint,
-            getattr(provider, "max_output_tokens", settings.deepseek_max_output_tokens),
-        )
-        budget.reserve(estimate)
-        response = None
-        try:
-            response = _provider_retry(
-                lambda: provider.generate_candidate(
-                    lifecycle=args.record_kind,
-                    blueprint=blueprint,
-                    record_id=record_id,
+
+        def generate(active_provider: DeepSeekIntegration):
+            estimate = _estimated_generation_tokens(
+                blueprint,
+                min(
+                    getattr(active_provider, "max_output_tokens", settings.deepseek_max_output_tokens),
+                    getattr(active_provider, "language_plan_max_output_tokens", 1600),
                 ),
-                settings,
             )
-        finally:
-            actual = response.usage.get("total_tokens") if response is not None and response.usage else None
-            budget.settle(estimate, actual)
-        value = response.value
-        if args.record_kind == "dataset":
-            value = prepare_generated_candidate(
-                value,
-                blueprint=blueprint,
-                record_id=record_id,
-                identity=response.identity,
-                actor_id=args.actor_id,
-                generated_at=generated_at,
-                provider_usage=response.usage,
-                provider_request_id=response.request_id,
-                provider_system_fingerprint=response.system_fingerprint,
-                provider_attempts=response.attempts,
-            )
-        else:
-            if not isinstance(value, dict) or value.get("id") != record_id:
-                raise BatchError(f"provider returned an unexpected record ID for item {index}")
-            review = value.get("metadata", {}).get("review", {})
-            if review.get("status") != "needs_revision" or review.get("reviewer_ids"):
-                raise BatchError("generated candidates must remain unreviewed needs_revision records")
+            budget.reserve(estimate)
+            response = None
+            try:
+                response = _provider_retry(
+                    lambda: active_provider.generate_language_plan(blueprint),
+                    settings,
+                )
+                return response
+            finally:
+                actual = response.usage.get("total_tokens") if response is not None and response.usage else None
+                budget.settle(estimate, actual)
+
+        fallback_from = None
+        fallback_reason = None
+        try:
+            response = generate(provider)
+        except ProviderError as exc:
+            if fallback_provider is None:
+                raise
+            fallback_from = provider.model
+            fallback_reason = str(exc)
+            response = generate(fallback_provider)
+            with fallback_lock:
+                fallbacks_used += 1
+        value = build_candidate_from_language_plan(
+            response.value,
+            blueprint=blueprint,
+            record_id=record_id,
+            registry=validator.registry,
+        )
+        value = prepare_generated_candidate(
+            value,
+            blueprint=blueprint,
+            record_id=record_id,
+            identity=response.identity,
+            actor_id=args.actor_id,
+            generated_at=generated_at,
+            provider_usage=response.usage,
+            provider_request_id=response.request_id,
+            provider_system_fingerprint=response.system_fingerprint,
+            provider_attempts=response.attempts,
+            provider_fallback_from=fallback_from,
+            provider_fallback_reason=fallback_reason,
+        )
         report = validator.validate_record(args.record_kind, value)
         if not report.valid:
             raise BatchError(report.human())
@@ -978,11 +1169,49 @@ def _execute_candidate_generation(
     completed["provider_tokens_used"] = budget.observed
     completed["provider_budget_accounted_tokens"] = budget.accounted
     completed["provider_token_budget"] = budget.limit
+    completed["provider_fallbacks_used"] = fallbacks_used
     return completed
+
+
+def _load_generation_registry(path: Path) -> ToolRegistry:
+    try:
+        return ToolRegistry.load(path)
+    except (OSError, ValueError) as exc:
+        raise BatchError(f"cannot load generation registry: {path}") from exc
+
+
+def _registry_from_manifest(manifest: dict[str, Any]) -> ToolRegistry:
+    binding = manifest.get("registry_binding")
+    if not isinstance(binding, dict) or not isinstance(binding.get("path"), str):
+        raise BatchError("generation job has no checksum-bound registry")
+    return _load_generation_registry(Path(binding["path"]))
+
+
+def _deepseek_fallback_provider(
+    settings: Settings,
+    primary_provider: DeepSeekIntegration,
+) -> DeepSeekIntegration | None:
+    model = settings.deepseek_fallback_model
+    if not settings.deepseek_api_key or not model or model == primary_provider.model:
+        return None
+    provider = DeepSeekIntegration(
+        settings.deepseek_api_key,
+        model,
+        base_url=settings.deepseek_base_url,
+        timeout_seconds=settings.request_timeout_seconds,
+        max_output_tokens=settings.deepseek_max_output_tokens,
+    )
+    provider.require_configured()
+    return provider
 
 
 def _cmd_dataset_quality(args: argparse.Namespace) -> int:
     report_path = args.report or Path(str(args.output_path) + ".quality.json")
+    if (
+        args.semantic_provider == "openai" or args.judge_provider == "openai"
+    ) and not args.confirm_live:
+        print("ERROR QUALITY_BLOCKED: --confirm-live is required for OpenAI providers")
+        return 1
     try:
         if report_path.resolve() in {args.input_path.resolve(), args.output_path.resolve()}:
             raise QualityError("quality report path must differ from input and output paths")
@@ -1006,6 +1235,8 @@ def _cmd_dataset_quality(args: argparse.Namespace) -> int:
                 resource_id=str(args.input_path),
             )
         records = load_records(args.input_path)
+        registry_path = (args.registry or Settings.from_env().registry_path).resolve()
+        registry = _load_generation_registry(registry_path)
         references = [record for path in args.reference for record in load_records(path)]
         semantic = _semantic_similarity(args)
         if args.semantic_provider == "openai":
@@ -1050,7 +1281,7 @@ def _cmd_dataset_quality(args: argparse.Namespace) -> int:
         result = run_dataset_quality(
             records,
             references=references,
-            registry=ToolRegistry.load(),
+            registry=registry,
             actor_id=args.actor_id,
             semantic=semantic,
             semantic_provider=args.semantic_provider,
@@ -1068,6 +1299,8 @@ def _cmd_dataset_quality(args: argparse.Namespace) -> int:
             timestamp=args.timestamp,
         )
         result.report["input_path"] = str(args.input_path.resolve())
+        result.report["registry_path"] = str(registry_path)
+        result.report["registry_sha256"] = hashlib.sha256(registry_path.read_bytes()).hexdigest()
         result.report["reference_paths"] = [str(path.resolve()) for path in args.reference]
         write_records(args.output_path, result.records, overwrite=args.overwrite)
         write_quality_report(report_path, result.report, overwrite=args.overwrite)
@@ -1280,7 +1513,12 @@ def _cmd_batch_corpus_report(args: argparse.Namespace) -> int:
         if manifest["status"] not in {"completed", "completed_with_errors"}:
             raise BatchError("batch report requires a completed job")
         records = load_records(Path(manifest["output_path"]))
-        validation = _validate_loaded_records(args.record_kind, records)
+        registry = (
+            _registry_from_manifest(manifest)
+            if manifest["registry_binding"] is not None
+            else ToolRegistry.load()
+        )
+        validation = _validate_loaded_records(args.record_kind, records, registry=registry)
         if validation:
             print(validation)
             return 1
@@ -1431,8 +1669,13 @@ def _cmd_benchmark_report(args: argparse.Namespace) -> int:
     return 0
 
 
-def _validate_loaded_records(kind: str, records: list[dict[str, Any]]) -> str | None:
-    validator = RuleBasedValidator()
+def _validate_loaded_records(
+    kind: str,
+    records: list[dict[str, Any]],
+    *,
+    registry: ToolRegistry | None = None,
+) -> str | None:
+    validator = RuleBasedValidator(registry=registry)
     failures = []
     for record in records:
         report = validator.validate_record(kind, record)

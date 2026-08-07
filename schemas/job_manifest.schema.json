@@ -6,7 +6,7 @@
   "required": [
     "job_version", "job_id", "lifecycle", "operation", "input_path", "input_sha256",
     "output_path", "error_path", "checkpoint_path", "total_items", "shard_size",
-    "shards", "target_distributions", "id_plan", "status", "counts", "created_at", "updated_at"
+    "shards", "target_distributions", "id_plan", "registry_binding", "status", "counts", "created_at", "updated_at"
   ],
   "properties": {
     "job_version": {"const": "0.1.0"},
@@ -52,6 +52,20 @@
             "source_type": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/source_type"},
             "start_number": {"type": "integer", "minimum": 1},
             "end_number": {"type": "integer", "minimum": 1}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "registry_binding": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {"type": "string", "minLength": 1},
+            "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
           },
           "additionalProperties": false
         }

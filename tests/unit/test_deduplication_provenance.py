@@ -83,6 +83,7 @@ def test_duplicate_cli_reports_without_modifying_source(tmp_path: Path, capsys) 
 
 
 def test_openai_semantic_cli_requires_explicit_production_configuration(tmp_path: Path, capsys, monkeypatch) -> None:
+    monkeypatch.setenv("MAGIBU_TOOLCALL_ROOT", str(tmp_path))
     for name in ("MAGIBU_TOOLCALL_OPENAI_API_KEY", "MAGIBU_TOOLCALL_OPENAI_EMBEDDING_MODEL"):
         monkeypatch.delenv(name, raising=False)
     left = record()

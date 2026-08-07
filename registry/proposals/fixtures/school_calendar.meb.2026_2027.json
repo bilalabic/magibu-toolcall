@@ -1,0 +1,7 @@
+{
+  "fixture_id": "school_calendar.meb.2026_2027",
+  "function_name": "school_calendar_get",
+  "arguments": {"academic_year": "2026-2027", "event_type": "all_breaks"},
+  "result": {"academic_year": "2026-2027", "events": [{"event_type": "interim_break", "name": "Birinci dönem ara tatili", "start_date": "2026-11-16", "end_date": "2026-11-20"}, {"event_type": "semester_break", "name": "Yarıyıl tatili", "start_date": "2027-01-25", "end_date": "2027-02-05"}, {"event_type": "interim_break", "name": "İkinci dönem ara tatili", "start_date": "2027-03-08", "end_date": "2027-03-12"}], "source_version": "meb-announcement-2026-06-13", "source_url": "https://meb.gov.tr/2026-2027-egitim-ogretim-yili-takvimi-aciklandi/haber/41057/tr"},
+  "provenance": "Dates transcribed from the official MEB announcement and checked 2026-08-07."
+}

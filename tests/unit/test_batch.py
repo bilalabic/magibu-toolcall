@@ -9,6 +9,7 @@ import pytest
 
 from tool_call_tr.cli import main
 from tool_call_tr.generation.providers import ModelIdentity, ProviderResponse
+from tool_call_tr.generation.providers import ProviderError
 from tool_call_tr.batch import (
     BatchError,
     create_job_manifest,
@@ -51,7 +52,36 @@ def test_manifest_plans_contiguous_shards_targets_and_ids(tmp_path: Path) -> Non
     assert [(shard["start"], shard["end"]) for shard in manifest["shards"]] == [(0, 2), (2, 4), (4, 5)]
     assert planned_record_id(manifest, 0) == "tctr_ot_000010"
     assert planned_record_id(manifest, 4) == "tctr_ot_000014"
+    assert manifest["registry_binding"] is None
     assert load_manifest(manifest_path)["input_sha256"] == manifest["input_sha256"]
+
+
+def test_manifest_rejects_changed_checksum_bound_registry(tmp_path: Path) -> None:
+    source = tmp_path / "input.jsonl"
+    write_rows(source, 1)
+    registry = tmp_path / "registry.jsonl"
+    registry.write_text("original\n", encoding="utf-8")
+    manifest_path = tmp_path / "job.json"
+    manifest = create_job_manifest(
+        job_id="dataset-generation-registry-001",
+        lifecycle="dataset",
+        operation="scenario_generation",
+        input_path=source,
+        output_path=tmp_path / "output.jsonl",
+        checkpoint_path=tmp_path / "checkpoint.json",
+        error_path=tmp_path / "errors.jsonl",
+        shard_size=1,
+        targets={"main_category": {"single_tool": 1}},
+        source_type="original_turkish",
+        start_number=1,
+        registry_path=registry,
+        timestamp="2026-08-07T00:00:00+00:00",
+    )
+    write_manifest(manifest_path, manifest)
+    assert load_manifest(manifest_path)["registry_binding"]["path"] == str(registry.resolve())
+    registry.write_text("changed\n", encoding="utf-8")
+    with pytest.raises(BatchError, match="registry.*checksum"):
+        load_manifest(manifest_path)
 
 
 def test_manifest_rejects_distribution_and_id_collisions(tmp_path: Path) -> None:
@@ -168,26 +198,27 @@ def test_batch_cli_plans_reports_and_runs_validated_candidate_job(
     assert main(["dataset", "batch", "status", str(manifest), "--output", "json"]) == 0
     assert json.loads(capsys.readouterr().out)["input_verified"]
 
-    candidate_template = json.loads((root / "tests" / "fixtures" / "dataset" / "valid_no_tool.json").read_text(encoding="utf-8"))
-
     class FakeProvider:
         model = "fixture-model"
 
         def require_configured(self):
             return None
 
-        def generate_candidate(self, *, lifecycle, blueprint, record_id):
-            candidate = json.loads(json.dumps(candidate_template))
-            candidate["id"] = record_id
-            candidate["metadata"]["review"] = {
-                "status": "needs_revision", "reviewer_ids": [], "notes": "Generated fixture; review required."
-            }
-            return ProviderResponse(candidate, ModelIdentity("fake", self.model, "1", "dataset_candidate_generator"))
+        def generate_language_plan(self, blueprint):
+            return ProviderResponse(
+                {
+                    "user_messages": ["Merhaba"],
+                    "intermediate_assistant_response": None,
+                    "final_response": "Merhaba!",
+                },
+                ModelIdentity("fake", self.model, "1", "dataset_language_generator"),
+            )
 
     monkeypatch.setattr("tool_call_tr.cli.DeepSeekIntegration.from_settings", lambda settings: FakeProvider())
     assert main(["dataset", "batch", "run", str(manifest), "--execute-live", *access]) == 0
     result = json.loads(capsys.readouterr().out)
     assert result["status"] == "completed"
+    assert result["provider_budget_accounted_tokens"] < 5000
     generated = json.loads(output.read_text(encoding="utf-8"))
     assert generated["id"] == "tctr_ot_000020"
     assert generated["metadata"]["review"]["status"] == "needs_revision"
@@ -202,25 +233,24 @@ def test_normal_dataset_generation_plans_paths_and_sanitizes_provider_quality_cl
     root = Path(__file__).resolve().parents[2]
     blueprint = root / "tests" / "fixtures" / "blueprints" / "valid" / "no_tool.json"
     output = tmp_path / "staging" / "pilot.jsonl"
-    candidate_template = json.loads(
-        (root / "tests" / "fixtures" / "dataset" / "valid_no_tool.json").read_text(encoding="utf-8")
-    )
-
     class FakeProvider:
         model = "fixture-model"
 
         def require_configured(self):
             return None
 
-        def generate_candidate(self, *, lifecycle, blueprint, record_id):
-            candidate = json.loads(json.dumps(candidate_template))
-            candidate["id"] = record_id
+        def generate_language_plan(self, blueprint):
             return ProviderResponse(
-                candidate,
-                ModelIdentity("fake", self.model, "2026-08-07", "dataset_candidate_generator"),
+                {
+                    "user_messages": ["Merhaba"],
+                    "intermediate_assistant_response": None,
+                    "final_response": "Merhaba!",
+                },
+                ModelIdentity("fake", self.model, "2026-08-07", "dataset_language_generator"),
             )
 
     monkeypatch.setattr("tool_call_tr.cli.DeepSeekIntegration.from_settings", lambda settings: FakeProvider())
+    monkeypatch.setattr("tool_call_tr.cli.dataset_record_paths", lambda project_root: [])
     access = [
         "--actor-id", "dataset_operator_01", "--policy", access_files["policy"],
         "--audit-log", access_files["audit"],
@@ -237,6 +267,7 @@ def test_normal_dataset_generation_plans_paths_and_sanitizes_provider_quality_cl
     result = json.loads(capsys.readouterr().out)
     assert result["job_id"] == "dataset-pilot-001"
     assert result["status"] == "completed"
+    assert result["provider_budget_accounted_tokens"] < 5000
     assert Path(result["manifest"]).exists()
     assert result["output"] == str(output.resolve())
 
@@ -248,3 +279,69 @@ def test_normal_dataset_generation_plans_paths_and_sanitizes_provider_quality_cl
     assert generated["metadata"]["validation"]["duplicate"] == "not_run"
     assert generated["metadata"]["provenance"]["generator_model"] == "fixture-model"
     assert generated["metadata"]["provenance"]["generator_version"] == "2026-08-07"
+
+
+def test_normal_generation_falls_back_to_pro_and_records_provenance(
+    tmp_path: Path, capsys, access_files, monkeypatch,
+) -> None:
+    root = Path(__file__).resolve().parents[2]
+    blueprint = root / "tests" / "fixtures" / "blueprints" / "valid" / "no_tool.json"
+    output = tmp_path / "staging" / "fallback.jsonl"
+
+    class FailingFlash:
+        model = "deepseek-v4-flash"
+        calls = 0
+
+        def require_configured(self):
+            return None
+
+        def generate_language_plan(self, blueprint):
+            self.calls += 1
+            raise ProviderError("primary deterministic failure")
+
+    class PassingPro:
+        model = "deepseek-v4-pro"
+
+        def generate_language_plan(self, blueprint):
+            return ProviderResponse(
+                {
+                    "user_messages": ["Merhaba"],
+                    "intermediate_assistant_response": None,
+                    "final_response": "Merhaba!",
+                },
+                ModelIdentity("deepseek", self.model, "pro-snapshot", "dataset_language_generator"),
+                usage={"total_tokens": 10},
+            )
+
+    flash = FailingFlash()
+    pro = PassingPro()
+    monkeypatch.setenv("MAGIBU_TOOLCALL_RETRY_BASE_SECONDS", "0")
+    monkeypatch.setattr("tool_call_tr.cli.DeepSeekIntegration.from_settings", lambda settings: flash)
+    monkeypatch.setattr("tool_call_tr.cli._deepseek_fallback_provider", lambda settings, primary: pro)
+    monkeypatch.setattr("tool_call_tr.cli.dataset_record_paths", lambda project_root: [])
+    access = [
+        "--actor-id", "dataset_operator_01", "--policy", access_files["policy"],
+        "--audit-log", access_files["audit"],
+    ]
+    assert main([
+        "dataset", "generate", str(blueprint),
+        "--job-id", "dataset-fallback-001",
+        "--runs-dir", str(tmp_path / "runs"),
+        "--output", str(output),
+        "--timestamp", "2026-08-07T00:00:00+00:00",
+        "--execute-live",
+        *access,
+    ]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["provider_fallbacks_used"] == 1
+    assert flash.calls == 3
+    generated = json.loads(output.read_text(encoding="utf-8"))
+    provenance = generated["metadata"]["provenance"]
+    assert provenance["generator_model"] == "deepseek-v4-pro"
+    fallback = [
+        item for item in provenance["transformation_history"]
+        if item["action"] == "generation_provider_fallback"
+    ]
+    assert len(fallback) == 1
+    assert "from_model=deepseek-v4-flash" in fallback[0]["details"]
+    assert "to_model=deepseek-v4-pro" in fallback[0]["details"]

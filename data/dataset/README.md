@@ -27,6 +27,16 @@ Birincil judge bütün kayıtları, escalation judge ise başarısız/belirsiz k
 ile geçenlerin belirlenmiş örneklemini denetler. İnsan dil ve gerektiğinde teknik
 reviewer kararları ayrı olmadan kayıt `accepted/` alanına geçirilemez.
 
+Dataset'teki `mock` yürütme türü fixture'ın mutlaka tamamen sentetik olduğu
+anlamına gelmez. Gerçek API veya resmî snapshot'tan alınan sonuçlar normalize
+edilip kişisel veriden arındırıldıktan sonra kaynak, alınma zamanı, lisans, sürüm
+ve checksum bilgileriyle dondurulabilir. Üretimde bu fixture deterministik olarak
+mock çalıştırılır; veri kökeni fixture provenance açıklamasında `api_snapshot`,
+`official_snapshot` veya `synthetic` olarak ayrıca belirtilir. Yapılandırılmış
+fixture-origin alanı otomatik yakalama hattıyla birlikte eklenebilir. Canlı ve
+zamanla değişen API yanıtları geçmiş dataset kaydını yeniden doğrulamak için
+kullanılmaz.
+
 1000 kayıt tek kontrolsüz çağrı olarak çalıştırılmaz. Önce 30, sonra 100 ve 250
 kayıtlık kapılar geçilir; tam üretim dört adet 250 kayıtlık run olarak yürütülür.
 Her run ayrı manifest, checkpoint, hata dosyası, token bütçesi ve kalite raporu

@@ -13,6 +13,7 @@ dist/
 
 # Generated run and export content; directory markers remain tracked.
 runs/**/*.jsonl
+runs/**/*.json
 data/dataset/accepted/**/*.jsonl
 data/dataset/needs_revision/**/*.jsonl
 data/dataset/rejected/**/*.jsonl

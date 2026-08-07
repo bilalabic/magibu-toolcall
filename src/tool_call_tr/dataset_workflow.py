@@ -12,6 +12,8 @@ from typing import Any
 
 from tool_call_tr.generation.providers import ModelIdentity
 from tool_call_tr.ids import RECORD_ID_RE, SOURCE_PREFIX
+from tool_call_tr.language_plan import LanguagePlanValidationError, validate_language_plan
+from tool_call_tr.registry import ToolRegistry
 from tool_call_tr.validation import RuleBasedValidator
 from tool_call_tr.validation.parsing import parse_path
 
@@ -142,6 +144,142 @@ def next_dataset_number(existing_ids: set[str], source_type: str) -> int:
     return next_number
 
 
+def build_candidate_from_language_plan(
+    language_plan: dict[str, Any],
+    *,
+    blueprint: dict[str, Any],
+    record_id: str,
+    registry: ToolRegistry,
+) -> dict[str, Any]:
+    """Assemble machine-controlled dataset structure around provider-written Turkish text."""
+
+    user_messages, intermediate_response, final_response = _validate_language_plan(
+        language_plan,
+        blueprint=blueprint,
+    )
+    metadata_source = blueprint["metadata"]
+    expected_calls = copy.deepcopy(blueprint["expected_tool_calls"])
+    has_calls = bool(expected_calls)
+    metadata: dict[str, Any] = {
+        "main_category": metadata_source["main_category"],
+        "secondary_tags": copy.deepcopy(metadata_source["secondary_tags"]),
+        "source_type": metadata_source["source_type"],
+        "domain": metadata_source["domain"],
+        "difficulty": metadata_source["difficulty"],
+        "provenance": copy.deepcopy(metadata_source["provenance"]),
+        "execution": {
+            "type": metadata_source["intended_execution_type"] if has_calls else "not_applicable",
+            "status": "not_called",
+        },
+        "validation": {
+            "json": "passed",
+            "schema": "passed",
+            "tool_call": "passed" if has_calls else "not_applicable",
+            "execution": "not_run" if has_calls else "not_applicable",
+            "semantic": "not_run",
+            "turn_level": "passed" if metadata_source["main_category"] == "multi_turn" else "not_applicable",
+            "language": "not_run",
+            "duplicate": "not_run",
+        },
+        "review": {
+            "status": "needs_revision",
+            "reviewer_ids": [],
+            "notes": f"Generated from {blueprint['id']}; quality gates and human review remain required.",
+        },
+    }
+    if has_calls:
+        metadata["final_response_method"] = "tool_result_regeneration"
+
+    tools = [
+        {
+            "type": "function",
+            "function": copy.deepcopy(registry.by_function_name(name)["function"]),
+        }
+        for name in blueprint["available_tools"]
+    ]
+    messages: list[dict[str, Any]] = [{"role": "user", "content": user_messages[0]}]
+    if intermediate_response is not None:
+        messages.extend((
+            {"role": "assistant", "content": intermediate_response},
+            {"role": "user", "content": user_messages[1]},
+        ))
+    if has_calls:
+        expected_results = (
+            [blueprint["expected_tool_result"]]
+            if len(expected_calls) == 1
+            else blueprint["expected_tool_result"]
+        )
+        if not isinstance(expected_results, list) or len(expected_results) != len(expected_calls):
+            raise DatasetWorkflowError("blueprint must provide one expected result per tool call")
+        if blueprint["execution_order"] == "sequential":
+            for index, (call, result) in enumerate(zip(expected_calls, expected_results, strict=True), 1):
+                call_id = f"call_{index:03d}"
+                messages.append(_assistant_tool_call_message([call], [call_id]))
+                messages.append(_tool_result_message(call, call_id, result))
+        else:
+            call_ids = [f"call_{index:03d}" for index in range(1, len(expected_calls) + 1)]
+            messages.append(_assistant_tool_call_message(expected_calls, call_ids))
+            messages.extend(
+                _tool_result_message(call, call_id, result)
+                for call, call_id, result in zip(expected_calls, call_ids, expected_results, strict=True)
+            )
+    messages.append({"role": "assistant", "content": final_response})
+    return {
+        "schema_version": blueprint["schema_version"],
+        "tool_registry_version": blueprint["tool_registry_version"],
+        "id": record_id,
+        "metadata": metadata,
+        "tools": tools,
+        "messages": messages,
+    }
+
+
+def _validate_language_plan(
+    language_plan: dict[str, Any],
+    *,
+    blueprint: dict[str, Any],
+) -> tuple[list[str], str | None, str]:
+    try:
+        return validate_language_plan(
+            language_plan,
+            multi_turn=blueprint["metadata"]["main_category"] == "multi_turn",
+            requires_clarification="clarification" in blueprint["metadata"]["secondary_tags"],
+        )
+    except LanguagePlanValidationError as exc:
+        raise DatasetWorkflowError(str(exc)) from exc
+
+
+def _assistant_tool_call_message(
+    expected_calls: list[dict[str, Any]],
+    call_ids: list[str],
+) -> dict[str, Any]:
+    return {
+        "role": "assistant",
+        "content": None,
+        "tool_calls": [
+            {
+                "id": call_id,
+                "type": "function",
+                "function": copy.deepcopy(call["function"]),
+            }
+            for call, call_id in zip(expected_calls, call_ids, strict=True)
+        ],
+    }
+
+
+def _tool_result_message(
+    expected_call: dict[str, Any],
+    call_id: str,
+    result: Any,
+) -> dict[str, Any]:
+    return {
+        "role": "tool",
+        "tool_call_id": call_id,
+        "name": expected_call["function"]["name"],
+        "content": json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+    }
+
+
 def prepare_generated_candidate(
     candidate: dict[str, Any],
     *,
@@ -154,6 +292,8 @@ def prepare_generated_candidate(
     provider_request_id: str | None = None,
     provider_system_fingerprint: str | None = None,
     provider_attempts: int = 1,
+    provider_fallback_from: str | None = None,
+    provider_fallback_reason: str | None = None,
 ) -> dict[str, Any]:
     """Replace provider quality claims with evidence-backed draft state and enforce the blueprint contract."""
 
@@ -209,6 +349,18 @@ def prepare_generated_candidate(
     provenance = copy.deepcopy(blueprint_metadata["provenance"])
     provenance["generator_model"] = identity.model
     provenance["generator_version"] = identity.model_version
+    if provider_fallback_from is not None:
+        provenance["transformation_history"].append(
+            {
+                "action": "generation_provider_fallback",
+                "timestamp": generated_at,
+                "actor_id": actor_id,
+                "details": (
+                    f"from_model={provider_fallback_from}; to_model={identity.model}; "
+                    f"reason={provider_fallback_reason or 'primary_provider_failed'}"
+                ),
+            }
+        )
     provenance["transformation_history"].append(
         {
             "action": "generated_from_blueprint",

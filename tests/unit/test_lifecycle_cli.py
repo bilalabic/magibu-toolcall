@@ -108,6 +108,18 @@ def test_cross_corpus_contamination_isolated_from_within_corpus_dedupe(tmp_path:
     assert report["findings"][0]["benchmark_id"] == benchmark["id"]
 
 
+def test_dataset_quality_requires_live_confirmation_for_openai(tmp_path: Path, capsys) -> None:
+    assert main([
+        "dataset", "quality", str(tmp_path / "input.jsonl"), str(tmp_path / "output.jsonl"),
+        "--semantic-provider", "openai",
+        "--judge-provider", "openai",
+        "--actor-id", "dataset_operator_01",
+        "--policy", str(tmp_path / "policy.json"),
+        "--audit-log", str(tmp_path / "audit.jsonl"),
+    ]) == 1
+    assert "--confirm-live is required" in capsys.readouterr().out
+
+
 def test_benchmark_freeze_and_checksum_verification(tmp_path: Path, capsys, access_files) -> None:
     source = FIXTURES / "benchmark" / "valid_tool_call.json"
     dataset = FIXTURES / "dataset" / "valid_single_tool.json"

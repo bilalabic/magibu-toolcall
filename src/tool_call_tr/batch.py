@@ -35,6 +35,7 @@ def create_job_manifest(
     source_type: str | None = None,
     start_number: int | None = None,
     existing_ids: Iterable[str] = (),
+    registry_path: Path | None = None,
     timestamp: str | None = None,
 ) -> dict[str, Any]:
     if lifecycle not in {"dataset", "benchmark"}:
@@ -95,6 +96,11 @@ def create_job_manifest(
         "shards": shards,
         "target_distributions": distributions,
         "id_plan": id_plan,
+        "registry_binding": (
+            {"path": str(registry_path.resolve()), "sha256": _file_hash(registry_path)}
+            if registry_path is not None
+            else None
+        ),
         "status": "planned",
         "counts": {"processed": 0, "succeeded": 0, "failed": 0},
         "created_at": now,
@@ -125,6 +131,11 @@ def load_manifest(path: Path, *, verify_input: bool = True) -> dict[str, Any]:
         input_path = Path(manifest["input_path"])
         if not input_path.exists() or _file_hash(input_path) != manifest["input_sha256"]:
             raise BatchError("job input is missing or its checksum changed")
+        registry_binding = manifest["registry_binding"]
+        if registry_binding is not None:
+            registry_path = Path(registry_binding["path"])
+            if not registry_path.exists() or _file_hash(registry_path) != registry_binding["sha256"]:
+                raise BatchError("job registry is missing or its checksum changed")
     _validate_shards(manifest)
     return manifest
 

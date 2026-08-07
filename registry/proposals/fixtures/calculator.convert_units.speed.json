@@ -1,0 +1,7 @@
+{
+  "fixture_id": "calculator.convert_units.speed",
+  "function_name": "calculator_convert_units",
+  "arguments": {"value": 90, "from_unit": "kilometer_per_hour", "to_unit": "meter_per_second"},
+  "result": {"input_value": 90, "input_unit": "kilometer_per_hour", "result": 25, "output_unit": "meter_per_second"},
+  "provenance": "Deterministic SI conversion fixture; no provider data."
+}

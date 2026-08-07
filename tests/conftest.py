@@ -5,6 +5,18 @@ from pathlib import Path
 
 import pytest
 
+from tool_call_tr.network import UrllibJsonTransport
+
+
+@pytest.fixture(autouse=True)
+def block_live_provider_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fail loudly if a test reaches the default live HTTP transport."""
+
+    def blocked_request(*args: object, **kwargs: object) -> None:
+        raise AssertionError("tests must inject a transport instead of using live provider network")
+
+    monkeypatch.setattr(UrllibJsonTransport, "request_json", blocked_request)
+
 
 @pytest.fixture
 def access_files(tmp_path: Path) -> dict[str, str]:
@@ -21,9 +33,11 @@ def access_files(tmp_path: Path) -> dict[str, str]:
                 "roles": ["technical_reviewer"], "permissions": ["review", "accept"],
             },
             {
-                "id": "dataset_operator_01", "active": True, "teams": ["dataset"],
-                "roles": ["contributor", "dataset_lead"],
-                "permissions": ["source_import", "localize", "generate", "quality_check", "export"],
+                "id": "dataset_operator_01", "active": True, "teams": ["dataset", "platform"],
+                "roles": ["contributor", "dataset_lead", "operator"],
+                "permissions": [
+                    "source_import", "localize", "generate", "quality_check", "export", "real_api",
+                ],
             },
             {
                 "id": "benchmark_lead_01", "active": True, "teams": ["benchmark"],

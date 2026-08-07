@@ -83,7 +83,8 @@ yazmayın:
 
 ```text
 MAGIBU_TOOLCALL_DEEPSEEK_API_KEY=<DeepSeek anahtarınız>
-MAGIBU_TOOLCALL_DEEPSEEK_MODEL=deepseek-v4-pro
+MAGIBU_TOOLCALL_DEEPSEEK_MODEL=deepseek-v4-flash
+MAGIBU_TOOLCALL_DEEPSEEK_FALLBACK_MODEL=deepseek-v4-pro
 MAGIBU_TOOLCALL_OPENAI_API_KEY=<OpenAI proje anahtarınız>
 MAGIBU_TOOLCALL_OPENAI_MODEL=gpt-5.4-mini-2026-03-17
 MAGIBU_TOOLCALL_OPENAI_ESCALATION_MODEL=gpt-5.4-2026-03-05
@@ -95,6 +96,81 @@ Anahtarların değerlerini göstermeden yapılandırmayı kontrol edin:
 ```powershell
 .\.venv\Scripts\magibu-toolcall.exe config
 ```
+
+Yapılandırılmış model kimliklerinin sağlayıcı hesaplarında gerçekten erişilebilir
+olduğunu, içerik üretmeden doğrulayın:
+
+```powershell
+.\.venv\Scripts\magibu-toolcall.exe provider check --confirm-live --output json
+```
+
+Bu komut yalnızca DeepSeek ve OpenAI `GET /models` uçlarını çağırır. API
+anahtarlarını veya sağlayıcı yanıt gövdelerini yazdırmaz; `--confirm-live`
+verilmeden ağ isteği yapmayı reddeder.
+
+Flash–Pro karşılaştırmasında önce aynı üretim yoluyla tek blueprint smoke testi
+yapılır. DeepSeek yalnız doğal Türkçe mesaj alanlarını üretir; tool şemaları,
+call ID'leri, argümanlar, sonuçlar ve metadata kod tarafından deterministik
+kurulur. Han/Çince karakteri veya `<think>` sızıntısı otomatik olarak reddedilir.
+
+```powershell
+.\.venv\Scripts\magibu-toolcall.exe provider compare-generation `
+  blueprints\pilot_general.jsonl blueprints\pilot_turkey_native.jsonl `
+  --registry registry\proposals\pilot_candidates.jsonl `
+  --output-dir runs\provider-comparison\flash-pro-smoke `
+  --limit 1 --judge-provider openai --max-workers 1 `
+  --actor-id codex_pilot_agent --confirm-live
+```
+
+Smoke testi temizse `--limit 1` kaldırılarak aynı 30 blueprint iki modelle de
+çalıştırılır. Çıktı dizininde iki aday JSONL dosyası ve OpenAI puanları, token
+kullanımı, request kimlikleri ve karar kuralını içeren `report.json` oluşur.
+30 eşleşmiş örnek ve Flash için 30/30 OpenAI `pass` tamamlanmadan rapor
+`Flash-first` politikasını kabul etmez.
+Var olan bir karşılaştırmayı bilerek yenilemek için ayrıca `--overwrite`
+verilmelidir.
+
+7 Ağustos 2026 tarihli düzeltilmiş pilot koşusunda Flash 30/30 üretim ve 30/30
+OpenAI `pass` ile 4,9857 ortalama; Pro 30/30 üretim, 28/30 `pass` ve 4,9191
+ortalama elde etti. Karar kuralı bu nedenle `Flash-first, Pro fallback`
+politikasını kabul etti. Ham rapor request kimlikleri ve çalışma kanıtları
+içerdiği için `runs/provider-comparison/flash-pro-30-v4/report.json` altında
+yerel tutulur ve Git'e eklenmez.
+
+Belirli kayıtların regresyonu için `--blueprint-id` tekrarlanabilir. Bu seçim
+kaynak dosyalarındaki sırayı korur ve bilinmeyen bir kimlikte ağ isteği
+başlatmadan hata verir:
+
+```powershell
+.\.venv\Scripts\magibu-toolcall.exe provider compare-generation `
+  blueprints\pilot_general.jsonl blueprints\pilot_turkey_native.jsonl `
+  --registry registry\proposals\pilot_candidates.jsonl `
+  --output-dir runs\provider-comparison\secilen-kayitlar `
+  --blueprint-id bp_general_route_007 `
+  --blueprint-id bp_general_knowledge_008 `
+  --judge-provider openai --actor-id dataset_operator_01 --confirm-live
+```
+
+### 30 kayıtlık dataset pilotu
+
+Model karşılaştırmasından sonra 15 genel ve 15 Türkiye-native blueprint normal
+dataset CLI hattıyla ayrı işler olarak üretildi. Her iki iş de 15/15 üretim,
+15/15 local/mock execution ve sıfır provider fallback ile tamamlandı. OpenAI
+embedding taramasında her gruptaki 105 kayıt çifti incelendi ve duplicate
+bulunmadı.
+
+Otomatik kalite sonucu genel grupta 15/15, Türkiye-native grupta 14/15 `pass`
+oldu. Reddedilen `tctr_tn_000009` kaydında doğal olmayan bir ifade, ham ISO
+zamanları ve araç sonucundaki konumların atlanması birlikte görüldü. İlk pilot
+çıktısı çalışma kanıtı olduğu için değiştirilmedi. Bunun yerine
+`blueprints/regressions/parcel_natural_v2.jsonl` oluşturuldu; aynı kayıt Flash
+ile yeniden üretildi ve hem birincil mini hem tam OpenAI hakeminden `pass` aldı.
+
+İlk pilotta iki başka yanıtta ham ISO zaman, bir yanıtta da Markdown işareti
+bulundu. Bunlar mevcut kalite raporlarının geçmiş kanıtıdır. Sonraki üretimlerde
+ham ISO zaman damgası ve Markdown içeren doğal dil planları sağlayıcı yeniden
+denemesine gönderilir. İnsan dil ve teknik incelemeleri hâlâ beklemektedir;
+otomatik `pass` kayıtları doğrudan `accepted` durumuna taşımaz.
 
 Çıktıda iki anahtar da yalnızca `<configured>` görünmelidir. OpenAI tarafında
 ücretsiz paylaşımlı trafik kullanılacaksa aynı API projesi için data sharing
@@ -109,8 +185,10 @@ Dağıtım ve CLI adı `magibu-toolcall`, teknik Python import paketi
 
 Veri değiştiren üretim komutları bir access-policy dosyası ve audit yolu ister.
 Politika biçimi [access_policy.schema.json](schemas/access_policy.schema.json)
-tarafından tanımlanır. Gerçek ekip kimlikleri bu depoda örnek olarak
-uydurulmaz; dataset ve benchmark sorumluları tarafından atanır.
+tarafından tanımlanır. Yerel pilot politikası `bilal_dataset_operator`
+principal'ına üretim, otomatik kalite ve gerçek API çalıştırma yetkisi verir;
+inceleme veya kabul yetkisi vermez. Reviewer kimlikleri dataset sorumlusu
+tarafından ayrıca atanmalıdır.
 
 Dataset kalite operatörü `quality_check`, reviewer’lar ise rollerine göre
 `review` ve `accept` izinlerine sahip olmalıdır. Gerçek API’nin kalite kontrolü
@@ -184,6 +262,61 @@ magibu-toolcall dataset source generate-localizations data/dataset/staging/jobs/
 Üretilen lokalizasyonlar `localized_needs_review` veya
 `localized_needs_source_review` durumunda kalır; insan onayı otomatik verilmez.
 
+## Aday tool sözleşmelerini CLI ile sınama
+
+Pilot adayları kanonik registry'ye alınmadan önce ayrı proposal registry'sinde
+tutulur. Fixture komutu `--registry` verilince bu dosyayı kullanır; `--mode`
+verilmezse sözleşmedeki varsayılan yürütme türünü seçer. Böylece yerel hesaplama
+gerçek kodla, takvim dış sisteme dokunmayan simülasyonla, veri snapshot'ı henüz
+hazır olmayan araçlar ise mock ile sınanır.
+
+```text
+magibu-toolcall registry validate registry/proposals/pilot_candidates.jsonl
+
+magibu-toolcall blueprint validate blueprints/pilot_general.jsonl --registry registry/proposals/pilot_candidates.jsonl
+
+magibu-toolcall tool run-fixture calculator.evaluate.basic --registry registry/proposals/pilot_candidates.jsonl
+
+magibu-toolcall tool run-fixture calendar.create_event.confirmed --registry registry/proposals/pilot_candidates.jsonl
+
+magibu-toolcall tool run-fixture earthquake.events.historical --registry registry/proposals/pilot_candidates.jsonl
+```
+
+Yürütme türünü sözleşmeye aykırı seçmek hata üretir; CLI sessizce başka moda
+geçmez. `local_executable` etiketi yalnız uygulaması ve testi bulunan araçlara
+verilir. Mock'tan yerel yürütmeye geçiş, ilgili veri snapshot'ı, lisans kaydı,
+checksum ve deterministik adaptör tamamlandıktan sonra ayrıca onaylanır.
+
+### Mock, simülasyon ve gerçek kaynak geçişi
+
+30 kayıtlık teknik pilot bilinçli olarak güvenli yürütme ağırlıklıdır. Proposal
+registry'deki 20 aracın 14'ü `mock`, 4'ü `local_executable`, 2'si
+`fully_simulated` durumundadır. Pilot içindeki 30 gerçek tool çağrısının 22'si
+mock fixture üzerinden çalışmıştır. Bu dağılım altyapı pilotu için uygundur;
+1000 kayıtlık üretim için tamamen sentetik fixture çeşitliliği yeterli değildir.
+
+Gerçek API bulunduğunda mevcut mock ve simülasyonlar silinmez. Tool adı, giriş
+şeması ve normalize çıkış şeması sabit tutularak ayrı `real_api` adaptörü
+eklenir. Basit HTTPS `GET` ve JSON servisleri mevcut HTTP adaptörüyle; XML,
+OAuth, sayfalama veya özel dönüşüm isteyen servisler sağlayıcıya özgü adaptörle
+bağlanır. Canlı çağrı ancak onaylı kanonik registry kaydı, `real_api` izni,
+`--confirm-live` ve audit kaydıyla yapılır.
+
+Dataset üretiminde değişken canlı yanıtlar doğrudan kullanılmaz. Uygun API veya
+resmî veri kaynağından alınan sonuç normalize edilir, kişisel veriden
+arındırılır ve kaynak URL'si, alınma zamanı, lisans, sürüm ile SHA-256 özetiyle
+dondurulmuş fixture'a dönüştürülür. Bu fixture yürütme sırasında `mock` olarak
+çalışsa da kökeni fixture provenance açıklamasında `synthetic`, `api_snapshot`
+veya `official_snapshot` olarak açıkça belirtilmelidir. Otomatik fixture yakalama
+hattı eklendiğinde bu ayrım yapılandırılmış metadata alanına taşınacaktır.
+Böylece gerçekçilik ile tekrar üretilebilirlik birlikte korunur.
+
+Ölçekleme öncesindeki ana çalışma, uygun gerçek API/resmî kaynakları seçmek;
+erişim ve yeniden kullanım koşullarını doğrulamak; normalizasyon adaptörlerini,
+fixture yakalama akışını ve contract testlerini tamamlamaktır. API erişimi
+belgelenmeyen araçlar düşük oranlı sentetik mock olarak kalır veya üretim
+dağılımından çıkarılır.
+
 ## 3. Türkçe senaryo üretimi
 
 Normal akışta blueprint dosyası doğrudan `dataset generate` komutuna verilir.
@@ -192,7 +325,7 @@ yalnızca bir kaynak türüne izin verir. Manifest, input checksum, shard,
 checkpoint, hata kuyruğu, hedef dağılım ve ID planı otomatik oluşturulur.
 
 ```text
-magibu-toolcall dataset generate blueprints/pilot.jsonl --job-id dataset-pilot-001 --max-workers 4 --token-budget 250000 --execute-live --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset generate blueprints/pilot.jsonl --registry registry/proposals/pilot_candidates.jsonl --job-id dataset-pilot-001 --max-workers 4 --token-budget 250000 --execute-live --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
 ```
 
 `--output` verilmezse adaylar
@@ -201,6 +334,19 @@ magibu-toolcall dataset generate blueprints/pilot.jsonl --job-id dataset-pilot-0
 kaynak türünün mevcut dataset kayıtları taranarak sıradaki çakışmasız numara
 seçilir. Blueprint’lerdeki `source_type` yalnız `original_turkish` veya
 `turkey_native` olabilir.
+
+`--registry` verilirse yolu ve SHA-256 özeti job manifestine bağlanır. Registry
+değişmiş veya kaybolmuşsa `batch run`, `batch status` ve `batch report` işi
+durdurur. Aday araçlarla pilot üretirken proposal registry açıkça verilmelidir;
+araçlar bu nedenle kanonik registry’ye erken taşınmaz.
+
+Normal üretimde `deepseek-v4-flash` birincil modeldir. Geçersiz JSON, provider
+hatası, zaman aşımı, Latin dışı yazı sızıntısı veya deterministik dil-planı
+ihlali bütün retry'leri tüketirse aynı blueprint `deepseek-v4-pro` ile bir kez
+daha denenir. Birincil ve fallback çağrılarının bütçesi ayrı hesaplanır;
+`provider_fallbacks_used` iş özetine, geçiş nedeni ile iki model kimliği
+provenance'a yazılır. Fallback de başarısızsa kayıt hata kuyruğuna gider.
+OpenAI kalite kapısından geçmeyen hiçbir kayıt otomatik kabul edilmez.
 
 Modelin döndürdüğü `accepted`, reviewer veya validation beyanları güvenilir kabul
 edilmez. CLI bunları kanıta dayalı draft durumuna çevirir:
@@ -215,7 +361,7 @@ edilmez. CLI bunları kanıta dayalı draft durumuna çevirir:
 Üretimden sonra otomatik kalite kanıtları ayrı komutla hesaplanır:
 
 ```text
-magibu-toolcall dataset quality data/dataset/staging/dataset-pilot-001.jsonl data/dataset/needs_revision/dataset-pilot-001.jsonl --reference data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --judge-provider openai --judge-escalation --judge-escalation-sample-rate 0.10 --judge-max-workers 4 --report review/dataset/dataset-pilot-001.quality.json --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset quality data/dataset/staging/dataset-pilot-001.jsonl data/dataset/needs_revision/dataset-pilot-001.jsonl --registry registry/proposals/pilot_candidates.jsonl --reference data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --judge-provider openai --judge-escalation --judge-escalation-sample-rate 0.10 --judge-max-workers 4 --confirm-live --report review/dataset/dataset-pilot-001.quality.json --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
 ```
 
 Bu komut şema ve tool-call yapısını yeniden doğrular; local/mock çağrıları
@@ -307,7 +453,7 @@ MAGIBU_TOOLCALL_OPENAI_ESCALATION_DAILY_TOKEN_BUDGET
 ```
 
 ```text
-magibu-toolcall dataset quality data/dataset/staging/candidates.jsonl data/dataset/needs_revision/candidates.jsonl --reference data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --semantic-cache .cache/semantic --judge-provider openai --judge-escalation --judge-escalation-sample-rate 0.10 --judge-max-workers 4 --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset quality data/dataset/staging/candidates.jsonl data/dataset/needs_revision/candidates.jsonl --reference data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --semantic-cache .cache/semantic --judge-provider openai --judge-escalation --judge-escalation-sample-rate 0.10 --judge-max-workers 4 --confirm-live --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
 
 magibu-toolcall benchmark contamination-check --benchmark data/benchmark/staging/candidates.jsonl --dataset data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --semantic-cache .cache/semantic --output json
 ```
@@ -359,6 +505,7 @@ okunmaz.
 ```text
 MAGIBU_TOOLCALL_DEEPSEEK_API_KEY
 MAGIBU_TOOLCALL_DEEPSEEK_MODEL
+MAGIBU_TOOLCALL_DEEPSEEK_FALLBACK_MODEL
 MAGIBU_TOOLCALL_DEEPSEEK_BASE_URL
 MAGIBU_TOOLCALL_OPENAI_API_KEY
 MAGIBU_TOOLCALL_OPENAI_MODEL
@@ -388,6 +535,7 @@ redaction, cache ve retry davranışlarını doğrular. Canlı üretim ancak ilg
 credential, onaylı politika ve açık `--execute-live`/`--confirm-live` seçeneğiyle
 başlatılır.
 
-Sonraki güvenli adım, gerçek ekip principal’larını atamak; küçük bir onaylı tool
-grubunu belirlemek; xLAM/When2Call kaynak koşullarını kayıt altına almak ve
-20–30 blueprint’lik teknik pilotu yeni batch manifestleriyle çalıştırmaktır.
+Sonraki güvenli adım, birbirinden ve üretim operatöründen farklı bir dil reviewer
+ile teknik reviewer kimliği atamak; 30 pilot kaydı insan incelemesinden geçirmek;
+bulgulara göre ikinci pilot blueprint sürümünü hazırlamaktır. xLAM/When2Call ve
+benchmark çalışmaları askıda kalır.

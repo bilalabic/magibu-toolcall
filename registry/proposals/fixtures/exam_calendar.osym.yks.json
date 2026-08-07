@@ -1,0 +1,7 @@
+{
+  "fixture_id": "exam_calendar.osym.yks",
+  "function_name": "exam_calendar_search",
+  "arguments": {"query": "2026-YKS", "year": 2026},
+  "result": {"exams": [{"exam_id": "2026-YKS", "name": "2026 Yükseköğretim Kurumları Sınavı", "application_start": "2026-02-06", "application_end": "2026-03-02", "late_application_date": "2026-03-12", "exam_sessions": [{"name": "TYT", "date": "2026-06-20"}, {"name": "AYT", "date": "2026-06-21"}, {"name": "YDT", "date": "2026-06-21"}], "result_date": "2026-07-21"}], "retrieved_at": "2026-08-07T09:00:00+03:00", "source_url": "https://www.osym.gov.tr/TR%2C8797/takvim.html"},
+  "provenance": "Official ÖSYM application, session, and result dates checked 2026-08-07."
+}

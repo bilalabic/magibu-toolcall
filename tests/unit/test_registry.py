@@ -27,6 +27,24 @@ def test_registry_fixed_fixture_is_declared_and_schema_valid() -> None:
     assert fixture["result"] == {"result": 12}
 
 
+def test_pilot_proposals_are_valid_candidates_and_not_live_approved() -> None:
+    proposals = ToolRegistry.load(ROOT / "registry" / "proposals" / "pilot_candidates.jsonl")
+    assert len(proposals.records) == 20
+    assert {record["lifecycle"] for record in proposals.records} == {"candidate"}
+    assert all(record["execution"]["default_type"] != "real_api" for record in proposals.records)
+    assert all(
+        not record["function"]["name"].startswith(("afad_", "epdk_", "diyanet_", "open_meteo_"))
+        for record in proposals.records
+    )
+    fixture_ids = [
+        fixture_id
+        for record in proposals.records
+        for fixture_id in record["execution"]["fixture_ids"]
+    ]
+    assert len(fixture_ids) == 22
+    assert all(proposals.load_fixture(fixture_id)["fixture_id"] == fixture_id for fixture_id in fixture_ids)
+
+
 @pytest.mark.parametrize(
     ("mutation", "code"),
     [

@@ -1,0 +1,7 @@
+{
+  "fixture_id": "fuel.prices.ankara.diesel",
+  "function_name": "fuel_get_prices_by_province",
+  "arguments": {"province_code": 6, "product": "diesel"},
+  "result": {"province_code": 6, "product": "diesel", "currency": "TRY", "unit": "liter", "minimum_price": 50.1, "maximum_price": 52.4, "observed_at": "2026-08-07T09:00:00+03:00"},
+  "provenance": "Fully synthetic price-shaped fixture; not an EPDK observation or price guarantee."
+}

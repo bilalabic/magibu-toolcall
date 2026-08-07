@@ -1,0 +1,13 @@
+{
+  "policy_version": "0.1.0",
+  "benchmark_dataset_team_exclusive": true,
+  "principals": [
+    {
+      "id": "bilal_dataset_operator",
+      "active": true,
+      "teams": ["dataset", "platform"],
+      "roles": ["contributor", "dataset_lead", "operator"],
+      "permissions": ["generate", "quality_check", "real_api"]
+    }
+  ]
+}
