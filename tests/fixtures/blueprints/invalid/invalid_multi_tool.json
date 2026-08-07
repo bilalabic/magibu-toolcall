@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "tool_registry_version": "0.1.0",
+  "id": "bp_multi_tool_999",
+  "user_goal": "Tek çağrıyı yanlışlıkla çoklu araç olarak sınıflandırmak",
+  "available_tools": ["utility_add"],
+  "tool_required": true,
+  "provided_parameters": {"left": 1, "right": 2},
+  "missing_parameters": [],
+  "expected_behavior": "tool_call",
+  "expected_tool_calls": [{"function": {"name": "utility_add", "arguments": {"left": 1, "right": 2}}}],
+  "execution_order": "parallel",
+  "expected_tool_result": {"result": 3},
+  "expected_final_behavior": "Geçersiz test fikstürü.",
+  "must_avoid": ["Bu kaydı kabul etmek."],
+  "metadata": {
+    "main_category": "multi_tool",
+    "secondary_tags": ["parallel_tool"],
+    "difficulty": "easy",
+    "source_type": "original_turkish",
+    "domain": "utility",
+    "intended_execution_type": "mock",
+    "provenance": {
+      "source_dataset": null, "source_example_id": null, "upstream_source": null,
+      "source_split": null, "transformation_history": [], "generator_model": null,
+      "generator_version": null, "license": null, "license_chain": []
+    }
+  }
+}

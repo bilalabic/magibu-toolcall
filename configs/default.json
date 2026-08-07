@@ -1,0 +1,10 @@
+{
+  "schema_version": "0.1.0",
+  "tool_registry_version": "0.1.0",
+  "max_retries": 2,
+  "retry_base_seconds": 1.0,
+  "request_timeout_seconds": 60.0,
+  "deepseek_base_url": "https://api.deepseek.com",
+  "openai_base_url": "https://api.openai.com/v1",
+  "log_level": "INFO"
+}

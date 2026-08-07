@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://magibu-toolcall.local/schemas/dataset.schema.json",
+  "title": "magibu-toolcall dataset record 0.1.0",
+  "type": "object",
+  "required": ["schema_version", "tool_registry_version", "id", "metadata", "tools", "messages"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "tool_registry_version": {"const": "0.1.0"},
+    "id": {"type": "string", "pattern": "^tctr_(?:tr|ot|tn)_[0-9]{6}$"},
+    "metadata": {"$ref": "#/$defs/metadata"},
+    "tools": {
+      "type": "array",
+      "items": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/tool_definition"}
+    },
+    "messages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/message"},
+      "contains": {
+        "type": "object",
+        "required": ["role"],
+        "properties": {"role": {"const": "user"}}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"metadata": {"properties": {"source_type": {"const": "translated"}}}}},
+      "then": {"properties": {"id": {"pattern": "^tctr_tr_[0-9]{6}$"}}}
+    },
+    {
+      "if": {"properties": {"metadata": {"properties": {"source_type": {"const": "original_turkish"}}}}},
+      "then": {"properties": {"id": {"pattern": "^tctr_ot_[0-9]{6}$"}}}
+    },
+    {
+      "if": {"properties": {"metadata": {"properties": {"source_type": {"const": "turkey_native"}}}}},
+      "then": {"properties": {"id": {"pattern": "^tctr_tn_[0-9]{6}$"}}}
+    },
+    {
+      "if": {
+        "properties": {"metadata": {"properties": {"main_category": {"enum": ["no_tool", "missing_parameter"]}}}}
+      },
+      "then": {
+        "properties": {
+          "metadata": {
+            "properties": {
+              "execution": {
+                "properties": {"type": {"const": "not_applicable"}, "status": {"const": "not_called"}}
+              }
+            },
+            "not": {"required": ["final_response_method"]}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"metadata": {"properties": {"source_type": {"const": "translated"}}}}},
+      "then": {
+        "properties": {
+          "metadata": {
+            "properties": {
+              "provenance": {
+                "properties": {
+                  "source_dataset": {"type": "string", "minLength": 1},
+                  "source_example_id": {"type": "string", "minLength": 1},
+                  "upstream_source": {"type": "string", "minLength": 1},
+                  "source_split": {"type": "string", "minLength": 1},
+                  "transformation_history": {"minItems": 1},
+                  "license": {"type": "string", "minLength": 1},
+                  "license_chain": {"minItems": 1}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "metadata": {
+      "type": "object",
+      "required": ["main_category", "secondary_tags", "source_type", "domain", "difficulty", "provenance", "execution", "validation", "review"],
+      "properties": {
+        "main_category": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/main_category"},
+        "secondary_tags": {
+          "type": "array",
+          "items": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/secondary_tag"},
+          "uniqueItems": true
+        },
+        "source_type": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/source_type"},
+        "domain": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "difficulty": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/difficulty"},
+        "final_response_method": {"enum": ["tool_result_regeneration", "source_answer_adaptation"]},
+        "provenance": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/provenance"},
+        "execution": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/execution"},
+        "validation": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/validation"},
+        "review": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/review"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

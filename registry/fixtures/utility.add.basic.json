@@ -1,0 +1,8 @@
+{
+  "fixture_id": "utility.add.basic",
+  "function_name": "utility_add",
+  "arguments": {"left": 5, "right": 7},
+  "result": {"result": 12},
+  "provenance": "Deterministic infrastructure fixture; not production data."
+}
+

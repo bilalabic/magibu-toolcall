@@ -1,0 +1,33 @@
+{
+  "schema_version": "0.1.0",
+  "tool_registry_version": "0.1.0",
+  "id": "bp_multi_tool_001",
+  "user_goal": "Aynı iki sayı için toplamı ve çarpımı birlikte öğrenmek",
+  "available_tools": ["utility_add", "utility_multiply"],
+  "tool_required": true,
+  "provided_parameters": {"left": 3, "right": 4},
+  "missing_parameters": [],
+  "expected_behavior": "tool_call",
+  "expected_tool_calls": [
+    {"function": {"name": "utility_add", "arguments": {"left": 3, "right": 4}}},
+    {"function": {"name": "utility_multiply", "arguments": {"left": 3, "right": 4}}}
+  ],
+  "execution_order": "parallel",
+  "expected_tool_result": [{"result": 7}, {"result": 12}],
+  "expected_final_behavior": "İki sonucu da araç çıktılarıyla uyumlu biçimde bildirmek.",
+  "must_avoid": ["Çağrılardan birini atlamak.", "Paralel çağrıların sırasını anlamlı saymak."],
+  "metadata": {
+    "main_category": "multi_tool",
+    "secondary_tags": ["parallel_tool"],
+    "difficulty": "medium",
+    "source_type": "original_turkish",
+    "domain": "utility",
+    "intended_execution_type": "local_executable",
+    "provenance": {
+      "source_dataset": null, "source_example_id": null, "upstream_source": null,
+      "source_split": null, "transformation_history": [], "generator_model": null,
+      "generator_version": null, "license": null, "license_chain": []
+    }
+  }
+}
+

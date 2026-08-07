@@ -1,0 +1,31 @@
+{
+  "schema_version": "0.1.0",
+  "tool_registry_version": "0.1.0",
+  "id": "bp_no_tool_001",
+  "user_goal": "Selamlaşmaya karşılık almak",
+  "available_tools": ["utility_add"],
+  "tool_required": false,
+  "provided_parameters": {},
+  "missing_parameters": [],
+  "expected_behavior": "direct_answer",
+  "expected_tool_calls": [],
+  "execution_order": "not_applicable",
+  "expected_tool_result": null,
+  "expected_final_behavior": "Kısa ve doğal bir Türkçe selamla yanıt vermek.",
+  "must_avoid": ["İlgisiz bir araç çağırmak."],
+  "metadata": {
+    "main_category": "no_tool",
+    "secondary_tags": ["direct_answer"],
+    "difficulty": "easy",
+    "source_type": "original_turkish",
+    "domain": "general",
+    "intended_execution_type": "not_applicable",
+    "provenance": {
+      "source_dataset": null, "source_example_id": null, "upstream_source": null,
+      "source_split": null, "transformation_history": [], "generator_model": null,
+      "generator_version": null, "license": null, "license_chain": []
+    },
+    "benchmark_isolation": {"candidate": false, "notes": "Yalnızca altyapı fikstürü."}
+  }
+}
+

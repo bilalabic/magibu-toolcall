@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "magibu-toolcall"
+version = "0.1.0"
+description = "Infrastructure foundation for a Turkish tool-calling dataset and benchmark"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "Proprietary - pilot infrastructure"}
+authors = [{name = "magibu-toolcall contributors"}]
+dependencies = ["jsonschema>=4.21,<5"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9", "pytest-cov>=5,<7"]
+
+[project.scripts]
+magibu-toolcall = "tool_call_tr.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --basetemp=.pytest-tmp"
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.coverage.run]
+source = ["tool_call_tr"]

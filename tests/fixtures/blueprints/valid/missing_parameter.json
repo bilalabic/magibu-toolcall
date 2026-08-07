@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1.0",
+  "tool_registry_version": "0.1.0",
+  "id": "bp_missing_parameter_001",
+  "user_goal": "Hava tahminini öğrenmek ancak şehir belirtmemek",
+  "available_tools": ["weather_get_forecast"],
+  "tool_required": true,
+  "provided_parameters": {},
+  "missing_parameters": ["city"],
+  "expected_behavior": "request_information",
+  "expected_tool_calls": [],
+  "execution_order": "not_applicable",
+  "expected_tool_result": null,
+  "expected_final_behavior": "Kullanıcıdan şehir bilgisini istemek ve araç çağırmamak.",
+  "must_avoid": ["Şehir uydurmak.", "Eksik parametreyle araç çağırmak."],
+  "metadata": {
+    "main_category": "missing_parameter",
+    "secondary_tags": ["clarification"],
+    "difficulty": "easy",
+    "source_type": "original_turkish",
+    "domain": "weather",
+    "intended_execution_type": "not_applicable",
+    "provenance": {
+      "source_dataset": null, "source_example_id": null, "upstream_source": null,
+      "source_split": null, "transformation_history": [], "generator_model": null,
+      "generator_version": null, "license": null, "license_chain": []
+    }
+  }
+}
+

@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://magibu-toolcall.local/schemas/common.schema.json",
+  "title": "magibu-toolcall shared definitions",
+  "$defs": {
+    "main_category": {
+      "enum": ["single_tool", "no_tool", "missing_parameter", "multi_turn", "multi_tool"]
+    },
+    "secondary_tag": {
+      "enum": [
+        "parallel_tool", "sequential_tool", "tool_failure", "tool_unavailable",
+        "user_correction", "self_correction", "context_retention", "clarification",
+        "direct_answer", "confirmation_required", "localized", "similar_tools",
+        "implicit_parameter", "empty_result", "invalid_result"
+      ]
+    },
+    "source_type": {
+      "enum": ["translated", "original_turkish", "turkey_native"]
+    },
+    "difficulty": {"enum": ["easy", "medium", "hard"]},
+    "execution_type": {
+      "enum": ["real_api", "local_executable", "sandbox", "mock", "fully_simulated", "not_applicable"]
+    },
+    "execution_status": {
+      "enum": ["not_called", "passed", "failed", "timeout", "rate_limited", "empty_result", "invalid_result"]
+    },
+    "validation_status": {"enum": ["passed", "failed", "not_run", "not_applicable"]},
+    "review_status": {"enum": ["accepted", "needs_revision", "rejected"]},
+    "function_name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"
+    },
+    "parameter_name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"
+    },
+    "tool_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*\\.v[1-9][0-9]*$"
+    },
+    "call_id": {"type": "string", "pattern": "^call_[0-9]{3,}$"},
+    "transformation": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": {"type": "string", "minLength": 1},
+        "timestamp": {"type": ["string", "null"], "format": "date-time"},
+        "actor_id": {"type": ["string", "null"]},
+        "details": {"type": ["string", "null"]},
+        "from_execution_type": {"$ref": "#/$defs/execution_type"},
+        "to_execution_type": {"$ref": "#/$defs/execution_type"}
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "source_dataset", "source_example_id", "upstream_source", "source_split",
+        "transformation_history", "generator_model", "generator_version", "license", "license_chain"
+      ],
+      "properties": {
+        "source_dataset": {"type": ["string", "null"]},
+        "source_example_id": {"type": ["string", "null"]},
+        "upstream_source": {"type": ["string", "null"]},
+        "source_split": {"type": ["string", "null"]},
+        "transformation_history": {"type": "array", "items": {"$ref": "#/$defs/transformation"}},
+        "generator_model": {"type": ["string", "null"]},
+        "generator_version": {"type": ["string", "null"]},
+        "license": {"type": ["string", "null"]},
+        "license_chain": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      },
+      "additionalProperties": false
+    },
+    "execution": {
+      "type": "object",
+      "required": ["type", "status"],
+      "properties": {
+        "type": {"$ref": "#/$defs/execution_type"},
+        "status": {"$ref": "#/$defs/execution_status"},
+        "fixture_id": {"type": ["string", "null"]},
+        "timeout_ms": {"type": ["integer", "null"], "minimum": 1},
+        "error_code": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "required": ["json", "schema", "tool_call", "execution", "semantic", "turn_level", "language", "duplicate"],
+      "properties": {
+        "json": {"$ref": "#/$defs/validation_status"},
+        "schema": {"$ref": "#/$defs/validation_status"},
+        "tool_call": {"$ref": "#/$defs/validation_status"},
+        "execution": {"$ref": "#/$defs/validation_status"},
+        "semantic": {"$ref": "#/$defs/validation_status"},
+        "turn_level": {"$ref": "#/$defs/validation_status"},
+        "language": {"$ref": "#/$defs/validation_status"},
+        "duplicate": {"$ref": "#/$defs/validation_status"}
+      },
+      "additionalProperties": false
+    },
+    "review_event": {
+      "type": "object",
+      "required": ["reviewer_id", "reviewer_role", "from_status", "to_status", "timestamp"],
+      "properties": {
+        "reviewer_id": {"type": "string", "minLength": 1},
+        "reviewer_role": {"enum": ["language", "technical"]},
+        "from_status": {"type": ["string", "null"], "enum": [null, "accepted", "needs_revision", "rejected"]},
+        "to_status": {"$ref": "#/$defs/review_status"},
+        "notes": {"type": ["string", "null"]},
+        "timestamp": {"type": "string", "format": "date-time"}
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": ["status", "reviewer_ids", "notes"],
+      "properties": {
+        "status": {"$ref": "#/$defs/review_status"},
+        "reviewer_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "notes": {"type": ["string", "null"]},
+        "contributor_id": {"type": ["string", "null"]},
+        "requires_two_reviewers": {"type": "boolean", "default": false},
+        "history": {"type": "array", "items": {"$ref": "#/$defs/review_event"}}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "accepted"}}},
+          "then": {"properties": {"reviewer_ids": {"minItems": 1}}}
+        }
+      ],
+      "additionalProperties": false
+    },
+    "parameter_schema": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"enum": ["string", "integer", "number", "boolean", "array", "object"]},
+        "description": {"type": "string"},
+        "enum": {"type": "array", "minItems": 1, "uniqueItems": true},
+        "format": {"type": "string"},
+        "items": {"type": "object"},
+        "properties": {"type": "object"},
+        "required": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "additionalProperties": {"type": ["boolean", "object"]},
+        "minimum": {"type": "number"},
+        "maximum": {"type": "number"},
+        "minLength": {"type": "integer", "minimum": 0},
+        "pattern": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "object_parameters": {
+      "type": "object",
+      "required": ["type", "properties", "required", "additionalProperties"],
+      "properties": {
+        "type": {"const": "object"},
+        "properties": {
+          "type": "object",
+          "propertyNames": {"$ref": "#/$defs/parameter_name"},
+          "additionalProperties": {"$ref": "#/$defs/parameter_schema"}
+        },
+        "required": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/parameter_name"},
+          "uniqueItems": true
+        },
+        "additionalProperties": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "tool_definition": {
+      "type": "object",
+      "required": ["type", "function"],
+      "properties": {
+        "type": {"const": "function"},
+        "function": {
+          "type": "object",
+          "required": ["name", "description", "parameters"],
+          "properties": {
+            "name": {"$ref": "#/$defs/function_name"},
+            "description": {"type": "string", "minLength": 1},
+            "parameters": {"$ref": "#/$defs/object_parameters"}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "tool_call": {
+      "type": "object",
+      "required": ["id", "type", "function"],
+      "properties": {
+        "id": {"$ref": "#/$defs/call_id"},
+        "type": {"const": "function"},
+        "function": {
+          "type": "object",
+          "required": ["name", "arguments"],
+          "properties": {
+            "name": {"$ref": "#/$defs/function_name"},
+            "arguments": {"type": "object"}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "expected_tool_call": {
+      "type": "object",
+      "required": ["function"],
+      "properties": {
+        "function": {
+          "type": "object",
+          "required": ["name", "arguments"],
+          "properties": {
+            "name": {"$ref": "#/$defs/function_name"},
+            "arguments": {"type": "object"}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "message": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["role", "content"],
+          "properties": {"role": {"enum": ["system", "user"]}, "content": {"type": "string", "minLength": 1}},
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["role", "content", "tool_calls"],
+          "properties": {
+            "role": {"const": "assistant"},
+            "content": {"type": ["string", "null"]},
+            "tool_calls": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/tool_call"}}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["role", "content"],
+          "properties": {"role": {"const": "assistant"}, "content": {"type": "string", "minLength": 1}},
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["role", "tool_call_id", "name", "content"],
+          "properties": {
+            "role": {"const": "tool"},
+            "tool_call_id": {"$ref": "#/$defs/call_id"},
+            "name": {"$ref": "#/$defs/function_name"},
+            "content": {"type": "string"}
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

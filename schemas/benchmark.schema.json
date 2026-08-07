@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://magibu-toolcall.local/schemas/benchmark.schema.json",
+  "title": "magibu-toolcall benchmark gold record 0.1.0",
+  "type": "object",
+  "required": ["schema_version", "tool_registry_version", "id", "metadata", "tools", "messages", "expected"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "tool_registry_version": {"const": "0.1.0"},
+    "id": {"type": "string", "pattern": "^bench_(?:tr|ot|tn)_[0-9]{6}$"},
+    "metadata": {"$ref": "https://magibu-toolcall.local/schemas/dataset.schema.json#/$defs/metadata"},
+    "tools": {"type": "array", "items": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/tool_definition"}},
+    "messages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/message"},
+      "contains": {"properties": {"role": {"const": "user"}}, "required": ["role"]}
+    },
+    "expected": {"$ref": "#/$defs/expected"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"metadata": {"properties": {"source_type": {"const": "translated"}}}}},
+      "then": {"properties": {"id": {"pattern": "^bench_tr_[0-9]{6}$"}}}
+    },
+    {
+      "if": {"properties": {"metadata": {"properties": {"source_type": {"const": "original_turkish"}}}}},
+      "then": {"properties": {"id": {"pattern": "^bench_ot_[0-9]{6}$"}}}
+    },
+    {
+      "if": {"properties": {"metadata": {"properties": {"source_type": {"const": "turkey_native"}}}}},
+      "then": {"properties": {"id": {"pattern": "^bench_tn_[0-9]{6}$"}}}
+    },
+    {
+      "if": {"properties": {"expected": {"properties": {"decision": {"enum": ["direct_answer", "request_information", "cannot_answer"]}}}}},
+      "then": {
+        "properties": {
+          "metadata": {"properties": {"execution": {"properties": {"type": {"const": "not_applicable"}, "status": {"const": "not_called"}}}}}
+        }
+      }
+    }
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "expected": {
+      "type": "object",
+      "required": ["decision", "missing_parameters", "tool_calls", "response"],
+      "properties": {
+        "decision": {"enum": ["tool_call", "direct_answer", "request_information", "cannot_answer"]},
+        "missing_parameters": {
+          "type": "array",
+          "items": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/parameter_name"},
+          "uniqueItems": true
+        },
+        "tool_calls": {
+          "type": "array",
+          "items": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/expected_tool_call"}
+        },
+        "response": {"type": ["string", "null"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"decision": {"const": "tool_call"}}},
+          "then": {
+            "properties": {
+              "missing_parameters": {"maxItems": 0},
+              "tool_calls": {"minItems": 1},
+              "response": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"decision": {"const": "request_information"}}},
+          "then": {
+            "properties": {
+              "missing_parameters": {"minItems": 1},
+              "tool_calls": {"maxItems": 0},
+              "response": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"decision": {"enum": ["direct_answer", "cannot_answer"]}}},
+          "then": {
+            "properties": {
+              "missing_parameters": {"maxItems": 0},
+              "tool_calls": {"maxItems": 0},
+              "response": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  }
+}

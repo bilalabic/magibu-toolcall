@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://magibu-toolcall.local/schemas/scenario_blueprint.schema.json",
+  "title": "magibu-toolcall scenario blueprint 0.1.0",
+  "type": "object",
+  "required": [
+    "schema_version", "tool_registry_version", "id", "user_goal", "available_tools",
+    "tool_required", "provided_parameters", "missing_parameters", "expected_behavior",
+    "expected_tool_calls", "execution_order", "expected_tool_result",
+    "expected_final_behavior", "must_avoid", "metadata"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "tool_registry_version": {"const": "0.1.0"},
+    "id": {"type": "string", "pattern": "^bp_[a-z][a-z0-9_]*_[0-9]{3,}$"},
+    "user_goal": {"type": "string", "minLength": 1},
+    "available_tools": {"type": "array", "items": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/function_name"}, "uniqueItems": true},
+    "tool_required": {"type": "boolean"},
+    "provided_parameters": {"type": "object"},
+    "missing_parameters": {"type": "array", "items": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/parameter_name"}, "uniqueItems": true},
+    "expected_behavior": {"enum": ["tool_call", "direct_answer", "request_information", "cannot_answer"]},
+    "expected_tool_calls": {"type": "array", "items": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/expected_tool_call"}},
+    "execution_order": {"enum": ["not_applicable", "parallel", "sequential"]},
+    "expected_tool_result": {"type": ["object", "array", "string", "number", "boolean", "null"]},
+    "expected_final_behavior": {"type": "string", "minLength": 1},
+    "must_avoid": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "metadata": {
+      "type": "object",
+      "required": ["main_category", "secondary_tags", "difficulty", "source_type", "domain", "intended_execution_type", "provenance"],
+      "properties": {
+        "main_category": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/main_category"},
+        "secondary_tags": {"type": "array", "items": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/secondary_tag"}, "uniqueItems": true},
+        "difficulty": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/difficulty"},
+        "source_type": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/source_type"},
+        "domain": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "intended_execution_type": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/execution_type"},
+        "provenance": {"$ref": "https://magibu-toolcall.local/schemas/common.schema.json#/$defs/provenance"},
+        "benchmark_isolation": {
+          "type": "object",
+          "required": ["candidate", "notes"],
+          "properties": {"candidate": {"type": "boolean"}, "notes": {"type": ["string", "null"]}},
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"expected_behavior": {"const": "tool_call"}}},
+      "then": {"properties": {"tool_required": {"const": true}, "expected_tool_calls": {"minItems": 1}, "missing_parameters": {"maxItems": 0}}}
+    },
+    {
+      "if": {"properties": {"expected_behavior": {"const": "request_information"}}},
+      "then": {"properties": {"expected_tool_calls": {"maxItems": 0}, "missing_parameters": {"minItems": 1}, "execution_order": {"const": "not_applicable"}}}
+    },
+    {
+      "if": {"properties": {"expected_behavior": {"enum": ["direct_answer", "cannot_answer"]}}},
+      "then": {"properties": {"tool_required": {"const": false}, "expected_tool_calls": {"maxItems": 0}, "missing_parameters": {"maxItems": 0}, "execution_order": {"const": "not_applicable"}}}
+    },
+    {
+      "if": {"properties": {"metadata": {"properties": {"main_category": {"const": "multi_tool"}}}}},
+      "then": {"properties": {"expected_tool_calls": {"minItems": 2}, "execution_order": {"enum": ["parallel", "sequential"]}}}
+    }
+  ],
+  "additionalProperties": false
+}

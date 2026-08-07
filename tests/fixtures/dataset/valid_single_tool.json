@@ -1,0 +1,69 @@
+{
+  "schema_version": "0.1.0",
+  "tool_registry_version": "0.1.0",
+  "id": "tctr_ot_000001",
+  "metadata": {
+    "main_category": "single_tool",
+    "secondary_tags": [],
+    "source_type": "original_turkish",
+    "domain": "utility",
+    "difficulty": "easy",
+    "final_response_method": "tool_result_regeneration",
+    "provenance": {
+      "source_dataset": null,
+      "source_example_id": null,
+      "upstream_source": null,
+      "source_split": null,
+      "transformation_history": [],
+      "generator_model": null,
+      "generator_version": null,
+      "license": null,
+      "license_chain": []
+    },
+    "execution": {"type": "local_executable", "status": "passed"},
+    "validation": {
+      "json": "passed", "schema": "passed", "tool_call": "passed",
+      "execution": "passed", "semantic": "passed", "turn_level": "not_applicable",
+      "language": "passed", "duplicate": "passed"
+    },
+    "review": {
+      "status": "accepted",
+      "reviewer_ids": ["rev_language_01", "rev_technical_01"],
+      "notes": "Deterministik altyapı fikstürü.",
+      "contributor_id": "contrib_fixture",
+      "requires_two_reviewers": true,
+      "history": []
+    }
+  },
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "utility_add",
+        "description": "İki sayıyı deterministik olarak toplar.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "left": {"type": "number", "description": "İlk sayı."},
+            "right": {"type": "number", "description": "İkinci sayı."}
+          },
+          "required": ["left", "right"],
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "messages": [
+    {"role": "user", "content": "On iki ile sekizi toplar mısın?"},
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {"id": "call_001", "type": "function", "function": {"name": "utility_add", "arguments": {"left": 12, "right": 8}}}
+      ]
+    },
+    {"role": "tool", "tool_call_id": "call_001", "name": "utility_add", "content": "{\"result\":20}"},
+    {"role": "assistant", "content": "12 ile 8'in toplamı 20'dir."}
+  ]
+}
+

@@ -1,0 +1,171 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+from tool_call_tr.cli import main
+from tool_call_tr.generation.providers import ModelIdentity, ProviderResponse
+from tool_call_tr.batch import (
+    BatchError,
+    create_job_manifest,
+    load_manifest,
+    planned_record_id,
+    run_job,
+    write_manifest,
+)
+
+
+def write_rows(path: Path, count: int) -> None:
+    path.write_text("".join(json.dumps({"value": index, "metadata": {"main_category": "single_tool"}}) + "\n" for index in range(count)), encoding="utf-8")
+
+
+def manifest_for(tmp_path: Path, *, count: int = 5, existing_ids=()) -> tuple[Path, dict]:
+    source = tmp_path / "input.jsonl"
+    manifest_path = tmp_path / "job.json"
+    write_rows(source, count)
+    manifest = create_job_manifest(
+        job_id="dataset-generation-001",
+        lifecycle="dataset",
+        operation="scenario_generation",
+        input_path=source,
+        output_path=tmp_path / "output.jsonl",
+        checkpoint_path=tmp_path / "checkpoint.json",
+        error_path=tmp_path / "errors.jsonl",
+        shard_size=2,
+        targets={"main_category": {"single_tool": count}},
+        source_type="original_turkish",
+        start_number=10,
+        existing_ids=existing_ids,
+        timestamp="2026-08-06T00:00:00+00:00",
+    )
+    write_manifest(manifest_path, manifest)
+    return manifest_path, manifest
+
+
+def test_manifest_plans_contiguous_shards_targets_and_ids(tmp_path: Path) -> None:
+    manifest_path, manifest = manifest_for(tmp_path)
+    assert [(shard["start"], shard["end"]) for shard in manifest["shards"]] == [(0, 2), (2, 4), (4, 5)]
+    assert planned_record_id(manifest, 0) == "tctr_ot_000010"
+    assert planned_record_id(manifest, 4) == "tctr_ot_000014"
+    assert load_manifest(manifest_path)["input_sha256"] == manifest["input_sha256"]
+
+
+def test_manifest_rejects_distribution_and_id_collisions(tmp_path: Path) -> None:
+    source = tmp_path / "input.jsonl"
+    write_rows(source, 2)
+    base = {
+        "job_id": "dataset-generation-001", "lifecycle": "dataset", "operation": "scenario_generation",
+        "input_path": source, "output_path": tmp_path / "out.jsonl", "checkpoint_path": tmp_path / "checkpoint.json",
+        "error_path": tmp_path / "errors.jsonl", "shard_size": 1, "source_type": "original_turkish", "start_number": 1,
+    }
+    with pytest.raises(BatchError, match="totals"):
+        create_job_manifest(**base, targets={"main_category": {"single_tool": 1}})
+    with pytest.raises(BatchError, match="collide"):
+        create_job_manifest(**base, existing_ids={"tctr_ot_000002"})
+
+
+def test_job_continues_item_failures_and_assembles_ordered_outputs(tmp_path: Path) -> None:
+    manifest_path, _ = manifest_for(tmp_path)
+
+    def processor(row, index, record_id):
+        if index == 2:
+            raise ValueError("invalid candidate")
+        return {"id": record_id, "value": row["value"]}
+
+    completed = run_job(manifest_path, processor, timestamp=lambda: "2026-08-06T01:00:00+00:00")
+    assert completed["status"] == "completed_with_errors"
+    assert completed["counts"] == {"processed": 5, "succeeded": 4, "failed": 1}
+    output = [json.loads(line) for line in (tmp_path / "output.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert [record["value"] for record in output] == [0, 1, 3, 4]
+    errors = [json.loads(line) for line in (tmp_path / "errors.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert errors[0]["record_id"] == "tctr_ot_000012"
+    with pytest.raises(BatchError, match="immutable"):
+        run_job(manifest_path, processor)
+
+
+def test_job_resumes_after_process_interruption_without_duplicate_parts(tmp_path: Path) -> None:
+    manifest_path, _ = manifest_for(tmp_path, count=4)
+
+    def interrupted(row, index, record_id):
+        if index == 2:
+            raise KeyboardInterrupt()
+        return {"id": record_id, "value": row["value"]}
+
+    with pytest.raises(KeyboardInterrupt):
+        run_job(manifest_path, interrupted, timestamp=lambda: "2026-08-06T01:00:00+00:00")
+    checkpoint = json.loads((tmp_path / "checkpoint.json").read_text(encoding="utf-8"))
+    assert checkpoint["processed"] == [0, 1]
+
+    completed = run_job(
+        manifest_path,
+        lambda row, index, record_id: {"id": record_id, "value": row["value"]},
+        timestamp=lambda: "2026-08-06T02:00:00+00:00",
+    )
+    assert completed["status"] == "completed"
+    output = [json.loads(line) for line in (tmp_path / "output.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert [record["value"] for record in output] == [0, 1, 2, 3]
+
+
+def test_job_blocks_when_input_changes_after_plan(tmp_path: Path) -> None:
+    manifest_path, manifest = manifest_for(tmp_path)
+    Path(manifest["input_path"]).write_text("{\"changed\":true}\n", encoding="utf-8")
+    with pytest.raises(BatchError, match="checksum"):
+        load_manifest(manifest_path)
+
+
+def test_batch_cli_plans_reports_and_runs_validated_candidate_job(
+    tmp_path: Path, capsys, access_files, monkeypatch,
+) -> None:
+    root = Path(__file__).resolve().parents[2]
+    blueprint = root / "tests" / "fixtures" / "blueprints" / "valid" / "no_tool.json"
+    manifest = tmp_path / "job.json"
+    output = tmp_path / "candidates.jsonl"
+    access = [
+        "--actor-id", "dataset_operator_01", "--policy", access_files["policy"],
+        "--audit-log", access_files["audit"],
+    ]
+    assert main([
+        "dataset", "batch", "plan", str(blueprint), str(manifest),
+        "--job-id", "dataset-generation-020",
+        "--operation", "scenario_generation",
+        "--output", str(output),
+        "--checkpoint", str(tmp_path / "checkpoint.json"),
+        "--errors", str(tmp_path / "errors.jsonl"),
+        "--shard-size", "1",
+        "--source-type", "original_turkish",
+        "--start-number", "20",
+        "--timestamp", "2026-08-06T00:00:00+00:00",
+        *access,
+    ]) == 0
+    capsys.readouterr()
+    assert main(["dataset", "batch", "status", str(manifest), "--output", "json"]) == 0
+    assert json.loads(capsys.readouterr().out)["input_verified"]
+
+    candidate_template = json.loads((root / "tests" / "fixtures" / "dataset" / "valid_no_tool.json").read_text(encoding="utf-8"))
+
+    class FakeProvider:
+        model = "fixture-model"
+
+        def require_configured(self):
+            return None
+
+        def generate_candidate(self, *, lifecycle, blueprint, record_id):
+            candidate = json.loads(json.dumps(candidate_template))
+            candidate["id"] = record_id
+            candidate["metadata"]["review"] = {
+                "status": "needs_revision", "reviewer_ids": [], "notes": "Generated fixture; review required."
+            }
+            return ProviderResponse(candidate, ModelIdentity("fake", self.model, "1", "dataset_candidate_generator"))
+
+    monkeypatch.setattr("tool_call_tr.cli.DeepSeekIntegration.from_settings", lambda settings: FakeProvider())
+    assert main(["dataset", "generate", str(manifest), "--execute-live", *access]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "completed"
+    generated = json.loads(output.read_text(encoding="utf-8"))
+    assert generated["id"] == "tctr_ot_000020"
+    assert generated["metadata"]["review"]["status"] == "needs_revision"
+    assert main(["dataset", "batch", "report", str(manifest), "--output", "json"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["distribution_targets_met"]

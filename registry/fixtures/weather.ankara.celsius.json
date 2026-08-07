@@ -1,0 +1,8 @@
+{
+  "fixture_id": "weather.ankara.celsius",
+  "function_name": "weather_get_forecast",
+  "arguments": {"city": "Ankara", "unit": "celsius"},
+  "result": {"city": "Ankara", "temperature": 21, "unit": "celsius"},
+  "provenance": "Fixed synthetic weather fixture; not a live or benchmark gold result."
+}
+

@@ -1,0 +1,16 @@
+{
+  "tool_registry_version": "0.1.0",
+  "tool_id": "utility.add.v1",
+  "tool_version": "1.0.0",
+  "domain": "utility",
+  "function": {
+    "name": "Utility_Topla",
+    "description": "Geçersiz işlev adı olan test kaydı.",
+    "parameters": {"type": "object", "properties": {}, "required": [], "additionalProperties": false}
+  },
+  "output_schema": {"type": "object"},
+  "execution": {"default_type": "mock", "supported_types": ["mock"], "fixture_ids": [], "resettable": false},
+  "access": {"source": "test", "url": null, "authentication": "none", "credential_env_vars": [], "license": null, "license_url": null, "terms_checked_on": null},
+  "risks": {"safety": "low", "freshness": "static", "personal_data": false, "side_effects": false, "notes": null},
+  "lifecycle": "demo"
+}

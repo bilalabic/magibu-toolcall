@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "tool_registry_version": "0.1.0",
+  "id": "tctr_tn_1",
+  "metadata": {
+    "main_category": "unknown",
+    "secondary_tags": ["medium"],
+    "source_type": "turkey_native",
+    "domain": "utility",
+    "difficulty": "easy",
+    "provenance": {
+      "source_dataset": null, "source_example_id": null, "upstream_source": null,
+      "source_split": null, "transformation_history": [], "generator_model": null,
+      "generator_version": null, "license": null, "license_chain": []
+    },
+    "execution": {"type": "not_applicable", "status": "not_called"},
+    "validation": {
+      "json": "passed", "schema": "failed", "tool_call": "not_run", "execution": "not_run",
+      "semantic": "not_run", "turn_level": "not_applicable", "language": "not_run", "duplicate": "not_run"
+    },
+    "review": {"status": "needs_revision", "reviewer_ids": [], "notes": null}
+  },
+  "tools": [],
+  "messages": [{"role": "user", "content": "Geçersiz fikstür."}]
+}
+

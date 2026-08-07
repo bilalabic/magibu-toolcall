@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://magibu-toolcall.local/schemas/source_record.schema.json",
+  "title": "magibu-toolcall source localization work item 0.1.0",
+  "type": "object",
+  "required": ["ingestion_version", "source", "content", "localized_content", "localization"],
+  "properties": {
+    "ingestion_version": {"const": "0.1.0"},
+    "source": {
+      "type": "object",
+      "required": [
+        "dataset", "format", "example_id", "split", "license", "license_chain",
+        "source_file", "row_number", "raw_sha256", "terms_accepted"
+      ],
+      "properties": {
+        "dataset": {"enum": ["Salesforce/xlam-function-calling-60k", "nvidia/When2Call"]},
+        "format": {"enum": ["xlam_function_calling_60k", "when2call_test", "when2call_train_sft", "when2call_train_pref"]},
+        "example_id": {"type": "string", "minLength": 1},
+        "split": {"type": "string", "minLength": 1},
+        "license": {"type": "string", "minLength": 1},
+        "license_chain": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "source_file": {"type": "string", "minLength": 1},
+        "row_number": {"type": "integer", "minimum": 1},
+        "raw_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "terms_accepted": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "content": {"$ref": "#/$defs/content"},
+    "localized_content": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/content"}]},
+    "localization": {
+      "type": "object",
+      "required": ["source_language", "target_locale", "status", "actor_id", "provider", "provider_version", "applied_at", "machine_fingerprint"],
+      "properties": {
+        "source_language": {"type": "string", "minLength": 2},
+        "target_locale": {"const": "tr-TR"},
+        "status": {"enum": ["pending", "needs_source_review", "localized_needs_review", "localized_needs_source_review"]},
+        "actor_id": {"type": ["string", "null"]},
+        "provider": {"type": ["string", "null"]},
+        "provider_version": {"type": ["string", "null"]},
+        "applied_at": {"type": ["string", "null"], "format": "date-time"},
+        "machine_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "tool": {
+      "type": "object",
+      "required": ["name", "description", "parameters"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "description": {"type": "string"},
+        "parameters": {"type": "object", "minProperties": 1}
+      },
+      "additionalProperties": false
+    },
+    "tool_call": {
+      "type": "object",
+      "required": ["name", "arguments"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "arguments": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "content": {
+      "type": "object",
+      "required": ["query", "tools", "decision", "missing_parameters", "tool_calls", "response"],
+      "properties": {
+        "query": {"type": "string", "minLength": 1},
+        "tools": {"type": "array", "items": {"$ref": "#/$defs/tool"}},
+        "decision": {"type": ["string", "null"], "enum": ["tool_call", "direct_answer", "request_information", "cannot_answer", null]},
+        "missing_parameters": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "tool_calls": {"type": "array", "items": {"$ref": "#/$defs/tool_call"}},
+        "response": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"localization": {"properties": {"status": {"enum": ["localized_needs_review", "localized_needs_source_review"]}}}}},
+      "then": {"properties": {"localized_content": {"$ref": "#/$defs/content"}}}
+    }
+  ],
+  "additionalProperties": false
+}

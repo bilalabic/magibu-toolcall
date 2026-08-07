@@ -1,0 +1,43 @@
+{
+  "schema_version": "0.1.0",
+  "tool_registry_version": "0.1.0",
+  "id": "tctr_ot_000002",
+  "metadata": {
+    "main_category": "no_tool",
+    "secondary_tags": ["direct_answer"],
+    "source_type": "original_turkish",
+    "domain": "general",
+    "difficulty": "easy",
+    "provenance": {
+      "source_dataset": null, "source_example_id": null, "upstream_source": null,
+      "source_split": null, "transformation_history": [], "generator_model": null,
+      "generator_version": null, "license": null, "license_chain": []
+    },
+    "execution": {"type": "not_applicable", "status": "not_called"},
+    "validation": {
+      "json": "passed", "schema": "passed", "tool_call": "not_applicable", "execution": "not_applicable",
+      "semantic": "passed", "turn_level": "not_applicable", "language": "passed", "duplicate": "passed"
+    },
+    "review": {"status": "accepted", "reviewer_ids": ["rev_language_01"], "notes": "Altyapı fikstürü."}
+  },
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "utility_add",
+        "description": "İki sayıyı deterministik olarak toplar.",
+        "parameters": {
+          "type": "object",
+          "properties": {"left": {"type": "number"}, "right": {"type": "number"}},
+          "required": ["left", "right"],
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "messages": [
+    {"role": "user", "content": "Merhaba!"},
+    {"role": "assistant", "content": "Merhaba! Sana nasıl yardımcı olabilirim?"}
+  ]
+}
+

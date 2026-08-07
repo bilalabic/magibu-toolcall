@@ -1,0 +1,38 @@
+[
+  {
+    "name": "correct_tool",
+    "gold": {"id": "bench_ot_000101", "metadata": {"main_category": "single_tool", "secondary_tags": []}, "expected": {"decision": "tool_call", "missing_parameters": [], "tool_calls": [{"function": {"name": "utility_add", "arguments": {"left": 5, "right": 7}}}], "response": null}},
+    "prediction": {"decision": "tool_call", "tool_calls": [{"function": {"name": "utility_add", "arguments": {"left": 5, "right": 7}}}], "response": null, "execution_status": "passed"}
+  },
+  {
+    "name": "wrong_tool",
+    "gold": {"id": "bench_ot_000102", "metadata": {"main_category": "single_tool", "secondary_tags": []}, "expected": {"decision": "tool_call", "missing_parameters": [], "tool_calls": [{"function": {"name": "utility_add", "arguments": {"left": 5, "right": 7}}}], "response": null}},
+    "prediction": {"decision": "tool_call", "tool_calls": [{"function": {"name": "utility_multiply", "arguments": {"left": 5, "right": 7}}}], "response": null}
+  },
+  {
+    "name": "wrong_arguments",
+    "gold": {"id": "bench_ot_000103", "metadata": {"main_category": "single_tool", "secondary_tags": []}, "expected": {"decision": "tool_call", "missing_parameters": [], "tool_calls": [{"function": {"name": "utility_add", "arguments": {"left": 5, "right": 7}}}], "response": null}},
+    "prediction": {"decision": "tool_call", "tool_calls": [{"function": {"name": "utility_add", "arguments": {"left": 5, "right": 8}}}], "response": null}
+  },
+  {
+    "name": "missing_parameter",
+    "gold": {"id": "bench_ot_000104", "metadata": {"main_category": "missing_parameter", "secondary_tags": ["clarification"]}, "expected": {"decision": "request_information", "missing_parameters": ["city"], "tool_calls": [], "response": "Kullanıcıdan şehir bilgisini istemelidir."}},
+    "prediction": {"decision": "request_information", "missing_parameters": ["city"], "tool_calls": [], "response": "Hangi şehir için hava durumunu istersiniz?"}
+  },
+  {
+    "name": "no_tool",
+    "gold": {"id": "bench_ot_000105", "metadata": {"main_category": "no_tool", "secondary_tags": ["direct_answer"]}, "expected": {"decision": "direct_answer", "missing_parameters": [], "tool_calls": [], "response": "Kullanıcıyı selamlamalıdır."}},
+    "prediction": {"decision": "direct_answer", "tool_calls": [], "response": "Merhaba!"}
+  },
+  {
+    "name": "parallel_reordered",
+    "gold": {"id": "bench_ot_000106", "metadata": {"main_category": "multi_tool", "secondary_tags": ["parallel_tool"]}, "expected": {"decision": "tool_call", "missing_parameters": [], "tool_calls": [{"function": {"name": "utility_add", "arguments": {"left": 3, "right": 4}}}, {"function": {"name": "utility_multiply", "arguments": {"left": 3, "right": 4}}}], "response": null}},
+    "prediction": {"decision": "tool_call", "tool_calls": [{"function": {"name": "utility_multiply", "arguments": {"left": 3, "right": 4}}}, {"function": {"name": "utility_add", "arguments": {"left": 3, "right": 4}}}], "response": null}
+  },
+  {
+    "name": "sequential_wrong_order",
+    "gold": {"id": "bench_ot_000107", "metadata": {"main_category": "multi_tool", "secondary_tags": ["sequential_tool"]}, "expected": {"decision": "tool_call", "missing_parameters": [], "tool_calls": [{"function": {"name": "utility_add", "arguments": {"left": 3, "right": 4}}}, {"function": {"name": "utility_multiply", "arguments": {"left": 3, "right": 4}}}], "response": null}},
+    "prediction": {"decision": "tool_call", "tool_calls": [{"function": {"name": "utility_multiply", "arguments": {"left": 3, "right": 4}}}, {"function": {"name": "utility_add", "arguments": {"left": 3, "right": 4}}}], "response": null}
+  }
+]
+

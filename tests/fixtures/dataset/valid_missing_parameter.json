@@ -1,0 +1,46 @@
+{
+  "schema_version": "0.1.0",
+  "tool_registry_version": "0.1.0",
+  "id": "tctr_ot_000003",
+  "metadata": {
+    "main_category": "missing_parameter",
+    "secondary_tags": ["clarification"],
+    "source_type": "original_turkish",
+    "domain": "weather",
+    "difficulty": "easy",
+    "provenance": {
+      "source_dataset": null, "source_example_id": null, "upstream_source": null,
+      "source_split": null, "transformation_history": [], "generator_model": null,
+      "generator_version": null, "license": null, "license_chain": []
+    },
+    "execution": {"type": "not_applicable", "status": "not_called"},
+    "validation": {
+      "json": "passed", "schema": "passed", "tool_call": "not_applicable", "execution": "not_applicable",
+      "semantic": "passed", "turn_level": "not_applicable", "language": "passed", "duplicate": "passed"
+    },
+    "review": {"status": "accepted", "reviewer_ids": ["rev_technical_01"], "notes": "Altyapı fikstürü."}
+  },
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "weather_get_forecast",
+        "description": "Sabit bir fikstürden şehir için hava tahmini getirir.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {"type": "string"},
+            "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]}
+          },
+          "required": ["city"],
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "messages": [
+    {"role": "user", "content": "Hava nasıl?"},
+    {"role": "assistant", "content": "Hangi şehir için hava durumunu öğrenmek istersiniz?"}
+  ]
+}
+

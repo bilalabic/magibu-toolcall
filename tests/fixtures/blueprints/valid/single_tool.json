@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1.0",
+  "tool_registry_version": "0.1.0",
+  "id": "bp_single_tool_001",
+  "user_goal": "İki sayının toplamını öğrenmek",
+  "available_tools": ["utility_add"],
+  "tool_required": true,
+  "provided_parameters": {"left": 12, "right": 8},
+  "missing_parameters": [],
+  "expected_behavior": "tool_call",
+  "expected_tool_calls": [{"function": {"name": "utility_add", "arguments": {"left": 12, "right": 8}}}],
+  "execution_order": "not_applicable",
+  "expected_tool_result": {"result": 20},
+  "expected_final_behavior": "Sonucu doğal Türkçe ile ve yalnızca araç sonucuna dayanarak bildirmek.",
+  "must_avoid": ["Sonucu araç çağırmadan tahmin etmek."],
+  "metadata": {
+    "main_category": "single_tool",
+    "secondary_tags": [],
+    "difficulty": "easy",
+    "source_type": "original_turkish",
+    "domain": "utility",
+    "intended_execution_type": "local_executable",
+    "provenance": {
+      "source_dataset": null, "source_example_id": null, "upstream_source": null,
+      "source_split": null, "transformation_history": [], "generator_model": null,
+      "generator_version": null, "license": null, "license_chain": []
+    }
+  }
+}
+

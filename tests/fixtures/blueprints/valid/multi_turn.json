@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "tool_registry_version": "0.1.0",
+  "id": "bp_multi_turn_001",
+  "user_goal": "İkinci turda verilen şehir için hava tahminini öğrenmek",
+  "available_tools": ["weather_get_forecast"],
+  "tool_required": true,
+  "provided_parameters": {"city": "Ankara"},
+  "missing_parameters": [],
+  "expected_behavior": "tool_call",
+  "expected_tool_calls": [{"function": {"name": "weather_get_forecast", "arguments": {"city": "Ankara"}}}],
+  "execution_order": "not_applicable",
+  "expected_tool_result": {"city": "Ankara", "temperature": 21, "unit": "celsius"},
+  "expected_final_behavior": "Önceki turdaki bağlamı koruyup sonucu Türkçe bildirmek.",
+  "must_avoid": ["Şehri yeniden sormak.", "Önceki turu yok saymak."],
+  "metadata": {
+    "main_category": "multi_turn",
+    "secondary_tags": ["clarification", "context_retention"],
+    "difficulty": "medium",
+    "source_type": "original_turkish",
+    "domain": "weather",
+    "intended_execution_type": "mock",
+    "provenance": {
+      "source_dataset": null, "source_example_id": null, "upstream_source": null,
+      "source_split": null, "transformation_history": [], "generator_model": null,
+      "generator_version": null, "license": null, "license_chain": []
+    }
+  }
+}

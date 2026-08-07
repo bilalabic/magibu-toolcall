@@ -1,0 +1,8 @@
+{
+  "fixture_id": "utility.multiply.basic",
+  "function_name": "utility_multiply",
+  "arguments": {"left": 3, "right": 4},
+  "result": {"result": 12},
+  "provenance": "Deterministic infrastructure fixture; not production data."
+}
+

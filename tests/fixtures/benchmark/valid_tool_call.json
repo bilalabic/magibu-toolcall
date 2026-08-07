@@ -1,0 +1,46 @@
+{
+  "schema_version": "0.1.0",
+  "tool_registry_version": "0.1.0",
+  "id": "bench_ot_000001",
+  "metadata": {
+    "main_category": "single_tool",
+    "secondary_tags": [],
+    "source_type": "original_turkish",
+    "domain": "utility",
+    "difficulty": "easy",
+    "provenance": {
+      "source_dataset": null, "source_example_id": null, "upstream_source": null,
+      "source_split": null, "transformation_history": [], "generator_model": null,
+      "generator_version": null, "license": null, "license_chain": []
+    },
+    "execution": {"type": "mock", "status": "passed", "fixture_id": "utility.add.basic"},
+    "validation": {
+      "json": "passed", "schema": "passed", "tool_call": "passed", "execution": "passed",
+      "semantic": "passed", "turn_level": "not_applicable", "language": "passed", "duplicate": "passed"
+    },
+    "review": {"status": "accepted", "reviewer_ids": ["rev_benchmark_01"], "notes": null}
+  },
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "utility_add",
+        "description": "İki sayıyı deterministik olarak toplar.",
+        "parameters": {
+          "type": "object",
+          "properties": {"left": {"type": "number"}, "right": {"type": "number"}},
+          "required": ["left", "right"],
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "messages": [{"role": "user", "content": "Beş ile yediyi topla."}],
+  "expected": {
+    "decision": "tool_call",
+    "missing_parameters": [],
+    "tool_calls": [{"function": {"name": "utility_add", "arguments": {"left": 5, "right": 7}}}],
+    "response": null
+  }
+}
+
