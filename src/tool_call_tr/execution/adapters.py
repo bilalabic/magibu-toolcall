@@ -90,11 +90,11 @@ class StatefulSimulationAdapter:
     def __init__(self) -> None:
         self._state: dict[str, Any] = {}
         self._calendar_seed = [{
-            "event_id": "SYN-EVENT-001",
+            "event_id": "EVT-CALENDAR-001",
             "title": "Proje değerlendirme toplantısı",
             "start_datetime": "2026-08-10T10:00:00+03:00",
             "end_datetime": "2026-08-10T10:45:00+03:00",
-            "location": "Sentetik toplantı odası",
+            "location": "Toplantı odası A",
         }]
         self._calendar_events: list[dict[str, Any]] = []
         self._next_calendar_id = 2
@@ -140,7 +140,7 @@ class StatefulSimulationAdapter:
             raise ValueError("calendar_event_must_end_after_start")
         if not arguments["confirmed"]:
             return {"event_id": None, "status": "confirmation_required"}
-        event_id = f"SYN-EVENT-{self._next_calendar_id:03d}"
+        event_id = f"EVT-CALENDAR-{self._next_calendar_id:03d}"
         self._next_calendar_id += 1
         self._calendar_events.append({
             "event_id": event_id,

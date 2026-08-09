@@ -2,6 +2,6 @@
   "fixture_id": "earthquake.events.historical",
   "function_name": "earthquake_search_events",
   "arguments": {"start_datetime": "2026-07-01T00:00:00+03:00", "end_datetime": "2026-07-02T00:00:00+03:00", "minimum_magnitude": 3.0},
-  "result": {"events": [{"event_id": "SYN-EQ-001", "occurred_at": "2026-07-01T08:15:00+03:00", "magnitude": 3.4, "depth_km": 8.2, "latitude": 39.1, "longitude": 27.8}], "retrieved_at": "2026-08-07T09:00:00+03:00"},
+  "result": {"events": [{"event_id": "EQ-TR-20260701-001", "occurred_at": "2026-07-01T08:15:00+03:00", "magnitude": 3.4, "depth_km": 8.2, "latitude": 39.1, "longitude": 27.8}], "retrieved_at": "2026-08-07T09:00:00+03:00"},
   "provenance": "Fully synthetic earthquake-shaped fixture; not an AFAD event and not suitable for safety decisions."
 }

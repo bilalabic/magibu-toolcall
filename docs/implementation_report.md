@@ -135,7 +135,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\verify.ps1
 .venv\Scripts\python.exe -m pip check
 ```
 
-The final suite passes 181 tests, including the original deterministic flow and
+The final suite passes 192 tests, including the original deterministic flow and
 an independent parallel dataset/benchmark lifecycle flow. Added tests cover
 actual xLAM/When2Call shapes, machine-safe localization, source terms gates,
 DeepSeek/OpenAI request parsing, strict judge rubrics, primary/escalation

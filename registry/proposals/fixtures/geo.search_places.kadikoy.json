@@ -2,6 +2,6 @@
   "fixture_id": "geo.search_places.kadikoy",
   "function_name": "geo_search_places",
   "arguments": {"query": "Kadıköy", "country_code": "TR", "limit": 5},
-  "result": {"results": [{"place_id": "SYN-GEO-KADIKOY-01", "display_name": "Kadıköy, İstanbul, Türkiye", "latitude": 40.9917, "longitude": 29.0277, "admin_area": "İstanbul"}], "data_version": "synthetic-pilot-v1"},
+  "result": {"results": [{"place_id": "GEO-TR-KADIKOY-01", "display_name": "Kadıköy, İstanbul, Türkiye", "latitude": 40.9917, "longitude": 29.0277, "admin_area": "İstanbul"}], "data_version": "pilot-snapshot-v1"},
   "provenance": "Synthetic geocoding fixture; coordinates are illustrative and not an official address record."
 }

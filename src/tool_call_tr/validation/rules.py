@@ -13,6 +13,7 @@ from jsonschema.exceptions import ValidationError
 from tool_call_tr.ids import validate_record_id
 from tool_call_tr.registry import RegistryIssue, RegistryValidationError, ToolRegistry
 from tool_call_tr.schemas import SchemaStore, json_path
+from tool_call_tr.text_quality import find_internal_operation_markers
 from tool_call_tr.validation.diagnostics import Severity, ValidationIssue, ValidationReport
 from tool_call_tr.validation.parsing import parse_path
 from tool_call_tr.versioning import VersionError, require_development_version
@@ -100,6 +101,7 @@ class RuleBasedValidator:
         record_id = record["id"]
         issues: list[ValidationIssue] = []
         metadata = record["metadata"]
+        allow_internal_markers = "internal_marker_topic" in metadata["secondary_tags"]
         if not validate_record_id(record_id, kind=kind, source_type=metadata["source_type"]):
             issues.append(ValidationIssue("ID_SOURCE_MISMATCH", "ID prefix must match record kind and source_type", "$.id", record_id=record_id, line=line))
 
@@ -123,6 +125,21 @@ class RuleBasedValidator:
         user_turns = 0
         direct_assistant_positions: list[int] = []
         for message_index, message in enumerate(record["messages"]):
+            content = message.get("content")
+            if (
+                not allow_internal_markers
+                and message["role"] in {"user", "assistant"}
+                and isinstance(content, str)
+            ):
+                leaked_markers = find_internal_operation_markers(content)
+                if leaked_markers:
+                    issues.append(ValidationIssue(
+                        "NATURAL_TEXT_INTERNAL_MARKER",
+                        "natural-language message exposes internal operation markers: " + ", ".join(leaked_markers),
+                        f"$.messages[{message_index}].content",
+                        record_id=record_id,
+                        line=line,
+                    ))
             if message["role"] == "user":
                 user_turns += 1
             if message["role"] == "assistant" and "tool_calls" not in message:
@@ -302,6 +319,24 @@ class RuleBasedValidator:
     def _blueprint_rules(self, record: dict[str, Any], line: int | None) -> list[ValidationIssue]:
         record_id = record["id"]
         issues: list[ValidationIssue] = []
+        tags = set(record["metadata"]["secondary_tags"])
+        if "internal_marker_topic" not in tags:
+            natural_fields = [
+                ("$.user_goal", record["user_goal"]),
+                ("$.expected_final_behavior", record["expected_final_behavior"]),
+                *((f"$.must_avoid[{index}]", value) for index, value in enumerate(record["must_avoid"])),
+            ]
+            for path, value in natural_fields:
+                leaked_markers = find_internal_operation_markers(value)
+                if leaked_markers:
+                    issues.append(ValidationIssue(
+                        "BLUEPRINT_INTERNAL_MARKER",
+                        "blueprint natural-language instruction exposes internal operation markers: "
+                        + ", ".join(leaked_markers),
+                        path,
+                        record_id=record_id,
+                        line=line,
+                    ))
         available = set(record["available_tools"])
         for index, name in enumerate(record["available_tools"]):
             if not self.registry.contains_function(name):
@@ -321,7 +356,6 @@ class RuleBasedValidator:
             for index, (call, result) in enumerate(zip(expected_calls, expected_result, strict=False)):
                 issues.extend(self._validate_output_value(call["function"]["name"], result, f"$.expected_tool_result[{index}]", record_id, line))
         category = record["metadata"]["main_category"]
-        tags = set(record["metadata"]["secondary_tags"])
         order = record["execution_order"]
         if category == "multi_tool" and ((order == "parallel") != ("parallel_tool" in tags) or (order == "sequential") != ("sequential_tool" in tags)):
             issues.append(ValidationIssue("BLUEPRINT_ORDER_TAG_MISMATCH", "execution_order must match its secondary tag", "$.execution_order", record_id=record_id, line=line))

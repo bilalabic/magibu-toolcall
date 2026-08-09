@@ -1,7 +1,7 @@
 {
   "fixture_id": "prayer.times.istanbul",
   "function_name": "prayer_get_times",
-  "arguments": {"location_id": "SYN-DIYANET-ISTANBUL", "date": "2026-08-10"},
-  "result": {"location_id": "SYN-DIYANET-ISTANBUL", "date": "2026-08-10", "timezone": "Europe/Istanbul", "imsak": "04:30", "gunes": "06:05", "ogle": "13:15", "ikindi": "17:05", "aksam": "20:18", "yatsi": "21:46"},
+  "arguments": {"location_id": "LOC-TR-ISTANBUL-001", "date": "2026-08-10"},
+  "result": {"location_id": "LOC-TR-ISTANBUL-001", "date": "2026-08-10", "timezone": "Europe/Istanbul", "imsak": "04:30", "gunes": "06:05", "ogle": "13:15", "ikindi": "17:05", "aksam": "20:18", "yatsi": "21:46"},
   "provenance": "Fully synthetic prayer-time-shaped fixture; not a Diyanet calculation and not for observance decisions."
 }

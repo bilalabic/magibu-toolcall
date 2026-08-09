@@ -2,6 +2,6 @@
   "fixture_id": "geo.search_places.ankara",
   "function_name": "geo_search_places",
   "arguments": {"query": "Ankara Garı", "country_code": "TR", "limit": 5},
-  "result": {"results": [{"place_id": "SYN-GEO-ANKARA-GARI-01", "display_name": "Ankara Garı, Altındağ, Ankara, Türkiye", "latitude": 39.9369, "longitude": 32.8439, "admin_area": "Ankara"}], "data_version": "synthetic-pilot-v1"},
+  "result": {"results": [{"place_id": "GEO-TR-ANKARA-GARI-01", "display_name": "Ankara Garı, Altındağ, Ankara, Türkiye", "latitude": 39.9369, "longitude": 32.8439, "admin_area": "Ankara"}], "data_version": "pilot-snapshot-v1"},
   "provenance": "Synthetic place-resolution fixture created to ground the downstream route fixture; not an OSM extract."
 }
