@@ -46,6 +46,12 @@ kayıt doğrulayıcıları bu etiketlerin doğal metne sızmasını reddeder. Ya
 kavramın kendisini konu alan senaryolar `internal_marker_topic` etiketiyle bilinçli
 olarak bu kuraldan muaf tutulabilir.
 
+Üretim sağlayıcısı canonical blueprint'in tamamını görmez. CLI önce yalnız doğal
+dil için gerekli ve kullanıcıya açıklanabilir alanlardan güvenli bir üretim brief’i
+kurar. `dataset export` canonical audit kaydını korur; modele verilecek metadata
+içermeyen `id`, `messages` ve `tools` dosyası `--projection training` ile ayrı
+üretilir.
+
 1000 kayıt tek kontrolsüz çağrı olarak çalıştırılmaz. Önce 30, sonra 100 ve 250
 kayıtlık kapılar geçilir; tam üretim dört adet 250 kayıtlık run olarak yürütülür.
 Her run ayrı manifest, checkpoint, hata dosyası, token bütçesi ve kalite raporu

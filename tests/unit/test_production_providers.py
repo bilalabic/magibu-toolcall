@@ -11,9 +11,20 @@ from tool_call_tr.generation.providers import (
     OpenAIQualityJudge,
     ProviderError,
     ProviderNotConfigured,
+    RetryPolicy,
+    run_language_plan_with_retry,
 )
 from tool_call_tr.network import JsonHttpResponse
 from tool_call_tr.semantic import CachedEmbeddingSimilarity, OpenAIEmbeddingProvider, cosine_similarity
+from tool_call_tr.text_quality import find_internal_operation_markers
+
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def load_blueprint(name: str) -> dict[str, Any]:
+    path = ROOT / "tests" / "fixtures" / "blueprints" / "valid" / name
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 class FakeTransport:
@@ -62,15 +73,27 @@ def test_deepseek_language_plan_uses_bounded_non_thinking_json_contract() -> Non
         "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(plan)}}],
     }, {})])
     provider = DeepSeekIntegration("secret", "deepseek-v4-flash", transport=transport)
-    response = provider.generate_language_plan({"metadata": {"main_category": "no_tool"}})
+    response = provider.generate_language_plan(load_blueprint("no_tool.json"))
     request = transport.requests[0]["body"]
     assert response.value == plan
     assert request["thinking"] == {"type": "disabled"}
     assert request["max_tokens"] == 1600
     assert "Example JSON output" in request["messages"][0]["content"]
     assert "exactly 1 non-empty" in request["messages"][0]["content"]
-    assert "Treat execution modes, fixtures, provenance" in request["messages"][0]["content"]
-    assert "internal_marker_topic" in request["messages"][0]["content"]
+    assert "generation_brief" in request["messages"][1]["content"]
+    assert '"blueprint"' not in request["messages"][1]["content"]
+    assert '"metadata"' not in request["messages"][1]["content"]
+    assert not find_internal_operation_markers(request["messages"][0]["content"])
+    assert not find_internal_operation_markers(request["messages"][1]["content"])
+
+
+def test_deepseek_full_record_generation_is_disabled_before_network() -> None:
+    transport = FakeTransport([])
+    provider = DeepSeekIntegration("secret", "deepseek-v4-flash", transport=transport)
+    with pytest.raises(ProviderError, match="full-record generation") as raised:
+        provider.generate_scenario(load_blueprint("no_tool.json"))
+    assert not raised.value.retryable
+    assert transport.requests == []
 
 
 def test_deepseek_language_plan_rejects_missing_multi_turn_response() -> None:
@@ -85,7 +108,7 @@ def test_deepseek_language_plan_rejects_missing_multi_turn_response() -> None:
     }, {})])
     provider = DeepSeekIntegration("secret", "deepseek-v4-pro", transport=transport)
     with pytest.raises(ProviderError, match="deterministic validation"):
-        provider.generate_language_plan({"metadata": {"main_category": "multi_turn"}})
+        provider.generate_language_plan(load_blueprint("multi_turn.json"))
 
 
 def test_deepseek_language_plan_rejects_non_question_clarification() -> None:
@@ -99,10 +122,59 @@ def test_deepseek_language_plan_rejects_non_question_clarification() -> None:
         "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(plan)}}],
     }, {})])
     provider = DeepSeekIntegration("secret", "deepseek-v4-flash", transport=transport)
+    blueprint = load_blueprint("multi_turn.json")
+    if "clarification" not in blueprint["metadata"]["secondary_tags"]:
+        blueprint["metadata"]["secondary_tags"].append("clarification")
     with pytest.raises(ProviderError, match="requires an intermediate question"):
-        provider.generate_language_plan({
-            "metadata": {"main_category": "multi_turn", "secondary_tags": ["clarification"]}
-        })
+        provider.generate_language_plan(blueprint)
+
+
+def test_deepseek_blocks_unsafe_generation_brief_before_network() -> None:
+    transport = FakeTransport([])
+    provider = DeepSeekIntegration("secret", "deepseek-v4-flash", transport=transport)
+    blueprint = load_blueprint("no_tool.json")
+    blueprint["user_goal"] = "Sentetik kayıt hakkında konuşmak"
+    with pytest.raises(ProviderError, match="blocked before request") as raised:
+        provider.generate_language_plan(blueprint)
+    assert not raised.value.retryable
+    assert transport.requests == []
+
+
+def test_language_plan_retry_uses_clean_repair_instruction() -> None:
+    invalid_plan = {
+        "user_messages": ["Merhaba"],
+        "intermediate_assistant_response": None,
+        "final_response": "Bu kayıt sentetiktir.",
+    }
+    valid_plan = {
+        "user_messages": ["Merhaba"],
+        "intermediate_assistant_response": None,
+        "final_response": "Merhaba! Nasıl yardımcı olabilirim?",
+    }
+    transport = FakeTransport([
+        JsonHttpResponse(200, {
+            "model": "deepseek-v4-flash",
+            "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(invalid_plan)}}],
+        }, {}),
+        JsonHttpResponse(200, {
+            "model": "deepseek-v4-flash",
+            "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(valid_plan)}}],
+        }, {}),
+    ])
+    provider = DeepSeekIntegration("secret", "deepseek-v4-flash", transport=transport)
+    response = run_language_plan_with_retry(
+        provider,
+        load_blueprint("no_tool.json"),
+        RetryPolicy(max_attempts=2, base_seconds=0, jitter_ratio=0),
+        sleep=lambda _: None,
+    )
+    assert response.value == valid_plan
+    assert response.attempts == 2
+    first_prompt = transport.requests[0]["body"]["messages"][0]["content"]
+    repair_prompt = transport.requests[1]["body"]["messages"][0]["content"]
+    assert "fresh rewrite after a previous response" not in first_prompt
+    assert "fresh rewrite after a previous response" in repair_prompt
+    assert not find_internal_operation_markers(repair_prompt)
 
 
 def test_deepseek_errors_never_echo_secret_or_response_body() -> None:

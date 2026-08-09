@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 import copy
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import time
 from typing import Any, Protocol
@@ -16,11 +16,10 @@ from tool_call_tr.dataset_workflow import (
 )
 from tool_call_tr.generation.providers import (
     ModelIdentity,
-    ProviderError,
     ProviderResponse,
     RecordQualityJudge,
     RetryPolicy,
-    run_with_retry,
+    run_language_plan_with_retry,
 )
 from tool_call_tr.registry import ToolRegistry
 from tool_call_tr.validation import RuleBasedValidator
@@ -45,13 +44,12 @@ class RetryingLanguagePlanGenerator:
         self.model = provider.model
 
     def generate_language_plan(self, blueprint: dict[str, Any]) -> ProviderResponse:
-        response, attempts = run_with_retry(
-            lambda: self.provider.generate_language_plan(blueprint),
+        return run_language_plan_with_retry(
+            self.provider,
+            blueprint,
             self.policy,
-            retryable=lambda exc: isinstance(exc, ProviderError) and exc.retryable,
             sleep=time.sleep,
         )
-        return replace(response, attempts=attempts)
 
 
 @dataclass(frozen=True, slots=True)

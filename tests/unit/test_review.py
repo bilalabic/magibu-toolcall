@@ -8,7 +8,7 @@ import pytest
 
 from tool_call_tr.cli import build_parser, main
 from tool_call_tr.registry import ToolRegistry
-from tool_call_tr.review import ReviewError, export_accepted
+from tool_call_tr.review import ReviewError, export_accepted, project_training_record
 from tool_call_tr.validation import RuleBasedValidator
 
 
@@ -54,6 +54,44 @@ def test_export_cli_needs_no_login_or_access_policy(tmp_path: Path, capsys) -> N
 
     assert main(["dataset", "export", str(source), str(output)]) == 0
     assert "exported 1" in capsys.readouterr().out
+    exported = json.loads(output.read_text(encoding="utf-8"))
+    assert "metadata" in exported
+
+
+def test_dataset_export_can_write_the_training_projection(tmp_path: Path, capsys) -> None:
+    accepted = load("valid_no_tool.json")
+    source = tmp_path / "pr-approved.jsonl"
+    source.write_text(json.dumps(accepted, ensure_ascii=False), encoding="utf-8")
+    output = tmp_path / "training.jsonl"
+
+    assert main([
+        "dataset", "export", str(source), str(output),
+        "--projection", "training",
+    ]) == 0
+    assert set(json.loads(output.read_text(encoding="utf-8"))) == {"id", "messages", "tools"}
+
+
+def test_training_projection_excludes_audit_metadata() -> None:
+    accepted = load("valid_no_tool.json")
+    accepted["metadata"]["execution"]["fixture_id"] = "calendar.synthetic.seed"
+    projection = project_training_record(accepted)
+    assert set(projection) == {"id", "messages", "tools"}
+    assert "synthetic" not in json.dumps(projection, ensure_ascii=False).casefold()
+
+
+def test_training_projection_blocks_visible_internal_markers() -> None:
+    accepted = load("valid_no_tool.json")
+    accepted["messages"][-1]["content"] = "Bu kayıt sentetiktir."
+    with pytest.raises(ReviewError, match="training projection exposes"):
+        project_training_record(accepted)
+
+
+def test_training_projection_allows_explicit_internal_marker_topic() -> None:
+    accepted = load("valid_no_tool.json")
+    accepted["metadata"]["secondary_tags"].append("internal_marker_topic")
+    accepted["messages"][0]["content"] = "Sentetik veri nedir?"
+    projection = project_training_record(accepted)
+    assert projection["messages"][0]["content"] == "Sentetik veri nedir?"
 
 
 def test_reviewer_cli_command_is_removed() -> None:

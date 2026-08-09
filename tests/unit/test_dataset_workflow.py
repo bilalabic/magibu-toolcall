@@ -5,9 +5,11 @@ from pathlib import Path
 
 import pytest
 
+from tool_call_tr.batch import BatchError
 from tool_call_tr.dataset_workflow import (
     DatasetWorkflowError,
     build_candidate_from_language_plan,
+    collect_dataset_existing_ids,
     default_job_paths,
     inspect_blueprints,
     next_dataset_number,
@@ -50,6 +52,27 @@ def test_blueprint_preflight_blocks_paused_translation(tmp_path: Path) -> None:
 def test_next_dataset_number_is_scoped_by_source_type() -> None:
     assert next_dataset_number({"tctr_ot_000004", "tctr_tn_000099"}, "original_turkish") == 5
     assert next_dataset_number({"tctr_ot_000004", "tctr_tn_000099"}, "turkey_native") == 100
+
+
+def test_existing_id_collection_allows_audit_copies_across_lifecycle_states(tmp_path: Path) -> None:
+    staging = tmp_path / "data" / "dataset" / "staging" / "candidate.jsonl"
+    revision = tmp_path / "data" / "dataset" / "needs_revision" / "candidate.jsonl"
+    staging.parent.mkdir(parents=True)
+    revision.parent.mkdir(parents=True)
+    staging.write_text('{"id":"tctr_tn_000001"}\n', encoding="utf-8")
+    revision.write_text('{"id":"tctr_tn_000001"}\n', encoding="utf-8")
+
+    assert collect_dataset_existing_ids(tmp_path) == {"tctr_tn_000001"}
+
+
+def test_existing_id_collection_rejects_duplicates_within_one_lifecycle_state(tmp_path: Path) -> None:
+    staging = tmp_path / "data" / "dataset" / "staging"
+    staging.mkdir(parents=True)
+    (staging / "first.jsonl").write_text('{"id":"tctr_ot_000001"}\n', encoding="utf-8")
+    (staging / "second.jsonl").write_text('{"id":"tctr_ot_000001"}\n', encoding="utf-8")
+
+    with pytest.raises(BatchError, match="occurs more than once"):
+        collect_dataset_existing_ids(tmp_path)
 
 
 def test_job_id_cannot_escape_the_runs_directory(tmp_path: Path) -> None:
@@ -132,7 +155,9 @@ def test_language_plan_rejects_machine_style_natural_text(final_response: str, m
     "marker",
     [
         "sentetik",
+        "sentetiktir",
         "synthetic",
+        "synthetic_pilot_fixture",
         "mock",
         "fixture",
         "fikstür",

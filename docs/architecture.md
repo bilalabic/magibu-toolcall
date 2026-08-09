@@ -96,11 +96,15 @@ cannot be rerun in place.
 Schema diagnostics and semantic diagnostics are intentionally separate. An LLM
 is never required for deterministic validation.
 
-Generated dataset records cross a trust boundary before validation. The system
-checks blueprint metadata, exposed tools, and expected calls, records the actual
-provider identity in provenance, forces human review back to `needs_revision`,
-and marks any gate without evidence as `not_run`. Provider-supplied `accepted`
-or `passed` claims cannot make a draft exportable.
+Generated dataset records cross a trust boundary before validation. DeepSeek
+receives a whitelisted language-generation brief rather than the canonical
+blueprint; execution/provenance fields and internal result labels are removed
+before the network request. The system then checks blueprint metadata, exposed
+tools, and expected calls, records the actual provider identity in provenance,
+forces human review back to `needs_revision`, and marks any gate without evidence
+as `not_run`. Provider-supplied `accepted` or `passed` claims cannot make a draft
+exportable. Canonical export preserves audit metadata, while the explicit dataset
+training projection contains only `id`, `messages`, and `tools`.
 
 The dataset quality command recomputes deterministic gates, executes local/mock
 calls in their declared mode, and compares actual data with recorded tool-result

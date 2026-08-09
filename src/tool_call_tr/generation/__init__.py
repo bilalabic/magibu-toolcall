@@ -22,6 +22,7 @@ from tool_call_tr.generation.providers import (
     ScenarioGenerator,
     SemanticJudge,
     ToolCallGenerator,
+    run_language_plan_with_retry,
     run_with_retry,
 )
 
@@ -31,5 +32,5 @@ __all__ = [
     "MockScenarioGenerator", "MockSemanticJudge", "MockToolCallGenerator", "ModelIdentity",
     "OpenAIQualityJudge", "OpenAISemanticIntegration", "ProviderError", "ProviderNotConfigured",
     "RecordQualityJudge", "RetryingRecordQualityJudge", "RetryPolicy", "ScenarioGenerator",
-    "SemanticJudge", "ToolCallGenerator", "run_with_retry",
+    "SemanticJudge", "ToolCallGenerator", "run_language_plan_with_retry", "run_with_retry",
 ]

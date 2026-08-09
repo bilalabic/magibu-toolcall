@@ -63,7 +63,10 @@ flowchart TD
 
 DeepSeek yalnızca doğal dil alanlarını üretir. Tool tanımı, çağrı kimliği,
 argüman, sonuç, metadata ve kalite durumu kod tarafından kurulur veya
-doğrulanır. Böylece model üretimi ile kanonik kayıt yapısı birbirinden ayrılır.
+doğrulanır. Ham blueprint modele gönderilmez; kullanıcı amacı, konuşma yapısı ve
+kullanıcıya açıklanabilir sonuç alanlarından oluşturulan güvenli bir üretim
+brief’i kullanılır. Böylece model üretimi, kanonik audit kaydı ve eğitim exportu
+birbirinden ayrılır.
 
 ## Bugün hazır olan altyapı
 
@@ -75,6 +78,7 @@ doğrulanır. Böylece model üretimi ile kanonik kayıt yapısı birbirinden ay
 - Blueprint ve registry checksum’larını manifestte sabitleme
 - Model çıktısındaki güvenilmez kabul veya kalite iddialarını temizleme
 - İç yürütme ve provenance etiketlerinin doğal kullanıcı/asistan metnine sızmasını engelleme
+- Ham blueprint yerine izinli alanlardan kurulan model-girdi projeksiyonu
 
 ### Otomatik kalite
 
@@ -111,7 +115,7 @@ Mevcut pilot yalnızca bir demo değildir; aynı üretim ve kalite hattının k�
 | Proposal tool sayısı | 20 |
 | Pilot blueprint sayısı | 30 |
 | Genel Türkçe / Türkiye-native dağılımı | 15 / 15 |
-| Otomatik test | 192/192 |
+| Otomatik test | 210/210 |
 | Genel dataset kalite geçişi | 15/15 |
 | Türkiye-native kalite geçişi | 14/15 |
 
@@ -143,6 +147,7 @@ incelemesini tamamlamadığı için `accepted` değildir.
 - OpenAI hakemiyle dil ve tool-grounding kalitesini puanlayabilir.
 - İnsan inceleme kararlarını GitHub PR geçmişi üzerinden izleyebilir.
 - Yalnızca bütün kapıları geçen kayıtları accepted dataset’e aktarabilir.
+- Canonical audit kaydı ile modele verilecek eğitim projeksiyonunu ayrı dışa aktarabilir.
 - Model, token, request, checksum ve kalite kanıtlarını raporlayabilir.
 
 ## Neleri yapamaz veya yapmamalıdır?

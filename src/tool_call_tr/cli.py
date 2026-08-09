@@ -30,7 +30,7 @@ from tool_call_tr.deduplication import DeterministicTokenSimilarity, compare_rec
 from tool_call_tr.dataset_workflow import (
     DatasetWorkflowError,
     build_candidate_from_language_plan,
-    dataset_record_paths,
+    collect_dataset_existing_ids,
     default_job_id,
     default_job_paths,
     inspect_blueprints,
@@ -47,6 +47,7 @@ from tool_call_tr.generation.providers import (
     ProviderNotConfigured,
     RetryingRecordQualityJudge,
     RetryPolicy,
+    run_language_plan_with_retry,
     run_with_retry,
 )
 from tool_call_tr.ids import IdError, generate_call_id, generate_record_id
@@ -167,6 +168,16 @@ def _add_record_commands(subparsers: argparse._SubParsersAction, kind: str, *, i
     export = subparsers.add_parser("export", help=f"Validate and export accepted {kind} records only.")
     export.add_argument("input_path", type=Path)
     export.add_argument("output_path", type=Path)
+    export.add_argument(
+        "--projection",
+        choices=(("canonical", "training") if kind == "dataset" else ("canonical",)),
+        default="canonical",
+        help=(
+            "Write a training-safe dataset view or the full canonical audit record."
+            if kind == "dataset"
+            else "Write the full canonical benchmark record."
+        ),
+    )
     export.add_argument("--overwrite", action="store_true")
     export.set_defaults(handler=_cmd_export, record_kind=kind)
 
@@ -844,9 +855,7 @@ def _cmd_generate_dataset(args: argparse.Namespace) -> int:
             job_id=job_id,
             output_path=args.output,
         )
-        existing_paths = dataset_record_paths(settings.project_root)
-        existing_paths.extend(args.existing)
-        existing_ids = collect_existing_ids(sorted(set(existing_paths)))
+        existing_ids = collect_dataset_existing_ids(settings.project_root, args.existing)
         start_number = (
             args.start_number
             if args.start_number is not None
@@ -934,7 +943,7 @@ def _execute_candidate_generation(
         if not blueprint_report.valid:
             raise BatchError(blueprint_report.human())
 
-        def generate(active_provider: DeepSeekIntegration):
+        def generate(active_provider: DeepSeekIntegration, *, repair_first: bool = False):
             estimate = _estimated_generation_tokens(
                 blueprint,
                 min(
@@ -945,9 +954,15 @@ def _execute_candidate_generation(
             budget.reserve(estimate)
             response = None
             try:
-                response = _provider_retry(
-                    lambda: active_provider.generate_language_plan(blueprint),
-                    settings,
+                response = run_language_plan_with_retry(
+                    active_provider,
+                    blueprint,
+                    RetryPolicy(
+                        max_attempts=settings.max_retries + 1,
+                        base_seconds=settings.retry_base_seconds,
+                    ),
+                    sleep=time.sleep,
+                    repair_first=repair_first,
                 )
                 return response
             finally:
@@ -963,7 +978,10 @@ def _execute_candidate_generation(
                 raise
             fallback_from = provider.model
             fallback_reason = str(exc)
-            response = generate(fallback_provider)
+            response = generate(
+                fallback_provider,
+                repair_first=exc.error_code == "language_plan_policy",
+            )
             with fallback_lock:
                 fallbacks_used += 1
         value = build_candidate_from_language_plan(
@@ -1210,10 +1228,23 @@ def _cmd_duplicates(args: argparse.Namespace) -> int:
 
 
 def _cmd_export(args: argparse.Namespace) -> int:
-    return _export(args.record_kind, args.input_path, args.output_path, args.overwrite)
+    return _export(
+        args.record_kind,
+        args.input_path,
+        args.output_path,
+        args.overwrite,
+        projection=args.projection,
+    )
 
 
-def _export(kind: str, input_path: Path, output_path: Path, overwrite: bool) -> int:
+def _export(
+    kind: str,
+    input_path: Path,
+    output_path: Path,
+    overwrite: bool,
+    *,
+    projection: str,
+) -> int:
     parsed, parse_issues = parse_path(input_path)
     if parse_issues:
         return _print_parse_issues(parse_issues, "text")
@@ -1223,6 +1254,7 @@ def _export(kind: str, input_path: Path, output_path: Path, overwrite: bool) -> 
             output_path,
             validator=RuleBasedValidator(),
             kind=kind,
+            projection=projection,
             overwrite=overwrite,
         )
     except ReviewError as exc:
