@@ -8,8 +8,9 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
-from typing import Any
+from typing import Any, Iterable
 
+from tool_call_tr.batch import collect_existing_ids
 from tool_call_tr.generation.providers import ModelIdentity
 from tool_call_tr.ids import RECORD_ID_RE, SOURCE_PREFIX
 from tool_call_tr.language_plan import LanguagePlanValidationError, validate_language_plan
@@ -118,15 +119,41 @@ def default_job_paths(
 
 
 def dataset_record_paths(project_root: Path) -> list[Path]:
+    return sorted(
+        path
+        for paths in dataset_record_paths_by_state(project_root).values()
+        for path in paths
+    )
+
+
+def dataset_record_paths_by_state(project_root: Path) -> dict[str, list[Path]]:
+    """Return dataset artifacts grouped by lifecycle state.
+
+    The same candidate ID may legitimately occur in successive states because
+    quality outputs preserve the staging artifact as audit evidence. Duplicate
+    IDs inside one state remain invalid.
+    """
+
     base = project_root / "data" / "dataset"
-    paths: list[Path] = []
+    grouped: dict[str, list[Path]] = {}
     for state in ("accepted", "needs_revision", "rejected", "staging"):
         directory = base / state
         if not directory.exists():
             continue
-        paths.extend(path for path in directory.rglob("*.jsonl") if path.is_file())
+        paths = [path for path in directory.rglob("*.jsonl") if path.is_file()]
         paths.extend(path for path in directory.rglob("*.json") if path.is_file())
-    return sorted(set(paths))
+        grouped[state] = sorted(set(paths))
+    return grouped
+
+
+def collect_dataset_existing_ids(project_root: Path, extra_paths: Iterable[Path] = ()) -> set[str]:
+    """Collect IDs without treating cross-state audit copies as collisions."""
+
+    ids: set[str] = set()
+    for paths in dataset_record_paths_by_state(project_root).values():
+        ids.update(collect_existing_ids(paths))
+    ids.update(collect_existing_ids(extra_paths))
+    return ids
 
 
 def next_dataset_number(existing_ids: set[str], source_type: str) -> int:

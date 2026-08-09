@@ -30,7 +30,7 @@ from tool_call_tr.deduplication import DeterministicTokenSimilarity, compare_rec
 from tool_call_tr.dataset_workflow import (
     DatasetWorkflowError,
     build_candidate_from_language_plan,
-    dataset_record_paths,
+    collect_dataset_existing_ids,
     default_job_id,
     default_job_paths,
     inspect_blueprints,
@@ -855,9 +855,7 @@ def _cmd_generate_dataset(args: argparse.Namespace) -> int:
             job_id=job_id,
             output_path=args.output,
         )
-        existing_paths = dataset_record_paths(settings.project_root)
-        existing_paths.extend(args.existing)
-        existing_ids = collect_existing_ids(sorted(set(existing_paths)))
+        existing_ids = collect_dataset_existing_ids(settings.project_root, args.existing)
         start_number = (
             args.start_number
             if args.start_number is not None

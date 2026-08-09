@@ -245,7 +245,7 @@ def test_normal_dataset_generation_plans_paths_and_sanitizes_provider_quality_cl
             )
 
     monkeypatch.setattr("tool_call_tr.cli.DeepSeekIntegration.from_settings", lambda settings: FakeProvider())
-    monkeypatch.setattr("tool_call_tr.cli.dataset_record_paths", lambda project_root: [])
+    monkeypatch.setattr("tool_call_tr.cli.collect_dataset_existing_ids", lambda project_root, extra_paths: set())
     assert main([
         "dataset", "generate", str(blueprint),
         "--job-id", "dataset-pilot-001",
@@ -307,7 +307,7 @@ def test_normal_generation_falls_back_to_pro_and_records_provenance(
     monkeypatch.setenv("MAGIBU_TOOLCALL_RETRY_BASE_SECONDS", "0")
     monkeypatch.setattr("tool_call_tr.cli.DeepSeekIntegration.from_settings", lambda settings: flash)
     monkeypatch.setattr("tool_call_tr.cli._deepseek_fallback_provider", lambda settings, primary: pro)
-    monkeypatch.setattr("tool_call_tr.cli.dataset_record_paths", lambda project_root: [])
+    monkeypatch.setattr("tool_call_tr.cli.collect_dataset_existing_ids", lambda project_root, extra_paths: set())
     assert main([
         "dataset", "generate", str(blueprint),
         "--job-id", "dataset-fallback-001",
