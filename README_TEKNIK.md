@@ -349,7 +349,7 @@ araçlar bu nedenle kanonik registry’ye erken taşınmaz.
 
 Normal üretimde `deepseek-v4-flash` birincil modeldir. Geçersiz JSON, provider
 hatası, zaman aşımı, Latin dışı yazı sızıntısı veya deterministik dil-planı
-ihlali bütün retry'leri tüketirse aynı blueprint `deepseek-v4-pro` ile bir kez
+ihlali bütün retry'leri tüketirse aynı güvenli üretim brief’i `deepseek-v4-pro` ile bir kez
 daha denenir. Birincil ve fallback çağrılarının bütçesi ayrı hesaplanır;
 `provider_fallbacks_used` iş özetine, geçiş nedeni ile iki model kimliği
 provenance'a yazılır. Fallback de başarısızsa kayıt hata kuyruğuna gider.
@@ -357,13 +357,20 @@ OpenAI kalite kapısından geçmeyen hiçbir kayıt otomatik kabul edilmez.
 
 Yürütme türü, fixture kimliği, provenance, kaynak kimliği ve veri sürümü gibi
 alanlar iç operasyon bilgisidir; doğal kullanıcı veya asistan cümlesi değildir.
-DeepSeek promptu bu etiketleri doğal dile taşımamasını açıkça ister. Aynı kural
-model yanıtından sonra deterministik olarak yeniden denetlenir; `sentetik`,
-`synthetic`, `mock`, `fixture`, `fikstür`, `simulation` ve `simülasyon` sızıntısı
-kaydı retry/fallback akışına gönderir. Bu kavramların gerçekten konuşulduğu bir
-senaryo ancak blueprint'te `internal_marker_topic` etiketiyle açıkça işaretlenirse
-istisna oluşturur. Sistem provenance gerçeğini silmez; onu eğitim diyaloğundan
-ayrı, yapılandırılmış metadata ve fixture provenance alanlarında korur.
+DeepSeek'e ham blueprint verilmez. Üretimden önce yalnız kullanıcı amacı,
+konuşma gereksinimi, sağlanan/eksik parametreler, son yanıt beklentisi ve
+kullanıcıya gösterilebilir grounding alanlarından bir brief oluşturulur. İç
+metadata anahtarları ve iç operasyon değerleri bu projeksiyonda yer almaz.
+
+Prompt, yasaklı etiketleri tek tek modele göstermeden yalnız kullanıcı görevinde
+kalmasını ve örneğin nasıl üretildiğine ilişkin implementasyon açıklaması
+eklememesini ister. Model yanıtı yine deterministik olarak denetlenir. Politika
+ihlali olursa sonraki deneme hatalı metni veya etiketi prompta geri taşımadan
+temiz bir yeniden yazma talimatı kullanır; gerekirse Pro fallback devreye girer.
+Bu kavramların gerçekten konuşulduğu bir senaryo ancak blueprint'te
+`internal_marker_topic` etiketiyle açıkça işaretlenirse istisna oluşturur. Sistem
+provenance gerçeğini silmez; onu eğitim diyaloğundan ayrı canonical audit kaydında
+ve fixture provenance alanlarında korur.
 
 Modelin döndürdüğü `accepted`, reviewer veya validation beyanları güvenilir kabul
 edilmez. CLI bunları kanıta dayalı draft durumuna çevirir:
@@ -492,11 +499,22 @@ PR içinde kabul edilecek kayıtların `validation.language` alanı inceleme
 sonucunda `passed`, `review.status` alanı `accepted` yapılır. Bu etiketler tek
 başına yetki kanıtı değildir; güvenilir insan onayı protected branch'e birleşmiş
 PR'dır. Export komutu yalnız `accepted` ve tüm validation kapıları tamamlanmış
-kayıtları alır:
+kayıtları alır. Varsayılan canonical export tam audit kaydını korur:
 
 ```text
 magibu-toolcall dataset export data/dataset/staging/pr-approved.jsonl data/dataset/accepted/dataset.jsonl
 ```
+
+Modele verilecek eğitim dosyası ayrı bir projeksiyonla yalnız `id`, `messages` ve
+`tools` alanlarını içerir:
+
+```text
+magibu-toolcall dataset export data/dataset/accepted/dataset.jsonl data/dataset/training/dataset.jsonl --projection training
+```
+
+Eğitim projeksiyonu iç operasyon etiketlerini modelin görebileceği alanlarda
+bulursa exportu durdurur. `internal_marker_topic` ile açıkça işaretlenmiş gerçek
+konu örnekleri bu kapının bilinçli istisnasıdır.
 
 Benchmark freeze/run komutları altyapıda korunur ancak güncel çalışma odağında
 değildir ve bu aşamada kullanılmaz.

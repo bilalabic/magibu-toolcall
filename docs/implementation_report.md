@@ -77,7 +77,7 @@ revalidates them.
   freeze/verification, lifecycle reports, and generalized run orchestration:
   `cli.py`, `contamination.py`, `freeze.py`, `reporting.py`, and
   `evaluation/runner.py`.
-- Validated accepted-only export after GitHub PR approval: `review.py`.
+- Validated accepted-only canonical and training-safe projections after GitHub PR approval: `review.py`.
 - Valid/invalid schema/category/evaluator fixtures and unit/integration tests:
   `tests/fixtures`, `tests/unit`, and `tests/integration`.
 - Contributor, proposal, blueprint, validation, execution, review, versioning,
@@ -135,7 +135,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\verify.ps1
 .venv\Scripts\python.exe -m pip check
 ```
 
-The final suite passes 192 tests, including the original deterministic flow and
+The final suite passes 210 tests, including the original deterministic flow and
 an independent parallel dataset/benchmark lifecycle flow. Added tests cover
 actual xLAM/When2Call shapes, machine-safe localization, source terms gates,
 DeepSeek/OpenAI request parsing, strict judge rubrics, primary/escalation

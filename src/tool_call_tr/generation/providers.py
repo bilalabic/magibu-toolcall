@@ -9,6 +9,7 @@ import time
 from typing import Any, Callable, Mapping, Protocol, TypeVar
 
 from tool_call_tr.config import Settings
+from tool_call_tr.generation.brief import GenerationBriefError, build_generation_brief
 from tool_call_tr.language_plan import LanguagePlanValidationError, validate_language_plan
 from tool_call_tr.network import JsonTransport, NetworkError, NetworkTimeout, UrllibJsonTransport
 from tool_call_tr.text_quality import contains_unexpected_script
@@ -22,11 +23,13 @@ class ProviderError(RuntimeError):
         retryable: bool = True,
         retry_after_seconds: float | None = None,
         status_code: int | None = None,
+        error_code: str | None = None,
     ) -> None:
         super().__init__(message)
         self.retryable = retryable
         self.retry_after_seconds = retry_after_seconds
         self.status_code = status_code
+        self.error_code = error_code
 
 
 class ProviderNotConfigured(ProviderError):
@@ -217,18 +220,28 @@ class DeepSeekIntegration:
         )
 
     def generate_scenario(self, blueprint: dict[str, Any]) -> ProviderResponse:
-        return self.generate_json(
-            system_prompt=(
-                "Produce one Turkish tool-calling dataset candidate as a JSON object from the supplied blueprint. "
-                "Preserve every machine identifier, function name, parameter key, enum value and expected argument. "
-                "Set review status to needs_revision; never claim human approval."
-            ),
-            payload={"blueprint": blueprint},
-            role="scenario_generator",
+        raise ProviderError(
+            "DeepSeek full-record generation is disabled; use the isolated language-plan path",
+            retryable=False,
         )
 
     def generate_language_plan(self, blueprint: dict[str, Any]) -> ProviderResponse:
-        user_message_count = 2 if blueprint["metadata"]["main_category"] == "multi_turn" else 1
+        return self.generate_language_plan_with_context(blueprint, repair=False)
+
+    def generate_language_plan_with_context(
+        self,
+        blueprint: dict[str, Any],
+        *,
+        repair: bool,
+    ) -> ProviderResponse:
+        try:
+            brief = build_generation_brief(blueprint)
+        except GenerationBriefError as exc:
+            raise ProviderError(
+                f"DeepSeek generation brief was blocked before request: {exc}",
+                retryable=False,
+            ) from exc
+        user_message_count = brief["user_message_count"]
         allow_internal_markers = "internal_marker_topic" in blueprint["metadata"].get("secondary_tags", [])
         intermediate_rule = (
             "a Turkish clarification question containing '?' that does not assume details only supplied by the second user message"
@@ -242,6 +255,12 @@ class DeepSeekIntegration:
             if user_message_count == 2
             else ""
         )
+        repair_rule = (
+            "This is a fresh rewrite after a previous response violated the natural-language policy. "
+            "Use completely new phrasing and follow the supplied brief without discussing the violation. "
+            if repair
+            else ""
+        )
         example = (
             '{"user_messages":["Gelecek eğitim yılının tatilleri ne zaman?",'
             '"2026-2027 eğitim öğretim yılını kastediyorum."],'
@@ -253,26 +272,24 @@ class DeepSeekIntegration:
         )
         response = self.generate_json(
             system_prompt=(
-                "Write only the natural-language parts of one Turkey-Turkish tool-calling dataset scenario. "
+                "Write only the natural-language parts of one Turkey-Turkish tool-calling conversation. "
                 "Return one JSON object with exactly this shape and no other keys: "
                 '{"user_messages":["..."],"intermediate_assistant_response":null,"final_response":"..."}. '
                 f"user_messages must contain exactly {user_message_count} non-empty string(s). "
                 f"intermediate_assistant_response must be {intermediate_rule}. "
                 f"{chronology_rule}"
-                "final_response must follow expected_final_behavior and must_avoid, and every factual or numeric claim "
-                "must be grounded in expected_tool_result or the user's messages. Translate machine enum values into "
+                f"{repair_rule}"
+                "final_response must follow final_response_requirements and avoid, and every factual or numeric claim "
+                "must be grounded in grounding_facts or the user's messages. Translate machine enum values into "
                 "natural Turkish and render ISO timestamps as natural Turkish dates and times. Include relevant result "
-                "context such as event locations when the blueprint asks for it. Use natural Turkey Turkish only. "
-                "Treat execution modes, fixtures, provenance, source IDs and data-version labels as internal metadata. "
-                "Unless metadata.secondary_tags contains internal_marker_topic, never mention sentetik, synthetic, "
-                "mock, fixture, fikstür, simulated, simulation, simüle, simülasyon or fully_simulated in any "
-                "natural-language field, and "
-                "do not verbalize machine-only source or data_version values. State a user-relevant freshness or live-data "
-                "limitation naturally only when it is required by expected_final_behavior or must_avoid. "
-                "Do not emit Chinese Han characters, reasoning text, <think> tags, markdown, machine metadata, tool calls, "
+                "context such as event locations when the requirements ask for it. Use natural Turkey Turkish only. "
+                "Discuss only the user's task. Do not add commentary about how the example was built, stored, executed, "
+                "or evaluated, and do not copy implementation field names into the conversation. State a user-relevant "
+                "freshness or live-data limitation only when final_response_requirements or avoid requires it. "
+                "Do not emit Chinese Han characters, reasoning text, <think> tags, markdown, tool calls, "
                 f"or tool results. Example JSON output: {example}"
             ),
-            payload={"blueprint": blueprint},
+            payload={"generation_brief": brief},
             role="dataset_language_generator",
             max_output_tokens=min(self.max_output_tokens, self.language_plan_max_output_tokens),
             thinking="disabled",
@@ -289,7 +306,8 @@ class DeepSeekIntegration:
         except (KeyError, TypeError, LanguagePlanValidationError) as exc:
             reason = str(exc) if isinstance(exc, LanguagePlanValidationError) else "invalid blueprint context"
             raise ProviderError(
-                f"DeepSeek language plan failed deterministic validation: {reason}"
+                f"DeepSeek language plan failed deterministic validation: {reason}",
+                error_code="language_plan_policy",
             ) from exc
         return response
 
@@ -571,6 +589,39 @@ def run_with_retry(
                 delay = max(0.0, delay * (1.0 + jitter))
             sleep(delay)
     raise AssertionError("unreachable")
+
+
+def run_language_plan_with_retry(
+    provider: Any,
+    blueprint: dict[str, Any],
+    policy: RetryPolicy,
+    *,
+    sleep: Callable[[float], None],
+    repair_first: bool = False,
+) -> ProviderResponse:
+    """Retry a language plan with a clean correction hint after policy failures."""
+
+    repair = repair_first
+
+    def operation() -> ProviderResponse:
+        nonlocal repair
+        contextual = getattr(provider, "generate_language_plan_with_context", None)
+        try:
+            if callable(contextual):
+                return contextual(blueprint, repair=repair)
+            return provider.generate_language_plan(blueprint)
+        except ProviderError as exc:
+            if exc.error_code == "language_plan_policy":
+                repair = True
+            raise
+
+    response, attempts = run_with_retry(
+        operation,
+        policy,
+        retryable=lambda exc: isinstance(exc, ProviderError) and exc.retryable,
+        sleep=sleep,
+    )
+    return replace(response, attempts=attempts)
 
 
 def _usage(value: Any) -> dict[str, int] | None:

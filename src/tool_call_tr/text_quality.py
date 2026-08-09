@@ -8,7 +8,9 @@ import unicodedata
 
 ALLOWED_NON_LATIN_UNIT_LETTERS = {"µ", "μ"}
 INTERNAL_OPERATION_MARKER_RE = re.compile(
-    r"\b(?:sentetik|synthetic|mock|fixture|fikst[uü]r|fully[_ -]simulated|simulated|simulation|simulasyon|simülasyon|simule|simüle)\b",
+    r"(?<![^\W_])(?:sentetik[\w]*|synthetic[\w]*|mock|fixture[\w]*|fikst[uü]r[\w]*|"
+    r"fully[_ -]simulated|simulated[\w]*|simulation[\w]*|simulasyon[\w]*|simülasyon[\w]*|"
+    r"simule[\w]*|simüle[\w]*)(?![^\W_])",
     re.IGNORECASE,
 )
 

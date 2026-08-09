@@ -132,7 +132,9 @@ def test_language_plan_rejects_machine_style_natural_text(final_response: str, m
     "marker",
     [
         "sentetik",
+        "sentetiktir",
         "synthetic",
+        "synthetic_pilot_fixture",
         "mock",
         "fixture",
         "fikstür",
