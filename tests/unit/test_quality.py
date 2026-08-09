@@ -25,11 +25,7 @@ def draft(name: str) -> dict:
     record = load(name)
     record["metadata"]["review"] = {
         "status": "needs_revision",
-        "reviewer_ids": [],
         "notes": None,
-        "contributor_id": "dataset_operator_01",
-        "requires_two_reviewers": record["metadata"]["review"].get("requires_two_reviewers", False),
-        "history": [],
     }
     call_count = sum(len(message.get("tool_calls", [])) for message in record["messages"])
     record["metadata"]["execution"] = (
@@ -342,7 +338,7 @@ def test_quality_judge_uses_bounded_parallel_workers() -> None:
     assert all(record["metadata"]["validation"]["semantic"] == "passed" for record in result.records)
 
 
-def test_quality_cli_writes_verified_draft_report_and_audit(tmp_path: Path, capsys, access_files) -> None:
+def test_quality_cli_writes_verified_draft_report(tmp_path: Path, capsys) -> None:
     source = tmp_path / "draft.json"
     source.write_text(json.dumps(draft("valid_single_tool.json"), ensure_ascii=False), encoding="utf-8")
     output = tmp_path / "checked.jsonl"
@@ -350,9 +346,6 @@ def test_quality_cli_writes_verified_draft_report_and_audit(tmp_path: Path, caps
     assert main([
         "dataset", "quality", str(source), str(output),
         "--report", str(report),
-        "--actor-id", "dataset_operator_01",
-        "--policy", access_files["policy"],
-        "--audit-log", access_files["audit"],
     ]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["summary"]["records_checked"] == 1

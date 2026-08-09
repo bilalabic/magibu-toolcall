@@ -100,7 +100,7 @@ def test_localization_rejects_machine_name_changes() -> None:
         apply_localization(item, patch)
 
 
-def test_source_cli_import_validate_and_localize(tmp_path: Path, capsys, access_files) -> None:
+def test_source_cli_import_validate_and_localize(tmp_path: Path, capsys) -> None:
     raw = tmp_path / "xlam.jsonl"
     imported = tmp_path / "imported.jsonl"
     patches = tmp_path / "patches.jsonl"
@@ -108,13 +108,11 @@ def test_source_cli_import_validate_and_localize(tmp_path: Path, capsys, access_
     raw.write_text(json.dumps(xlam_row(), ensure_ascii=False) + "\n", encoding="utf-8")
     patches.write_text(json.dumps(localization_patch(), ensure_ascii=False) + "\n", encoding="utf-8")
 
-    access = ["--actor-id", "dataset_operator_01", "--policy", access_files["policy"], "--audit-log", access_files["audit"]]
-    assert main(["dataset", "source", "import", str(raw), str(imported), "--source", "xlam", "--split", "train", *access]) == 1
+    assert main(["dataset", "source", "import", str(raw), str(imported), "--source", "xlam", "--split", "train"]) == 1
     assert "source-terms acceptance" in capsys.readouterr().out
     assert main([
         "dataset", "source", "import", str(raw), str(imported), "--source", "xlam", "--split", "train",
         "--source-terms-accepted",
-        *access,
     ]) == 0
     capsys.readouterr()
     assert main(["dataset", "source", "validate", str(imported)]) == 0
@@ -122,7 +120,6 @@ def test_source_cli_import_validate_and_localize(tmp_path: Path, capsys, access_
     assert main([
         "dataset", "source", "localize", str(imported), str(patches), str(localized),
         "--timestamp", "2026-08-06T00:00:00+00:00",
-        *access,
     ]) == 0
     capsys.readouterr()
     value = json.loads(localized.read_text(encoding="utf-8").splitlines()[0])
@@ -134,12 +131,12 @@ def test_source_cli_import_validate_and_localize(tmp_path: Path, capsys, access_
         "dataset", "batch", "plan", str(raw), str(manifest),
         "--job-id", "xlam-import-001", "--operation", "source_import",
         "--output", str(job_output), "--checkpoint", str(tmp_path / "import-checkpoint.json"),
-        "--errors", str(tmp_path / "import-errors.jsonl"), "--shard-size", "1", *access,
+        "--errors", str(tmp_path / "import-errors.jsonl"), "--shard-size", "1",
     ]) == 0
     capsys.readouterr()
     assert main([
         "dataset", "source", "import-job", str(manifest), "--source", "xlam", "--split", "train",
-        "--source-terms-accepted", *access,
+        "--source-terms-accepted",
     ]) == 0
     capsys.readouterr()
     assert json.loads(job_output.read_text(encoding="utf-8"))["source"]["example_id"] == "42"

@@ -98,37 +98,13 @@
       },
       "additionalProperties": false
     },
-    "review_event": {
-      "type": "object",
-      "required": ["reviewer_id", "reviewer_role", "decision", "from_status", "to_status", "timestamp"],
-      "properties": {
-        "reviewer_id": {"type": "string", "minLength": 1},
-        "reviewer_role": {"enum": ["language", "technical"]},
-        "decision": {"enum": ["approve", "needs_revision", "reject"]},
-        "from_status": {"type": ["string", "null"], "enum": [null, "accepted", "needs_revision", "rejected"]},
-        "to_status": {"$ref": "#/$defs/review_status"},
-        "notes": {"type": ["string", "null"]},
-        "timestamp": {"type": "string", "format": "date-time"}
-      },
-      "additionalProperties": false
-    },
     "review": {
       "type": "object",
-      "required": ["status", "reviewer_ids", "notes"],
+      "required": ["status", "notes"],
       "properties": {
         "status": {"$ref": "#/$defs/review_status"},
-        "reviewer_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
-        "notes": {"type": ["string", "null"]},
-        "contributor_id": {"type": ["string", "null"]},
-        "requires_two_reviewers": {"type": "boolean", "default": false},
-        "history": {"type": "array", "items": {"$ref": "#/$defs/review_event"}}
+        "notes": {"type": ["string", "null"]}
       },
-      "allOf": [
-        {
-          "if": {"properties": {"status": {"const": "accepted"}}},
-          "then": {"properties": {"reviewer_ids": {"minItems": 1}}}
-        }
-      ],
       "additionalProperties": false
     },
     "parameter_schema": {

@@ -38,19 +38,15 @@ conversation rules that JSON Schema cannot express clearly.
   execution, recorded-result comparison, compact batched duplicate decisions,
   primary/escalation judge evidence, token budgets, and per-record quality
   reports without human acceptance.
-- `access`: active principals, lifecycle scopes, permissions, reviewer roles,
-  dataset/benchmark team separation, and hash-chained audit events.
 - `evaluation`: exact success, five diagnostic criteria, category metrics,
   semantic-judge hook, and isolated run-log writer.
-- `review`: review transitions, reviewer-role checks, self-approval prevention,
-  revision selection, and accepted-only export.
+- `review`: validated accepted-only export after GitHub PR approval.
 - `contamination`: cross-corpus benchmark/dataset comparison with blocking and
   semantic-review outcomes.
 - `freeze`: validated benchmark-gold snapshots and checksum manifests.
 - `reporting`: dataset distribution and benchmark-run summaries.
 - `cli`: separate `dataset` and `benchmark` namespaces, source/batch/generation
-  operations, access-policy gates, plus shared registry, blueprint, and tool
-  commands.
+  operations, plus shared registry, blueprint, and tool commands.
 
 ## Data flow
 
@@ -141,14 +137,20 @@ credentials, and no side effects.
 
 ## Review flow
 
-Automated success makes a record reviewable, not accepted. Review events record
-reviewer, role (`language` or `technical`), reviewer decision, previous/computed
-overall status, notes, and time. A language approval completes the language gate,
-but the overall status remains `needs_revision` while any automatic gate or
-required reviewer role is incomplete. Final acceptance rejects contributor
-self-approval and enforces two distinct reviewers for marked records. Export
+Automated success makes a record reviewable, not accepted. The contributor opens
+a GitHub pull request containing the candidate records and quality evidence. A
+human reviewer checks language, technical correctness, provenance, and the
+automatic evidence, then requests changes or approves the pull request.
+
+The reviewer identity, timestamps, discussion, requested changes, and approval
+history live in GitHub. The canonical record stores only the lifecycle result:
+`review.status` and `review.notes`. Before merge, the approved change marks the
+language gate as passed and the record as accepted. Validation still rejects an
+accepted record if any required automatic gate is failed or not run. Export
 revalidates and emits accepted records only.
-CLI mutations additionally require an active scoped principal and permission.
-Dataset and benchmark teams can be exclusive, and authorization decisions are
-written to a verifiable audit hash chain. Filesystem/object-store ACLs remain a
-separate deployment responsibility.
+
+The CLI intentionally has no login, reviewer role, user directory, access-policy
+file, or authorization audit log. Repository branch protection is the trust
+boundary: require pull requests, at least one approval, stale-approval dismissal,
+and the `validate` status check. Storage and object-store ACLs remain a separate
+deployment responsibility.

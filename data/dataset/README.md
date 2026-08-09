@@ -24,8 +24,10 @@ review durumu `needs_revision` olarak tutulur. Boş job klasörleri depoda tutul
 OpenAI structured-output kalite judge kanıtlarını yeniden hesaplayıp kayıtları
 `needs_revision/` altında yazar; ayrıntılı rapor `review/` alanında tutulur.
 Birincil judge bütün kayıtları, escalation judge ise başarısız/belirsiz kayıtlar
-ile geçenlerin belirlenmiş örneklemini denetler. İnsan dil ve gerektiğinde teknik
-reviewer kararları ayrı olmadan kayıt `accepted/` alanına geçirilemez.
+ile geçenlerin belirlenmiş örneklemini denetler. İnsan dil ve teknik incelemesi
+GitHub pull request üzerinde tamamlanmadan kayıt `accepted/` alanına geçirilemez.
+Reviewer kimliği ve karar geçmişi GitHub'da tutulur; CLI giriş veya rol bilgisi
+istemez.
 
 Dataset'teki `mock` yürütme türü fixture'ın mutlaka tamamen sentetik olduğu
 anlamına gelmez. Gerçek API veya resmî snapshot'tan alınan sonuçlar normalize

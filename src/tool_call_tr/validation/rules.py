@@ -293,11 +293,6 @@ class RuleBasedValidator:
         metadata = record["metadata"]
         review = metadata["review"]
         issues: list[ValidationIssue] = []
-        if review.get("contributor_id") and review["contributor_id"] in review["reviewer_ids"] and review["status"] == "accepted":
-            issues.append(ValidationIssue("SELF_FINAL_APPROVAL", "a contributor cannot finally approve their own record", "$.metadata.review.reviewer_ids", record_id=record_id, line=line))
-        requires_two = review.get("requires_two_reviewers", False) or metadata["main_category"] == "multi_tool" or "sequential_tool" in metadata["secondary_tags"]
-        if review["status"] == "accepted" and requires_two and len(review["reviewer_ids"]) < 2:
-            issues.append(ValidationIssue("TWO_REVIEWERS_REQUIRED", "this accepted record requires two distinct reviewers", "$.metadata.review.reviewer_ids", record_id=record_id, line=line))
         if review["status"] == "accepted":
             incomplete = [name for name, status in metadata["validation"].items() if status in {"failed", "not_run"}]
             if incomplete:

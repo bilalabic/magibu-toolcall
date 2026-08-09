@@ -18,7 +18,7 @@
       "json": "passed", "schema": "failed", "tool_call": "not_applicable", "execution": "not_applicable",
       "semantic": "not_run", "turn_level": "not_applicable", "language": "not_run", "duplicate": "not_run"
     },
-    "review": {"status": "needs_revision", "reviewer_ids": [], "notes": null}
+    "review": {"status": "needs_revision", "notes": null}
   },
   "tools": [],
   "messages": [{"role": "user", "content": "Hava nasıl?"}],

@@ -69,13 +69,13 @@ than documentation gaps:
   HTTP failures.
 - `real_api` is represented by the execution protocol but has no HTTPS,
   read-only, allowlisted JSON adapter.
-- Reviewer IDs are free-form strings. There is no active-principal directory,
-  lifecycle scope, permission, or benchmark-team isolation check.
+- Reviewer identity and merge approval belong to GitHub PRs; the CLI should not
+  grow an application-level user, role, or permission directory.
 - Corpus reporting describes actual distributions but cannot compare them with
   a planned source/category/domain/difficulty distribution.
 
 The existing schemas, validator, registry, execution engine, provenance,
-deduplication, review transitions, contamination gate, freeze manifest, and
+deduplication, GitHub PR review convention, contamination gate, freeze manifest, and
 isolated run writer will be extended rather than replaced. Imported source work
 items and batch manifests are operational artifacts only; accepted dataset and
 benchmark records retain their single canonical schemas.

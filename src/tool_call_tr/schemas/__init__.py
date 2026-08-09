@@ -20,7 +20,6 @@ SCHEMA_FILES = {
     "blueprint": "scenario_blueprint.schema.json",
     "source": "source_record.schema.json",
     "job": "job_manifest.schema.json",
-    "access": "access_policy.schema.json",
 }
 
 

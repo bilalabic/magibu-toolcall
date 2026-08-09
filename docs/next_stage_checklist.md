@@ -12,10 +12,10 @@ Do not generate candidates yet. First complete this exact gate:
    `text-embedding-3-small` similarity. Load credentials only from process
    environment or the ignored local `.env`; verify `magibu-toolcall config`
    displays only `<configured>` markers.
-4. Assign contributor ID ranges, a dataset quality operator, and language/
-   technical reviewers. Create a policy validated by
-   `schemas/access_policy.schema.json`, grant only required permissions, and
-   apply storage ACLs.
+4. Assign contributor ID ranges and a dataset quality operator. Configure GitHub
+   rulesets for pull-request-only merges, at least one approval, stale-approval
+   dismissal, the required `validate` check, and CODEOWNERS where stricter domain
+   review is needed. Apply storage ACLs separately.
 5. Author dataset blueprints covering all five categories, both parallel and
    sequential structures, `original_turkish` and `turkey_native` source types,
    and multiple difficulties/domains.
@@ -26,7 +26,8 @@ Do not generate candidates yet. First complete this exact gate:
 7. Run `dataset quality` with production embeddings, the primary OpenAI judge,
    escalation on every non-pass, and a deterministic 10% pass sample. Require
    execution evidence, no unresolved duplicate/model gate, a durable quality
-   report, then language and required technical approvals before export.
+   report, then obtain the required language/technical approval through the
+   GitHub pull request before export.
 8. Reconcile provider usage with the DeepSeek/OpenAI dashboards and confirm that
    the OpenAI shared-traffic incentive is actually applied; do not infer this
    from configuration alone.

@@ -13,20 +13,21 @@ Proje artık şu üretim temellerini içerir:
 - DeepSeek üzerinden token bütçeli, sınırlı paralel ve devam ettirilebilir toplu aday üretimi
 - Türkiye-native araçlar için yalnız HTTPS `GET` kullanan gerçek JSON API adaptörü
 - OpenAI embedding/cosine tekrar taraması ve primary/escalation kalite judge akışı
-- Aktif reviewer/operator dizini, lifecycle kapsamı, izin kontrolü ve hash-zincirli audit kaydı
+- GitHub pull request incelemesi, branch protection ve otomatik durum kontrolü
 - Checksum, shard, checkpoint, hata kuyruğu, ID çakışma ve dağılım kapıları
 - Dataset’ten bağımsız benchmark üretimi, kontaminasyon kontrolü, freeze ve run kayıtları
 
 Bu depo hâlâ tamamlanmış dataset veya benchmark değildir. Gerçek kaynak
-dosyaları, reviewer kimlikleri, API/model kimlik bilgileri ve üretim çıktıları
-depoya eklenmez. `schema_version` ve `tool_registry_version` şimdilik `0.1.0`’dır.
+dosyaları, API/model kimlik bilgileri ve üretim çıktıları depoya eklenmez.
+Reviewer kimliği ve karar geçmişi GitHub PR üzerinde tutulur. `schema_version`
+ve `tool_registry_version` şimdilik `0.1.0`’dır.
 
 ## İçindekiler
 
 - [Güncel çalışma odağı](#güncel-çalışma-odağı)
 - [Temel dataset ve benchmark ayrımı](#temel-ayrım)
 - [Kurulum ve API anahtarları](#kurulum)
-- [Erişim politikası](#erişim-politikası)
+- [GitHub PR incelemesi](#github-pr-incelemesi)
 - [Askıdaki kaynak içe aktarma ve lokalizasyon](#1-xlam-ve-when2call-içe-aktarma--askıda)
 - [Aday tool sözleşmelerini sınama](#aday-tool-sözleşmelerini-cli-ile-sınama)
 - [Türkçe senaryo üretimi](#3-türkçe-senaryo-üretimi)
@@ -43,7 +44,7 @@ hattı ile benchmark yaşam döngüsü şimdilik askıdadır. Bu altyapılar sil
 
 Aktif dataset hattında sade komut kullanımı kalite kapılarını kaldırmaz. Manifest,
 input checksum, checkpoint, provenance, registry/şema kontrolü, ID çakışma
-kontrolü, hata kuyruğu ve audit kaydı otomatik olarak korunur. Model çıktısı kendi
+kontrolü, hata kuyruğu ve kalite raporu otomatik olarak korunur. Model çıktısı kendi
 başına kalite onayı sayılmaz.
 
 ## Temel ayrım
@@ -133,8 +134,7 @@ kurulur. Han/Çince karakteri veya `<think>` sızıntısı otomatik olarak redde
   blueprints\pilot_general.jsonl blueprints\pilot_turkey_native.jsonl `
   --registry registry\proposals\pilot_candidates.jsonl `
   --output-dir runs\provider-comparison\flash-pro-smoke `
-  --limit 1 --judge-provider openai --max-workers 1 `
-  --actor-id codex_pilot_agent --confirm-live
+  --limit 1 --judge-provider openai --max-workers 1 --confirm-live
 ```
 
 Smoke testi temizse `--limit 1` kaldırılarak aynı 30 blueprint iki modelle de
@@ -163,7 +163,7 @@ başlatmadan hata verir:
   --output-dir runs\provider-comparison\secilen-kayitlar `
   --blueprint-id bp_general_route_007 `
   --blueprint-id bp_general_knowledge_008 `
-  --judge-provider openai --actor-id dataset_operator_01 --confirm-live
+  --judge-provider openai --confirm-live
 ```
 
 ### 30 kayıtlık dataset pilotu
@@ -196,29 +196,21 @@ secret konulmamalıdır.
 Dağıtım ve CLI adı `magibu-toolcall`, teknik Python import paketi
 `tool_call_tr`’dir.
 
-## Erişim politikası
+## GitHub PR incelemesi
 
-Veri değiştiren üretim komutları bir access-policy dosyası ve audit yolu ister.
-Politika biçimi [access_policy.schema.json](schemas/access_policy.schema.json)
-tarafından tanımlanır. Yerel pilot politikası `bilal_dataset_operator`
-principal'ına üretim, otomatik kalite ve gerçek API çalıştırma yetkisi verir;
-inceleme veya kabul yetkisi vermez. Reviewer kimlikleri dataset sorumlusu
-tarafından ayrıca atanmalıdır.
+CLI kullanıcı hesabı, reviewer girişi, rol veya access-policy dosyası istemez.
+İnsan incelemesinin güvenilir kaynağı GitHub pull request geçmişidir. Üretim ve
+kalite komutları aday kaydı hazırlar; reviewer Türkçe, tool seçimi, argümanlar,
+grounding, provenance, lisans ve güvenliği PR üzerinde kontrol eder.
 
-Dataset kalite operatörü `quality_check`, reviewer’lar ise rollerine göre
-`review` ve `accept` izinlerine sahip olmalıdır. Gerçek API’nin kalite kontrolü
-aynı actor için ayrıca `platform/real_api` yetkisi gerektirir.
+`main` branch'i için pull request, en az bir onay, güncel branch ve `validate`
+durum kontrolü zorunlu yapılmalıdır. Yeni commit geldiğinde eski onayın düşürülmesi
+önerilir. Yüksek riskli veya çok araçlı değişikliklerde PR üzerinden ikinci
+reviewer istenir; uygulama içinde kalıcı reviewer rolleri oluşturulmaz.
 
-```text
-magibu-toolcall access validate configs/access-policy.json
-magibu-toolcall access check configs/access-policy.json --actor-id rev_language_01 --lifecycle dataset --permission accept --reviewer-role language
-magibu-toolcall access verify-audit review/dataset/audit.jsonl --output json
-```
-
-`benchmark_dataset_team_exclusive=true` olduğunda aynı principal hem dataset hem
-benchmark ekibinde yer alamaz. CLI politikası dosya sistemi güvenliği yerine
-geçmez; benchmark klasörlerine ayrıca işletim sistemi veya nesne depolama ACL’i
-uygulanmalıdır.
+Kayıttaki `review.status` yalnız yaşam döngüsü etiketidir. Reviewer kimliği ve
+karar geçmişi GitHub'da tutulur. `accepted` kayıtların hiçbir validation kapısı
+`failed` veya `not_run` olamaz; export bu kuralı doğrulamaya devam eder.
 
 ## 1. xLAM ve When2Call içe aktarma — askıda
 
@@ -232,9 +224,9 @@ yapılarına göre ayrıştırılır; güvenilir karar etiketi bulunmayan eğiti
 Küçük bir yerel dosyayı doğrudan içe aktarma:
 
 ```text
-magibu-toolcall dataset source import upstream/xlam.jsonl data/dataset/raw/xlam-import.jsonl --source xlam --split train --source-terms-accepted --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset source import upstream/xlam.jsonl data/dataset/raw/xlam-import.jsonl --source xlam --split train --source-terms-accepted
 
-magibu-toolcall dataset source import upstream/when2call.jsonl data/dataset/raw/when2call-import.jsonl --source when2call --split test --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset source import upstream/when2call.jsonl data/dataset/raw/when2call-import.jsonl --source when2call --split test
 
 magibu-toolcall dataset source validate data/dataset/raw/xlam-import.jsonl
 ```
@@ -242,9 +234,9 @@ magibu-toolcall dataset source validate data/dataset/raw/xlam-import.jsonl
 Büyük dosyada checksum, shard ve resume kullanmak için önce iş planlanır:
 
 ```text
-magibu-toolcall dataset batch plan upstream/xlam.jsonl data/dataset/staging/jobs/xlam-import/job.json --job-id xlam-import-001 --operation source_import --output data/dataset/raw/xlam-import.jsonl --checkpoint data/dataset/staging/jobs/xlam-import/checkpoint.json --errors data/dataset/staging/jobs/xlam-import/errors.jsonl --shard-size 250 --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset batch plan upstream/xlam.jsonl data/dataset/staging/jobs/xlam-import/job.json --job-id xlam-import-001 --operation source_import --output data/dataset/raw/xlam-import.jsonl --checkpoint data/dataset/staging/jobs/xlam-import/checkpoint.json --errors data/dataset/staging/jobs/xlam-import/errors.jsonl --shard-size 250
 
-magibu-toolcall dataset source import-job data/dataset/staging/jobs/xlam-import/job.json --source xlam --split train --source-terms-accepted --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset source import-job data/dataset/staging/jobs/xlam-import/job.json --source xlam --split train --source-terms-accepted
 
 magibu-toolcall dataset batch status data/dataset/staging/jobs/xlam-import/job.json --output json
 ```
@@ -262,16 +254,16 @@ parametre anahtarları, enum değerleri, tool-call argümanları ve karar etiket
 değiştirilemez.
 
 ```text
-magibu-toolcall dataset source localize data/dataset/raw/xlam-import.jsonl localization/patches.jsonl data/dataset/staging/xlam-localized.jsonl --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset source localize data/dataset/raw/xlam-import.jsonl localization/patches.jsonl data/dataset/staging/xlam-localized.jsonl
 ```
 
 DeepSeek ile toplu lokalizasyon için `source_localization` işi planlanır ve açık
 canlı çağrı onayı verilir:
 
 ```text
-magibu-toolcall dataset batch plan data/dataset/raw/xlam-import.jsonl data/dataset/staging/jobs/xlam-localize/job.json --job-id xlam-localize-001 --operation source_localization --output data/dataset/staging/xlam-localized.jsonl --checkpoint data/dataset/staging/jobs/xlam-localize/checkpoint.json --errors data/dataset/staging/jobs/xlam-localize/errors.jsonl --shard-size 100 --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset batch plan data/dataset/raw/xlam-import.jsonl data/dataset/staging/jobs/xlam-localize/job.json --job-id xlam-localize-001 --operation source_localization --output data/dataset/staging/xlam-localized.jsonl --checkpoint data/dataset/staging/jobs/xlam-localize/checkpoint.json --errors data/dataset/staging/jobs/xlam-localize/errors.jsonl --shard-size 100
 
-magibu-toolcall dataset source generate-localizations data/dataset/staging/jobs/xlam-localize/job.json --provider deepseek --execute-live --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset source generate-localizations data/dataset/staging/jobs/xlam-localize/job.json --provider deepseek --execute-live
 ```
 
 Üretilen lokalizasyonlar `localized_needs_review` veya
@@ -314,8 +306,8 @@ Gerçek API bulunduğunda mevcut mock ve simülasyonlar silinmez. Tool adı, gir
 şeması ve normalize çıkış şeması sabit tutularak ayrı `real_api` adaptörü
 eklenir. Basit HTTPS `GET` ve JSON servisleri mevcut HTTP adaptörüyle; XML,
 OAuth, sayfalama veya özel dönüşüm isteyen servisler sağlayıcıya özgü adaptörle
-bağlanır. Canlı çağrı ancak onaylı kanonik registry kaydı, `real_api` izni,
-`--confirm-live` ve audit kaydıyla yapılır.
+bağlanır. Canlı çağrı ancak onaylı kanonik registry kaydı ve açık
+`--confirm-live` seçeneğiyle yapılır.
 
 Dataset üretiminde değişken canlı yanıtlar doğrudan kullanılmaz. Uygun API veya
 resmî veri kaynağından alınan sonuç normalize edilir, kişisel veriden
@@ -340,7 +332,7 @@ yalnızca bir kaynak türüne izin verir. Manifest, input checksum, shard,
 checkpoint, hata kuyruğu, hedef dağılım ve ID planı otomatik oluşturulur.
 
 ```text
-magibu-toolcall dataset generate blueprints/pilot.jsonl --registry registry/proposals/pilot_candidates.jsonl --job-id dataset-pilot-001 --max-workers 4 --token-budget 250000 --execute-live --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset generate blueprints/pilot.jsonl --registry registry/proposals/pilot_candidates.jsonl --job-id dataset-pilot-001 --max-workers 4 --token-budget 250000 --execute-live
 ```
 
 `--output` verilmezse adaylar
@@ -369,14 +361,14 @@ edilmez. CLI bunları kanıta dayalı draft durumuna çevirir:
 - Blueprint metadata’sı, exposed tool listesi, beklenen tool call ve tool result değiştirilemez.
 - Provider/model kimliği ve blueprint bağlantısı provenance'a sistem tarafından yazılır.
 - Provider response modeli, request ID, deneme sayısı ve token kullanımı provenance'a yazılır.
-- Kayıt daima `needs_revision` ve reviewersız başlar.
+- Kayıt daima `needs_revision` başlar; insan onayı GitHub PR'da verilir.
 - Çalıştırılmayan execution, semantik, dil ve tekrar kontrolleri `not_run` kalır.
 - `not_run` veya `failed` bir kalite aşaması varken kayıt `accepted` olamaz.
 
 Üretimden sonra otomatik kalite kanıtları ayrı komutla hesaplanır:
 
 ```text
-magibu-toolcall dataset quality data/dataset/staging/dataset-pilot-001.jsonl data/dataset/needs_revision/dataset-pilot-001.jsonl --registry registry/proposals/pilot_candidates.jsonl --reference data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --judge-provider openai --judge-escalation --judge-escalation-sample-rate 0.10 --judge-max-workers 4 --confirm-live --report review/dataset/dataset-pilot-001.quality.json --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset quality data/dataset/staging/dataset-pilot-001.jsonl data/dataset/needs_revision/dataset-pilot-001.jsonl --registry registry/proposals/pilot_candidates.jsonl --reference data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --judge-provider openai --judge-escalation --judge-escalation-sample-rate 0.10 --judge-max-workers 4 --confirm-live --report review/dataset/dataset-pilot-001.quality.json
 ```
 
 Bu komut şema ve tool-call yapısını yeniden doğrular; local/mock çağrıları
@@ -417,7 +409,7 @@ zorundadır.
 
 ```text
 magibu-toolcall dataset batch status runs/dataset/dataset-pilot-001/manifest.json --output json
-magibu-toolcall dataset batch run runs/dataset/dataset-pilot-001/manifest.json --max-workers 4 --token-budget 250000 --execute-live --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset batch run runs/dataset/dataset-pilot-001/manifest.json --max-workers 4 --token-budget 250000 --execute-live
 magibu-toolcall dataset batch report runs/dataset/dataset-pilot-001/manifest.json --output json
 ```
 
@@ -444,7 +436,7 @@ olmalıdır. Canlı çağrı ayrıca açıkça onaylanır:
 
 ```text
 magibu-toolcall registry validate registry/registry.jsonl
-magibu-toolcall tool run-api kurum_veri_ara --arguments "{\"query\":\"örnek\"}" --confirm-live --actor-id platform_operator_01 --policy configs/access-policy.json --audit-log review/platform-audit.jsonl
+magibu-toolcall tool run-api kurum_veri_ara --arguments "{\"query\":\"örnek\"}" --confirm-live
 ```
 
 HTTP response gövdesi veya credential hata mesajına eklenmez. Sonuçlar
@@ -468,7 +460,7 @@ MAGIBU_TOOLCALL_OPENAI_ESCALATION_DAILY_TOKEN_BUDGET
 ```
 
 ```text
-magibu-toolcall dataset quality data/dataset/staging/candidates.jsonl data/dataset/needs_revision/candidates.jsonl --reference data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --semantic-cache .cache/semantic --judge-provider openai --judge-escalation --judge-escalation-sample-rate 0.10 --judge-max-workers 4 --confirm-live --actor-id dataset_operator_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset quality data/dataset/staging/candidates.jsonl data/dataset/needs_revision/candidates.jsonl --reference data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --semantic-cache .cache/semantic --judge-provider openai --judge-escalation --judge-escalation-sample-rate 0.10 --judge-max-workers 4 --confirm-live
 
 magibu-toolcall benchmark contamination-check --benchmark data/benchmark/staging/candidates.jsonl --dataset data/dataset/accepted/dataset.jsonl --semantic-provider openai --semantic-threshold 0.90 --semantic-cache .cache/semantic --output json
 ```
@@ -479,34 +471,34 @@ bütün çiftler yerine yalnız duplicate bulguları kalıcı rapora yazılır. 
 eşik, judge rubric'i ve token bütçeleri raporda sabitlenmeli ve ekip tarafından
 onaylanmalıdır.
 
-## 6. İnceleme ve export
+## 6. GitHub PR incelemesi ve export
+
+İnsan onayı için CLI komutu yoktur. Aday kayıt ve kalite raporu ayrı bir branch'e
+eklenir, pull request açılır ve repository şablonundaki dil, teknik, provenance,
+lisans ve güvenlik maddeleri incelenir. Reviewer kimliği, değişiklik talepleri ve
+onay geçmişi GitHub üzerinde kalır.
+
+PR içinde kabul edilecek kayıtların `validation.language` alanı inceleme
+sonucunda `passed`, `review.status` alanı `accepted` yapılır. Bu etiketler tek
+başına yetki kanıtı değildir; güvenilir insan onayı protected branch'e birleşmiş
+PR'dır. Export komutu yalnız `accepted` ve tüm validation kapıları tamamlanmış
+kayıtları alır:
 
 ```text
-magibu-toolcall dataset review data/dataset/needs_revision/candidates.jsonl review/dataset/language-reviewed.jsonl --record-id tctr_ot_000001 --reviewer-id rev_language_01 --role language --decision approve --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
-
-magibu-toolcall dataset review review/dataset/language-reviewed.jsonl review/dataset/fully-reviewed.jsonl --record-id tctr_ot_000001 --reviewer-id rev_technical_01 --role technical --decision approve --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
-
-magibu-toolcall dataset export review/dataset/fully-reviewed.jsonl data/dataset/accepted/dataset.jsonl --actor-id dataset_lead_01 --policy configs/access-policy.json --audit-log review/dataset/audit.jsonl
+magibu-toolcall dataset export data/dataset/staging/pr-approved.jsonl data/dataset/accepted/dataset.jsonl
 ```
-
-`--decision approve`, reviewer’ın kendi perspektifindeki onayını kaydeder; genel
-kayıt durumunu doğrudan zorlamaz. Dil onayı `validation.language` kapısını
-tamamlar. Multi-tool, sequential ve açıkça işaretlenmiş kayıtlar iki farklı
-reviewer ile hem dil hem teknik perspektifi gerektirir. Diğer kalite kapıları
-eksikse reviewer onayı kaydedilir fakat kayıt `needs_revision` kalır. Contributor
-kendi kaydını onaylayamaz.
 
 Benchmark freeze/run komutları altyapıda korunur ancak güncel çalışma odağında
 değildir ve bu aşamada kullanılmaz.
 
 ## Dizinler
 
-- `schemas/`: Dataset, benchmark, registry, blueprint, source work item, batch job ve access-policy sözleşmeleri
+- `schemas/`: Dataset, benchmark, registry, blueprint, source work item ve batch job sözleşmeleri
 - `registry/`: Kanonik tool kayıtları ve deterministik fixture’lar
 - `blueprints/`: Dataset ve benchmark için ayrı üretim blueprint’leri
 - `data/dataset/`: `raw`, `staging`, `needs_revision`, `rejected`, `accepted`
 - `data/benchmark/`: Ayrı lifecycle ve ek olarak immutable `gold`
-- `review/dataset/`, `review/benchmark/`: Ayrı review çıktıları ve audit logları
+- `review/`: Otomatik kalite raporları ve PR incelemesini destekleyen kanıtlar
 - `runs/dataset/`: Dataset job manifest, checkpoint, part ve hata kayıtları
 - `runs/`: Diğer kontrollü çalışma ve değerlendirme kayıtları
 - `src/tool_call_tr/`: CLI ve bütün uygulama modülleri
@@ -534,7 +526,7 @@ MAGIBU_TOOLCALL_LOG_LEVEL
 MAGIBU_TOOLCALL_ROOT
 ```
 
-Gerçek secret değerleri `.env.example`, registry, manifest, audit, hata kuyruğu
+Gerçek secret değerleri `.env.example`, registry, manifest, kalite raporu, hata kuyruğu
 veya test fixture’larına yazılmamalıdır.
 
 ## Doğrulama
@@ -547,10 +539,9 @@ powershell -File scripts/verify.ps1
 Testler canlı API çağrısı yapmaz. HTTP ve provider testleri enjekte edilmiş
 taşıyıcılarla request/response, timeout, rate-limit, invalid JSON, secret
 redaction, cache ve retry davranışlarını doğrular. Canlı üretim ancak ilgili
-credential, onaylı politika ve açık `--execute-live`/`--confirm-live` seçeneğiyle
-başlatılır.
+credential ve açık `--execute-live`/`--confirm-live` seçeneğiyle başlatılır.
 
-Sonraki güvenli adım, birbirinden ve üretim operatöründen farklı bir dil reviewer
-ile teknik reviewer kimliği atamak; 30 pilot kaydı insan incelemesinden geçirmek;
-bulgulara göre ikinci pilot blueprint sürümünü hazırlamaktır. xLAM/When2Call ve
-benchmark çalışmaları askıda kalır.
+Sonraki güvenli adım, `main` branch protection ayarlarını etkinleştirmek; 30 pilot
+kaydı GitHub PR üzerinden insan incelemesinden geçirmek ve bulgulara göre ikinci
+pilot blueprint sürümünü hazırlamaktır. xLAM/When2Call ve benchmark çalışmaları
+askıda kalır.

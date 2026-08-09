@@ -140,7 +140,6 @@ def test_provider_cannot_self_certify_quality_or_human_review() -> None:
         generated_at="2026-08-07T00:00:00+00:00",
     )
     assert prepared["metadata"]["review"]["status"] == "needs_revision"
-    assert prepared["metadata"]["review"]["reviewer_ids"] == []
     assert prepared["metadata"]["execution"] == {"type": "local_executable", "status": "not_called"}
     assert prepared["metadata"]["validation"]["tool_call"] == "passed"
     assert prepared["metadata"]["validation"]["execution"] == "not_run"
@@ -150,7 +149,6 @@ def test_provider_cannot_self_certify_quality_or_human_review() -> None:
     assert prepared["metadata"]["provenance"]["generator_model"] == "fixture-model"
     assert RuleBasedValidator().validate_record("dataset", prepared).valid
     prepared["metadata"]["review"]["status"] = "accepted"
-    prepared["metadata"]["review"]["reviewer_ids"] = ["rev_language_01", "rev_technical_01"]
     report = RuleBasedValidator().validate_record("dataset", prepared)
     assert not report.valid
     assert "REVIEW_ACCEPTED_BEFORE_VALIDATION" in {issue.code for issue in report.issues}

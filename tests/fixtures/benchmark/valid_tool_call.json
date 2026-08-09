@@ -18,7 +18,7 @@
       "json": "passed", "schema": "passed", "tool_call": "passed", "execution": "passed",
       "semantic": "passed", "turn_level": "not_applicable", "language": "passed", "duplicate": "passed"
     },
-    "review": {"status": "accepted", "reviewer_ids": ["rev_benchmark_01"], "notes": null}
+    "review": {"status": "accepted", "notes": null}
   },
   "tools": [
     {
@@ -43,4 +43,3 @@
     "response": null
   }
 }
-
