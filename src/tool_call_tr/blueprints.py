@@ -105,10 +105,7 @@ class BenchmarkCandidateConverter:
             "validation": validation,
             "review": {
                 "status": "needs_revision",
-                "reviewer_ids": [],
-                "notes": f"Generated deterministically from blueprint {blueprint['id']}; not production gold.",
-                "requires_two_reviewers": blueprint["metadata"]["main_category"] == "multi_tool",
-                "history": [],
+                "notes": f"Generated deterministically from blueprint {blueprint['id']}; GitHub PR review is required.",
             },
         }
         return {
@@ -125,4 +122,3 @@ class BenchmarkCandidateConverter:
                 "response": None if tool_expected else blueprint["expected_final_behavior"],
             },
         }
-

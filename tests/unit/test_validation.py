@@ -113,8 +113,8 @@ def test_category_final_method_execution_and_review_rules() -> None:
     assert "CATEGORY_PRIORITY_MISMATCH" in codes(validate.validate_record("dataset", record))
 
     record = load(FIXTURES / "dataset" / "valid_single_tool.json")
-    record["metadata"]["review"]["contributor_id"] = "rev_language_01"
-    assert "SELF_FINAL_APPROVAL" in codes(validate.validate_record("dataset", record))
+    record["metadata"]["validation"]["language"] = "not_run"
+    assert "REVIEW_ACCEPTED_BEFORE_VALIDATION" in codes(validate.validate_record("dataset", record))
 
 
 def test_benchmark_decision_and_expected_arguments() -> None:

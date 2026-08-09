@@ -126,6 +126,5 @@ def test_comparison_cli_requires_explicit_live_confirmation(capsys) -> None:
         "provider", "compare-generation", "blueprints.jsonl",
         "--registry", "registry.jsonl",
         "--output-dir", "comparison",
-        "--actor-id", "dataset_operator_01",
     ]) == 1
     assert "LIVE_CONFIRMATION_REQUIRED" in capsys.readouterr().out

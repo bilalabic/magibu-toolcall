@@ -19,7 +19,6 @@ message, and optional file/line/record location. CLI validation renders either
 plain text or JSON and returns a non-zero exit status when any error is present.
 
 Unit tests isolate each layer. Integration tests load actual schemas and registry
-fixtures, execute deterministic adapters, validate a candidate, add review events,
-and export accepted JSONL. The single full-suite command is documented only after
-it has passed.
-
+fixtures, execute deterministic adapters, validate a candidate, apply the same
+lifecycle fields that an approved GitHub PR would merge, and export accepted
+JSONL. The single full-suite command is documented only after it has passed.

@@ -183,8 +183,7 @@ def build_candidate_from_language_plan(
         },
         "review": {
             "status": "needs_revision",
-            "reviewer_ids": [],
-            "notes": f"Generated from {blueprint['id']}; quality gates and human review remain required.",
+            "notes": f"Generated from {blueprint['id']}; quality gates and GitHub PR review remain required.",
         },
     }
     if has_calls:
@@ -394,14 +393,7 @@ def prepare_generated_candidate(
     }
     target_metadata["review"] = {
         "status": "needs_revision",
-        "reviewer_ids": [],
-        "notes": f"Generated from {blueprint['id']}; quality gates and human review remain required.",
-        "contributor_id": actor_id,
-        "requires_two_reviewers": bool(
-            blueprint_metadata["main_category"] == "multi_tool"
-            or "sequential_tool" in blueprint_metadata["secondary_tags"]
-        ),
-        "history": [],
+        "notes": f"Generated from {blueprint['id']}; quality gates and GitHub PR review remain required.",
     }
     return prepared
 

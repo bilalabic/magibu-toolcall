@@ -1,0 +1,54 @@
+name: Pull request validation
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install project
+        run: python -m pip install -e ".[dev]"
+
+      - name: Run tests
+        run: python -m pytest
+
+      - name: Validate canonical registry
+        run: magibu-toolcall registry validate registry/registry.jsonl
+
+      - name: Validate representative dataset record
+        run: magibu-toolcall dataset validate tests/fixtures/dataset/valid_single_tool.json
+
+      - name: Validate committed accepted data
+        shell: bash
+        run: |
+          if [[ -d data/dataset/accepted ]]; then
+            find data/dataset/accepted -type f \( -name '*.json' -o -name '*.jsonl' \) -print0 |
+              while IFS= read -r -d '' file; do
+                magibu-toolcall dataset validate "$file"
+              done
+          fi
+          for directory in data/benchmark/accepted data/benchmark/gold; do
+            if [[ -d "$directory" ]]; then
+              find "$directory" -type f \( -name '*.json' -o -name '*.jsonl' \) -print0 |
+                while IFS= read -r -d '' file; do
+                  magibu-toolcall benchmark validate "$file"
+                done
+            fi
+          done

@@ -7,8 +7,8 @@
   fixtures for each researched Türkiye-native source.
 - DeepSeek and OpenAI model identifiers/versions, retry limits, cost budgets, and
   semantic judge rubric thresholds.
-- Reviewer identities, contributor number ranges, benchmark access controls, and
-  the two-review sampling procedure.
+- Contributor number ranges, GitHub branch-protection rules, CODEOWNERS scope,
+  and the human-review sampling procedure.
 - Semantic-similarity model and thresholds for near-duplicate and contamination
   decisions.
 
@@ -33,5 +33,6 @@
 
 After this foundation passes, the team should research and approve a small,
 diverse subset of demonstration-to-pilot tool proposals, freeze registry version
-`0.1.x`, assign isolated contributor/reviewer IDs, and author 20–30 blueprints
-covering all categories before generating any candidates.
+`0.1.x`, assign contributor ID ranges, configure GitHub pull-request protection,
+and author 20–30 blueprints covering all categories before generating any
+candidates.

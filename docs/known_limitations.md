@@ -19,8 +19,9 @@
 - Entity-shape duplicate detection needs supplied entity values; production NER
   is deferred.
 - The local/stateful adapters are demonstration contracts, not approved tools.
-- Application-level access policy, isolated team scopes, permissions, and audit
-  hashes are included. They do not enforce OS, Git host, or object-store ACLs.
+- Reviewer identity and approval history live in GitHub, not in the CLI or record
+  schema. Correct governance therefore depends on repository rulesets/branch
+  protection; GitHub controls do not enforce local or object-store ACLs.
 - xLAM/When2Call local-file import and localization are implemented. Gated source
   download, terms acceptance evidence, and human Turkish/source review remain
   operator responsibilities.

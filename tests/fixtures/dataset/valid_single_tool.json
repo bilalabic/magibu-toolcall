@@ -28,11 +28,7 @@
     },
     "review": {
       "status": "accepted",
-      "reviewer_ids": ["rev_language_01", "rev_technical_01"],
-      "notes": "Deterministik altyapı fikstürü.",
-      "contributor_id": "contrib_fixture",
-      "requires_two_reviewers": true,
-      "history": []
+      "notes": "Deterministik altyapı fikstürü."
     }
   },
   "tools": [
@@ -66,4 +62,3 @@
     {"role": "assistant", "content": "12 ile 8'in toplamı 20'dir."}
   ]
 }
-

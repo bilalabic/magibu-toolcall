@@ -28,7 +28,7 @@ name the implemented rule or test family.
 | Isolated benchmark run/report CLI | `evaluation/runner.py`, `reporting.py` | run-log separation and aggregate-report tests | implemented; live model execution deferred-production |
 | Category metrics | `evaluation/evaluator.py` | per-category/tag aggregation tests | implemented |
 | Semantic dataset quality evaluation | `OpenAIQualityJudge`, `quality.py`, dataset quality CLI | strict rubric parsing, contradictory pass rejection, primary/escalation disagreement, budget and evidence tests | implemented-production-transport; live calibration pending |
-| Human review and accepted export | `review.py`, `access.py`, CLI | roles, two reviewers, self-approval, active/scope/permission/audit tests | implemented; staff identities decision-pending |
+| Human review and accepted export | GitHub PR workflow, `review.py`, CLI | PR lifecycle marker, automatic-gate protection, accepted-only export tests | implemented; repository ruleset configuration remains external |
 | Data volume/distribution targets | `batch.py`, `reporting.py`, job manifest | target/input equality, shards, checkpoint, final delta report tests | implemented-infrastructure; pilot/250/1,000 runs deferred-production |
 | Tool/API research and approved list | proposal template and registry lifecycle | future approval audit | decision-pending; no final list now |
 | Dataset Card, final QA/error report | handover checklist | future publication review | deferred-production |
@@ -39,22 +39,22 @@ name the implemented rule or test family.
 | Resumable bulk Turkish scenario generation | `batch.py`, generation providers, dataset/benchmark CLI | shard, bounded concurrency, checkpoint, retry, failure queue, collision, budget, and resume tests | implemented-infrastructure; production run/spend deferred |
 | Türkiye-native real API execution | registry HTTP contract, `execution/http_api.py`, tool CLI | HTTPS GET allowlist, injected transport, timeout/rate-limit/invalid JSON tests | implemented-adapter; final API/tool approval decision-pending |
 | Production semantic similarity | `semantic.py`, OpenAI embedding transport, dedupe/contamination CLI | cosine, unique-text batching, cache, compact findings, malformed response, config-gate tests | implemented; threshold approval decision-pending |
-| Reviewer directory and access policy | access-policy schema, `access.py`, review/export/freeze/run gates | active principal, role, permission, lifecycle scope, self-approval, benchmark isolation tests | implemented; actual staff identities decision-pending |
+| Reviewer identity and approval history | GitHub pull requests, branch protection/rulesets, PR template and validation workflow | required CI check in repository; local tests cover lifecycle and export behavior | GitHub is authoritative; ruleset configuration remains external |
 | Large-scale distribution plans | job-manifest schema, `batch.py`, `reporting.py` | target/input equality, shard coverage, input hash, checkpoint and distribution-delta tests | implemented-infrastructure; 250/1,000 and 100/150-200 production runs deferred |
 | Quality-first normal dataset generation | `dataset_workflow.py`, `dataset generate`, `dataset batch run` | full blueprint preflight, active source restriction, automatic distribution/ID plan, provider self-certification rejection, resume tests | implemented; live provider generation pending |
-| Evidence-backed dataset quality | `quality.py`, `dataset quality`, review decision workflow | local execution/result comparison, exact/embedding duplicate states, OpenAI primary/escalation judge, budgets, test-double non-certification, reports, computed reviewer acceptance | implemented; live calibration and real reviewer decisions pending |
+| Evidence-backed dataset quality | `quality.py`, `dataset quality`, GitHub PR review workflow | local execution/result comparison, exact/embedding duplicate states, OpenAI primary/escalation judge, budgets, test-double non-certification, reports, automatic-gate protection | implemented; live calibration and real PR decisions pending |
 | Secret-safe local provider configuration | ignored `.env`, `config.py`, `magibu-toolcall config` | file/process precedence and redacted-output tests | implemented; operator supplies credentials locally |
 
 ## Completion categories at handover
 
 - Fully implemented infrastructure: deterministic schemas/validation, source
   import/localization, DeepSeek structured transport, OpenAI embedding
-  similarity/cache, read-only HTTPS API execution, access/audit policy,
-  resumable batch jobs, evaluator, review/export, CLI, and end-to-end fixtures.
+  similarity/cache, read-only HTTPS API execution, GitHub PR review conventions,
+  resumable batch jobs, evaluator, accepted-only export, CLI, and end-to-end fixtures.
 - Partially implemented by deliberate boundary: benchmark free-text response
   judging, production final-answer regeneration, and state-changing sandboxes.
 - Operationally supported but not executed: production generation,
   localization, semantic scans, human review, and benchmark runs at target scale.
 - Blocked on external decisions/evidence: approved tool list, licenses/API
-  access, live provider calibration, duplicate threshold approval, reviewer
-  identities, storage ACLs, and measured pilot budgets.
+  access, live provider calibration, duplicate threshold approval, GitHub
+  ruleset/CODEOWNERS choices, storage ACLs, and measured pilot budgets.

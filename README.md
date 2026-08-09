@@ -57,7 +57,7 @@ flowchart TD
     E --> F["Local / mock / simülasyon yürütmesi"]
     F --> G["Şema ve tool-call doğrulaması"]
     G --> H["Duplicate ve OpenAI kalite kontrolü"]
-    H --> I["Dil ve teknik insan incelemesi"]
+    H --> I["GitHub PR insan incelemesi"]
     I --> J["Accepted dataset"]
 ```
 
@@ -94,10 +94,10 @@ doğrulanır. Böylece model üretimi ile kanonik kayıt yapısı birbirinden ay
 ### Yönetişim
 
 - Dataset ve benchmark için ayrı kimlik, klasör ve yaşam döngüleri
-- Rol ve izin tabanlı access-policy
-- SHA-256 zincirli audit olayları
-- Contributor ile reviewer ayrımı
-- Otomatik kalite sonrasında zorunlu insan incelemesi
+- GitHub pull request üzerinden insan incelemesi ve karar geçmişi
+- `main` branch protection ve zorunlu durum kontrolü
+- CLI'da reviewer girişi, rolü veya access-policy bağımlılığı olmaması
+- Otomatik kalite sonrasında zorunlu PR onayı
 
 ## Doğrulanmış pilot
 
@@ -109,7 +109,7 @@ Mevcut pilot yalnızca bir demo değildir; aynı üretim ve kalite hattının k�
 | Proposal tool sayısı | 20 |
 | Pilot blueprint sayısı | 30 |
 | Genel Türkçe / Türkiye-native dağılımı | 15 / 15 |
-| Otomatik test | 189/189 |
+| Otomatik test | 181/181 |
 | Genel dataset kalite geçişi | 15/15 |
 | Türkiye-native kalite geçişi | 14/15 |
 
@@ -139,9 +139,9 @@ incelemesini tamamlamadığı için `accepted` değildir.
 - Tool argümanlarını ve sonuçlarını şemaya karşı sınayabilir.
 - Exact, normalize ve semantic tekrarları bulabilir.
 - OpenAI hakemiyle dil ve tool-grounding kalitesini puanlayabilir.
-- İnsan review kararlarını değişmez geçmiş olaylarıyla kaydedebilir.
+- İnsan inceleme kararlarını GitHub PR geçmişi üzerinden izleyebilir.
 - Yalnızca bütün kapıları geçen kayıtları accepted dataset’e aktarabilir.
-- Model, token, request, checksum ve audit kanıtlarını raporlayabilir.
+- Model, token, request, checksum ve kalite kanıtlarını raporlayabilir.
 
 ## Neleri yapamaz veya yapmamalıdır?
 
@@ -151,9 +151,9 @@ Sistemin sınırları bilinçli olarak açıktır:
 - Proposal registry’deki araçları otomatik olarak canlı ve onaylı API saymaz.
 - Mock sonucu gerçek kurum verisi veya gerçek zamanlı gözlem gibi göstermez.
 - Belgelenmemiş servisleri scrape etmez ya da kullanım koşullarını kullanıcı adına kabul etmez.
-- Reviewer kimliği uydurmaz veya model değerlendirmesini insan onayı yerine koymaz.
-- Contributor’ın kendi kaydını onaylamasına izin vermez.
-- Secret değerlerini fixture, manifest, audit veya hata çıktısına yazmaz.
+- Reviewer kimliği uydurmaz veya model değerlendirmesini GitHub PR onayı yerine koymaz.
+- Contributor’ın kendi PR'ını onaylamaması branch protection ile uygulanır.
+- Secret değerlerini fixture, manifest, kalite raporu veya hata çıktısına yazmaz.
 - Mevcut HTTP adaptörüyle POST, ödeme, e-posta veya başka yan etkili işlem yapmaz.
 - Değişken canlı API sonucunu geçmiş dataset kaydının doğrulama temeli yapmaz.
 - Askıdaki çeviri ve benchmark hatlarını kendiliğinden çalıştırmaz.
@@ -216,8 +216,9 @@ Yerel registry ve blueprint doğrulaması API anahtarı gerektirmez:
 .\.venv\Scripts\magibu-toolcall.exe blueprint validate blueprints\pilot_general.jsonl --registry registry\proposals\pilot_candidates.jsonl
 ```
 
-Canlı model erişimi, dataset üretimi, kalite kontrolü ve insan incelemesi için
-gereken bütün komutlar [teknik kullanım rehberinde](README_TEKNIK.md) yer alır.
+Canlı model erişimi, dataset üretimi ve kalite kontrolü için gereken bütün
+komutlar [teknik kullanım rehberinde](README_TEKNIK.md) yer alır. İnsan incelemesi
+CLI üzerinden değil GitHub pull request üzerinden yapılır.
 
 ## Bundan sonra ne var?
 
@@ -227,19 +228,19 @@ Altyapının temel akışı hazırdır. 1000 kayda ölçeklenmeden önce:
 2. Erişim, lisans ve yeniden kullanım koşulları doğrulanacak.
 3. API yanıtları mevcut tool sözleşmelerine normalize edilecek.
 4. Gerçek kaynaklı ve dondurulmuş fixture çeşitliliği artırılacak.
-5. Üretim operatöründen farklı dil ve teknik reviewer’lar atanacak.
+5. Pilot kayıtları branch protection altındaki GitHub PR'larında incelenecek.
 6. İnsan incelemesi tamamlanan pilotun ardından 100 kayıtlık ikinci kapıya geçilecek.
 
 ## Proje yapısı
 
 ```text
 blueprints/              Üretim planları ve kalite regresyonları
-configs/                 Erişim politikaları
+configs/                 Çalışma ayarları
 data/dataset/            Dataset yaşam döngüsü
 data/benchmark/          Dataset’ten ayrı benchmark yaşam döngüsü
 registry/                Kanonik tool registry ve fixture’lar
 registry/proposals/      Henüz onaylanmamış pilot araçları
-review/                  İnsan incelemesi ve audit alanı
+review/                  Otomatik kalite raporları ve inceleme kanıtları
 runs/                    Manifest, checkpoint ve çalışma kanıtları
 schemas/                 Makine tarafından doğrulanan veri sözleşmeleri
 src/tool_call_tr/        CLI ve uygulama kodu
@@ -252,7 +253,7 @@ tests/                   Deterministik test paketi
 - [Pilot tool seçim dosyası](docs/pilot_tool_selection.md): Tool adayları, kaynak araştırması, riskler ve onay engelleri
 - [Dataset yaşam döngüsü](data/dataset/README.md): Staging, kalite, review ve accepted alanları
 - [Benchmark yaşam döngüsü](data/benchmark/README.md): Ayrı benchmark alanı ve freeze kuralları
-- [İnceleme alanı](review/README.md): Reviewer kararları ve audit yaklaşımı
+- [İnceleme alanı](review/README.md): GitHub PR akışı ve kalite kanıtları
 
 Uygulamayı kullanmaya başlamak için:
 **[README_TEKNIK.md — teknik kullanım rehberi](README_TEKNIK.md)**

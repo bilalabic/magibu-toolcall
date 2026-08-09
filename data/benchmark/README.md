@@ -16,7 +16,8 @@ yazılmaz ve yalnızca `runs/` altında saklanır. `benchmark freeze`, dataset
 snapshot yolunu zorunlu tutar; kontaminasyon kapısı geçmeden gold ve manifest
 oluşturmaz.
 
-Benchmark üretim job’ları yalnız benchmark kapsamlı principal tarafından
-`benchmark_generation` manifestiyle çalıştırılır. Dataset job manifesti,
-checkpoint’i veya ID aralığı benchmark hattında kullanılamaz. Önerilen geçici iş
-yolu `staging/jobs/<job_id>/` biçimindedir.
+Benchmark üretim job’ları `benchmark_generation` manifestiyle ve dataset’ten ayrı
+bir branch/PR akışıyla çalıştırılır. Dataset job manifesti, checkpoint’i veya ID
+aralığı benchmark hattında kullanılamaz. Önerilen geçici iş yolu
+`staging/jobs/<job_id>/` biçimindedir. Reviewer kimliği ve onayı GitHub PR
+geçmişinde tutulur.

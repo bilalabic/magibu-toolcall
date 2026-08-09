@@ -50,36 +50,12 @@ def test_support_commands_are_namespaced_and_flat_legacy_commands_are_absent(cap
     assert exit_info.value.code == 2
 
 
-def test_dataset_review_and_report_commands(tmp_path: Path, capsys, access_files) -> None:
+def test_dataset_report_command(tmp_path: Path, capsys) -> None:
     record = load(FIXTURES / "dataset" / "valid_no_tool.json")
-    record["metadata"]["review"] = {
-        "status": "needs_revision",
-        "reviewer_ids": [],
-        "notes": None,
-        "contributor_id": "contrib_01",
-        "requires_two_reviewers": False,
-        "history": [],
-    }
-    source = tmp_path / "pending.json"
-    reviewed = tmp_path / "reviewed.json"
+    source = tmp_path / "accepted.json"
     write_json(source, record)
 
-    assert main([
-        "dataset", "review", str(source), str(reviewed),
-        "--record-id", record["id"],
-        "--reviewer-id", "rev_language_01",
-        "--role", "language",
-        "--decision", "approve",
-        "--timestamp", "2026-08-06T00:00:00+00:00",
-        "--policy", access_files["policy"],
-        "--audit-log", access_files["audit"],
-    ]) == 0
-    capsys.readouterr()
-    value = load(reviewed)
-    assert value["metadata"]["review"]["status"] == "accepted"
-    assert value["metadata"]["review"]["history"][0]["reviewer_role"] == "language"
-
-    assert main(["dataset", "report", str(reviewed), "--output", "json"]) == 0
+    assert main(["dataset", "report", str(source), "--output", "json"]) == 0
     report = json.loads(capsys.readouterr().out)
     assert report["kind"] == "dataset"
     assert report["records"] == 1
@@ -113,14 +89,11 @@ def test_dataset_quality_requires_live_confirmation_for_openai(tmp_path: Path, c
         "dataset", "quality", str(tmp_path / "input.jsonl"), str(tmp_path / "output.jsonl"),
         "--semantic-provider", "openai",
         "--judge-provider", "openai",
-        "--actor-id", "dataset_operator_01",
-        "--policy", str(tmp_path / "policy.json"),
-        "--audit-log", str(tmp_path / "audit.jsonl"),
     ]) == 1
     assert "--confirm-live is required" in capsys.readouterr().out
 
 
-def test_benchmark_freeze_and_checksum_verification(tmp_path: Path, capsys, access_files) -> None:
+def test_benchmark_freeze_and_checksum_verification(tmp_path: Path, capsys) -> None:
     source = FIXTURES / "benchmark" / "valid_tool_call.json"
     dataset = FIXTURES / "dataset" / "valid_single_tool.json"
     gold = tmp_path / "gold.jsonl"
@@ -133,9 +106,6 @@ def test_benchmark_freeze_and_checksum_verification(tmp_path: Path, capsys, acce
         "--frozen-at", "2026-08-06T00:00:00+00:00",
         "--semantic-provider", "token-test-double",
         "--output", "json",
-        "--actor-id", "benchmark_lead_01",
-        "--policy", access_files["policy"],
-        "--audit-log", access_files["audit"],
     ]) == 0
     freeze = json.loads(capsys.readouterr().out)
     assert freeze["record_count"] == 1
@@ -148,7 +118,7 @@ def test_benchmark_freeze_and_checksum_verification(tmp_path: Path, capsys, acce
     assert not json.loads(capsys.readouterr().out)["valid"]
 
 
-def test_benchmark_freeze_cannot_skip_contamination_gate(tmp_path: Path, capsys, access_files) -> None:
+def test_benchmark_freeze_cannot_skip_contamination_gate(tmp_path: Path, capsys) -> None:
     benchmark = load(FIXTURES / "benchmark" / "valid_tool_call.json")
     dataset = load(FIXTURES / "dataset" / "valid_single_tool.json")
     dataset["messages"][0]["content"] = benchmark["messages"][0]["content"]
@@ -163,15 +133,12 @@ def test_benchmark_freeze_cannot_skip_contamination_gate(tmp_path: Path, capsys,
         "--dataset", str(dataset_path),
         "--freeze-id", "blocked-001",
         "--semantic-provider", "token-test-double",
-        "--actor-id", "benchmark_lead_01",
-        "--policy", access_files["policy"],
-        "--audit-log", access_files["audit"],
     ]) == 1
     assert "contamination gate did not pass" in capsys.readouterr().out
     assert not gold.exists()
 
 
-def test_benchmark_run_writes_predictions_below_runs_and_reports(tmp_path: Path, capsys, access_files) -> None:
+def test_benchmark_run_writes_predictions_below_runs_and_reports(tmp_path: Path, capsys) -> None:
     gold_record = load(FIXTURES / "benchmark" / "valid_tool_call.json")
     gold_path = tmp_path / "gold.json"
     predictions_path = tmp_path / "predictions.jsonl"
@@ -196,9 +163,6 @@ def test_benchmark_run_writes_predictions_below_runs_and_reports(tmp_path: Path,
         "--runs-dir", str(tmp_path / "runs"),
         "--semantic-judge-test-double",
         "--output", "json",
-        "--actor-id", "benchmark_lead_01",
-        "--policy", access_files["policy"],
-        "--audit-log", access_files["audit"],
     ]) == 0
     result = json.loads(capsys.readouterr().out)
     run_log = Path(result["run_log"])

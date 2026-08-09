@@ -20,7 +20,7 @@ def load(path: Path) -> object:
 
 def test_all_required_schemas_are_valid_draft_2020_12() -> None:
     store = SchemaStore(ROOT / "schemas")
-    assert set(SCHEMA_FILES) == {"dataset", "benchmark", "registry", "blueprint", "source", "job", "access"}
+    assert set(SCHEMA_FILES) == {"dataset", "benchmark", "registry", "blueprint", "source", "job"}
     for kind in SCHEMA_FILES:
         assert store.load(kind)["$schema"].endswith("2020-12/schema")
 

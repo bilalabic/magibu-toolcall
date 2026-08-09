@@ -18,7 +18,7 @@
       "json": "passed", "schema": "passed", "tool_call": "not_applicable", "execution": "not_applicable",
       "semantic": "passed", "turn_level": "not_applicable", "language": "passed", "duplicate": "passed"
     },
-    "review": {"status": "accepted", "reviewer_ids": ["rev_technical_01"], "notes": "Altyapı fikstürü."}
+    "review": {"status": "accepted", "notes": "Altyapı fikstürü."}
   },
   "tools": [
     {
@@ -43,4 +43,3 @@
     {"role": "assistant", "content": "Hangi şehir için hava durumunu öğrenmek istersiniz?"}
   ]
 }
-

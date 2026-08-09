@@ -15,7 +15,7 @@ from tool_call_tr.execution import (
 )
 from tool_call_tr.generation import MockSemanticJudge
 from tool_call_tr.registry import ToolRegistry
-from tool_call_tr.review import apply_review, export_accepted
+from tool_call_tr.review import export_accepted
 from tool_call_tr.validation import RuleBasedValidator
 
 
@@ -50,21 +50,16 @@ def test_minimal_deterministic_infrastructure_flow(tmp_path: Path) -> None:
     assert result.status == ExecutionStatus.PASSED
     assert result.data == blueprint["expected_tool_result"] == {"result": 20}
 
-    # Record verification metadata, run deterministic validation, then human review.
+    # Record verification metadata, then mark the PR-approved fixture accepted.
     candidate["metadata"]["execution"] = {"type": "local_executable", "status": "passed"}
     for stage in candidate["metadata"]["validation"]:
         candidate["metadata"]["validation"][stage] = "passed"
     candidate["metadata"]["validation"]["turn_level"] = "not_applicable"
+    candidate["metadata"]["review"] = {
+        "status": "accepted",
+        "notes": "Approved through the protected GitHub pull request workflow.",
+    }
     assert validator.validate_record("benchmark", candidate).valid
-    reviewed = apply_review(
-        candidate,
-        reviewer_id="rev_technical_fixture",
-        reviewer_role="technical",
-        decision="approve",
-        notes="Deterministik uçtan uca altyapı testi.",
-        timestamp="2026-08-06T00:00:00+00:00",
-    )
-    assert validator.validate_record("benchmark", reviewed).valid
 
     # Evaluation is separate from gold, and export includes only accepted records.
     prediction = {
@@ -73,10 +68,10 @@ def test_minimal_deterministic_infrastructure_flow(tmp_path: Path) -> None:
         "response": None,
         "execution_status": result.status.value,
     }
-    evaluation = BenchmarkEvaluator(registry, MockSemanticJudge()).evaluate(reviewed, prediction)
+    evaluation = BenchmarkEvaluator(registry, MockSemanticJudge()).evaluate(candidate, prediction)
     assert evaluation.exact_success == 1
     export_path = tmp_path / "accepted_benchmark.jsonl"
-    assert export_accepted([reviewed], export_path, validator=validator, kind="benchmark") == 1
+    assert export_accepted([candidate], export_path, validator=validator, kind="benchmark") == 1
     exported = json.loads(export_path.read_text(encoding="utf-8"))
-    assert exported["id"] == reviewed["id"]
-    assert exported["expected"] == reviewed["expected"]
+    assert exported["id"] == candidate["id"]
+    assert exported["expected"] == candidate["expected"]

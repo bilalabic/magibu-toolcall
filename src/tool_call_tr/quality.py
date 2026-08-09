@@ -160,8 +160,7 @@ def run_dataset_quality(
                 "duplicate": "passed",
             }
         )
-        if not _has_approved_language_review(record):
-            metadata["validation"]["language"] = "not_run"
+        metadata["validation"]["language"] = "not_run"
         execution, evidence = _verify_execution(record, registry=registry, allow_real_api=allow_real_api)
         metadata["execution"] = execution
         metadata["validation"]["execution"] = (
@@ -330,13 +329,6 @@ def _tool_call_count(record: dict[str, Any]) -> int:
         len(message.get("tool_calls", []))
         for message in record["messages"]
         if message.get("role") == "assistant"
-    )
-
-
-def _has_approved_language_review(record: dict[str, Any]) -> bool:
-    return any(
-        event.get("reviewer_role") == "language" and event.get("decision") == "approve"
-        for event in record["metadata"]["review"].get("history", [])
     )
 
 

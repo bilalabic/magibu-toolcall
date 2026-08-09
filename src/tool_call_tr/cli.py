@@ -16,13 +16,6 @@ from typing import Any
 from jsonschema.exceptions import ValidationError as JsonSchemaValidationError
 
 from tool_call_tr import __version__
-from tool_call_tr.access import (
-    AccessDenied,
-    AccessPolicy,
-    AccessPolicyError,
-    append_audit_event,
-    verify_audit_log,
-)
 from tool_call_tr.config import Settings, redact_secret
 from tool_call_tr.batch import (
     BatchError,
@@ -83,7 +76,7 @@ from tool_call_tr.provider_comparison import (
 )
 from tool_call_tr.registry import ToolRegistry
 from tool_call_tr.reporting import benchmark_run_report, corpus_report
-from tool_call_tr.review import ReviewError, apply_review, export_accepted
+from tool_call_tr.review import ReviewError, export_accepted
 from tool_call_tr.sources import SourceIngestionError, get_source_adapter, import_source
 from tool_call_tr.semantic import CachedEmbeddingSimilarity, OpenAIEmbeddingProvider
 from tool_call_tr.validation import RuleBasedValidator
@@ -92,6 +85,7 @@ from tool_call_tr.validation.parsing import parse_path
 
 SOURCE_TYPES = ("translated", "original_turkish", "turkey_native")
 OUTPUT_FORMATS = ("text", "json")
+CLI_ACTOR_ID = "magibu_toolcall_cli"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -101,6 +95,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--log-level", choices=("DEBUG", "INFO", "WARNING", "ERROR"), default=None)
+    parser.set_defaults(actor_id=CLI_ACTOR_ID)
     subparsers = parser.add_subparsers(dest="command", metavar="COMMAND")
 
     config = subparsers.add_parser("config", help="Show non-secret effective configuration.")
@@ -131,7 +126,6 @@ def build_parser() -> argparse.ArgumentParser:
     provider_compare.add_argument("--judge-provider", choices=("none", "openai"), default="openai")
     provider_compare.add_argument("--max-workers", type=int)
     provider_compare.add_argument("--timestamp")
-    provider_compare.add_argument("--actor-id", required=True)
     provider_compare.add_argument("--confirm-live", action="store_true")
     provider_compare.add_argument("--overwrite", action="store_true")
     provider_compare.set_defaults(handler=_cmd_provider_compare_generation)
@@ -152,7 +146,6 @@ def build_parser() -> argparse.ArgumentParser:
     _add_generation_command(benchmark_commands, "benchmark")
 
     _add_support_commands(subparsers)
-    _add_access_commands(subparsers)
     return parser
 
 
@@ -171,27 +164,10 @@ def _add_record_commands(subparsers: argparse._SubParsersAction, kind: str, *, i
     _add_duplicate_arguments(duplicates)
     duplicates.set_defaults(handler=_cmd_duplicates)
 
-    review = subparsers.add_parser("review", help=f"Apply one explicit human-review event to a {kind} record.")
-    review.add_argument("input_path", type=Path)
-    review.add_argument("output_path", type=Path)
-    review.add_argument("--record-id", required=True)
-    review.add_argument("--reviewer-id", required=True)
-    review.add_argument("--role", choices=("language", "technical"), required=True)
-    review.add_argument("--decision", choices=("approve", "needs_revision", "reject"), required=True)
-    review.add_argument("--notes")
-    review.add_argument("--timestamp")
-    review.add_argument("--policy", type=Path, required=True)
-    review.add_argument("--audit-log", type=Path, required=True)
-    review.add_argument("--overwrite", action="store_true")
-    review.set_defaults(handler=_cmd_review, record_kind=kind)
-
     export = subparsers.add_parser("export", help=f"Validate and export accepted {kind} records only.")
     export.add_argument("input_path", type=Path)
     export.add_argument("output_path", type=Path)
     export.add_argument("--overwrite", action="store_true")
-    export.add_argument("--actor-id", required=True)
-    export.add_argument("--policy", type=Path, required=True)
-    export.add_argument("--audit-log", type=Path, required=True)
     export.set_defaults(handler=_cmd_export, record_kind=kind)
 
     if include_corpus_report:
@@ -223,9 +199,6 @@ def _add_benchmark_commands(subparsers: argparse._SubParsersAction) -> None:
     _add_semantic_arguments(freeze)
     freeze.add_argument("--overwrite", action="store_true")
     freeze.add_argument("--output", choices=OUTPUT_FORMATS, default="text")
-    freeze.add_argument("--actor-id", required=True)
-    freeze.add_argument("--policy", type=Path, required=True)
-    freeze.add_argument("--audit-log", type=Path, required=True)
     freeze.set_defaults(handler=_cmd_freeze)
 
     verify = subparsers.add_parser("verify-freeze", help="Verify frozen benchmark gold against its checksum manifest.")
@@ -244,9 +217,6 @@ def _add_benchmark_commands(subparsers: argparse._SubParsersAction) -> None:
     run.add_argument("--semantic-judge-test-double", action="store_true")
     run.add_argument("--overwrite", action="store_true")
     run.add_argument("--output", choices=OUTPUT_FORMATS, default="json")
-    run.add_argument("--actor-id", required=True)
-    run.add_argument("--policy", type=Path, required=True)
-    run.add_argument("--audit-log", type=Path, required=True)
     run.set_defaults(handler=_cmd_benchmark_run)
 
     report = subparsers.add_parser("report", help="Aggregate an existing benchmark run log.")
@@ -266,9 +236,6 @@ def _add_dataset_source_commands(subparsers: argparse._SubParsersAction) -> None
     ingest.add_argument("--split", required=True)
     ingest.add_argument("--source-terms-accepted", action="store_true")
     ingest.add_argument("--overwrite", action="store_true")
-    ingest.add_argument("--actor-id", required=True)
-    ingest.add_argument("--policy", type=Path, required=True)
-    ingest.add_argument("--audit-log", type=Path, required=True)
     ingest.set_defaults(handler=_cmd_source_import)
 
     ingest_job = commands.add_parser("import-job", help="Run a planned resumable xLAM or When2Call import job.")
@@ -276,9 +243,6 @@ def _add_dataset_source_commands(subparsers: argparse._SubParsersAction) -> None
     ingest_job.add_argument("--source", choices=("xlam", "when2call"), required=True)
     ingest_job.add_argument("--split", required=True)
     ingest_job.add_argument("--source-terms-accepted", action="store_true")
-    ingest_job.add_argument("--actor-id", required=True)
-    ingest_job.add_argument("--policy", type=Path, required=True)
-    ingest_job.add_argument("--audit-log", type=Path, required=True)
     ingest_job.set_defaults(handler=_cmd_source_import_job)
 
     validate = commands.add_parser("validate", help="Validate imported/localized source work items.")
@@ -292,18 +256,12 @@ def _add_dataset_source_commands(subparsers: argparse._SubParsersAction) -> None
     localize.add_argument("output_path", type=Path)
     localize.add_argument("--timestamp")
     localize.add_argument("--overwrite", action="store_true")
-    localize.add_argument("--actor-id", required=True)
-    localize.add_argument("--policy", type=Path, required=True)
-    localize.add_argument("--audit-log", type=Path, required=True)
     localize.set_defaults(handler=_cmd_source_localize)
 
     generate = commands.add_parser("generate-localizations", help="Run a resumable DeepSeek localization job.")
     generate.add_argument("manifest_path", type=Path)
     generate.add_argument("--provider", choices=("deepseek",), default="deepseek")
     generate.add_argument("--execute-live", action="store_true")
-    generate.add_argument("--actor-id", required=True)
-    generate.add_argument("--policy", type=Path, required=True)
-    generate.add_argument("--audit-log", type=Path, required=True)
     generate.set_defaults(handler=_cmd_generate_localizations)
 
 
@@ -334,9 +292,6 @@ def _add_batch_commands(subparsers: argparse._SubParsersAction, lifecycle: str) 
     plan.add_argument("--existing", type=Path, action="append", default=[])
     plan.add_argument("--registry", type=Path)
     plan.add_argument("--timestamp")
-    plan.add_argument("--actor-id", required=True)
-    plan.add_argument("--policy", type=Path, required=True)
-    plan.add_argument("--audit-log", type=Path, required=True)
     plan.set_defaults(handler=_cmd_batch_plan, record_kind=lifecycle)
 
     status = commands.add_parser("status", help="Verify input checksum and show current job state.")
@@ -356,9 +311,6 @@ def _add_batch_commands(subparsers: argparse._SubParsersAction, lifecycle: str) 
         run.add_argument("--execute-live", action="store_true")
         run.add_argument("--max-workers", type=int)
         run.add_argument("--token-budget", type=int)
-        run.add_argument("--actor-id", required=True)
-        run.add_argument("--policy", type=Path, required=True)
-        run.add_argument("--audit-log", type=Path, required=True)
         run.set_defaults(handler=_cmd_generate_candidates, record_kind="dataset")
 
 
@@ -382,9 +334,6 @@ def _add_dataset_generation_command(subparsers: argparse._SubParsersAction) -> N
     generate.add_argument("--execute-live", action="store_true")
     generate.add_argument("--max-workers", type=int)
     generate.add_argument("--token-budget", type=int)
-    generate.add_argument("--actor-id", required=True)
-    generate.add_argument("--policy", type=Path, required=True)
-    generate.add_argument("--audit-log", type=Path, required=True)
     generate.set_defaults(handler=_cmd_generate_dataset, record_kind="dataset")
 
 
@@ -417,9 +366,6 @@ def _add_dataset_quality_command(subparsers: argparse._SubParsersAction) -> None
     quality.add_argument("--confirm-live", action="store_true")
     quality.add_argument("--timestamp")
     quality.add_argument("--overwrite", action="store_true")
-    quality.add_argument("--actor-id", required=True)
-    quality.add_argument("--policy", type=Path, required=True)
-    quality.add_argument("--audit-log", type=Path, required=True)
     quality.set_defaults(handler=_cmd_dataset_quality, record_kind="dataset")
 
 
@@ -430,9 +376,6 @@ def _add_generation_command(subparsers: argparse._SubParsersAction, lifecycle: s
     generate.add_argument("--execute-live", action="store_true")
     generate.add_argument("--max-workers", type=int)
     generate.add_argument("--token-budget", type=int)
-    generate.add_argument("--actor-id", required=True)
-    generate.add_argument("--policy", type=Path, required=True)
-    generate.add_argument("--audit-log", type=Path, required=True)
     generate.set_defaults(handler=_cmd_generate_candidates, record_kind=lifecycle)
 
 
@@ -482,32 +425,10 @@ def _add_support_commands(subparsers: argparse._SubParsersAction) -> None:
     api.add_argument("--call-id", default="call_001")
     api.add_argument("--timeout-ms", type=int)
     api.add_argument("--confirm-live", action="store_true")
-    api.add_argument("--actor-id", required=True)
-    api.add_argument("--policy", type=Path, required=True)
-    api.add_argument("--audit-log", type=Path, required=True)
     api.set_defaults(handler=_cmd_run_api)
     call_id = tool_commands.add_parser("generate-call-id", help="Generate a deterministic tool-call ID.")
     call_id.add_argument("number", type=int)
     call_id.set_defaults(handler=_cmd_call_id)
-
-
-def _add_access_commands(subparsers: argparse._SubParsersAction) -> None:
-    access = subparsers.add_parser("access", help="Validate principals, permissions, and audit logs.")
-    commands = access.add_subparsers(dest="access_command", metavar="COMMAND", required=True)
-    validate = commands.add_parser("validate", help="Validate an access-policy file.")
-    validate.add_argument("path", type=Path)
-    validate.set_defaults(handler=_cmd_access_validate)
-    check = commands.add_parser("check", help="Check one principal permission without changing state.")
-    check.add_argument("path", type=Path)
-    check.add_argument("--actor-id", required=True)
-    check.add_argument("--lifecycle", choices=("dataset", "benchmark", "platform"), required=True)
-    check.add_argument("--permission", required=True)
-    check.add_argument("--reviewer-role", choices=("language", "technical"))
-    check.set_defaults(handler=_cmd_access_check)
-    audit = commands.add_parser("verify-audit", help="Verify an append-only audit log hash chain.")
-    audit.add_argument("path", type=Path)
-    audit.add_argument("--output", choices=OUTPUT_FORMATS, default="text")
-    audit.set_defaults(handler=_cmd_audit_verify)
 
 
 def _cmd_config(args: argparse.Namespace) -> int:
@@ -627,41 +548,6 @@ def _cmd_provider_compare_generation(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
-def _cmd_access_validate(args: argparse.Namespace) -> int:
-    try:
-        policy = AccessPolicy.load(args.path)
-    except AccessPolicyError as exc:
-        print(f"ERROR ACCESS_POLICY_INVALID: {exc}")
-        return 1
-    print(f"OK: access policy is valid; principals={len(policy.principals)}")
-    return 0
-
-
-def _cmd_access_check(args: argparse.Namespace) -> int:
-    try:
-        AccessPolicy.load(args.path).authorize(
-            args.actor_id,
-            lifecycle=args.lifecycle,
-            permission=args.permission,
-            reviewer_role=args.reviewer_role,
-        )
-    except (AccessPolicyError, AccessDenied) as exc:
-        print(f"ERROR ACCESS_DENIED: {exc}")
-        return 1
-    print(f"OK: {args.actor_id} may {args.permission} in {args.lifecycle}")
-    return 0
-
-
-def _cmd_audit_verify(args: argparse.Namespace) -> int:
-    try:
-        result = verify_audit_log(args.path)
-    except AccessPolicyError as exc:
-        print(f"ERROR AUDIT_INVALID: {exc}")
-        return 1
-    _print_payload(result, args.output)
-    return 0 if result["valid"] else 1
-
-
 def _cmd_record_id(args: argparse.Namespace) -> int:
     return _generate_id(args.record_kind, args.number, args.source_type)
 
@@ -724,13 +610,6 @@ def _cmd_run_api(args: argparse.Namespace) -> int:
         print("ERROR LIVE_EXECUTION_BLOCKED: --confirm-live is required")
         return 1
     try:
-        _authorize_cli_action(
-            args,
-            actor_id=args.actor_id,
-            lifecycle="platform",
-            permission="real_api",
-            resource_id=args.function_name,
-        )
         arguments = json.loads(args.arguments)
         if not isinstance(arguments, dict):
             raise ValueError("arguments must be a JSON object")
@@ -747,22 +626,17 @@ def _cmd_run_api(args: argparse.Namespace) -> int:
             timeout_ms=args.timeout_ms,
         ))
     except (
-        AccessPolicyError, AccessDenied, JsonSchemaValidationError, ExecutionRoutingError,
+        JsonSchemaValidationError, ExecutionRoutingError,
         json.JSONDecodeError, KeyError, ValueError,
     ) as exc:
         print(f"ERROR LIVE_EXECUTION_BLOCKED: {exc}")
         return 1
     print(json.dumps(result.to_dict(), ensure_ascii=False, sort_keys=True))
-    _audit_cli_allowed(args, args.actor_id, "platform", "real_api", args.function_name)
     return 0 if result.status == ExecutionStatus.PASSED else 1
 
 
 def _cmd_source_import(args: argparse.Namespace) -> int:
     try:
-        _authorize_cli_action(
-            args, actor_id=args.actor_id, lifecycle="dataset", permission="source_import",
-            resource_id=str(args.output_path),
-        )
         records = import_source(
             args.input_path,
             source=args.source,
@@ -774,10 +648,9 @@ def _cmd_source_import(args: argparse.Namespace) -> int:
             print(validation)
             return 1
         count = write_records(args.output_path, records, overwrite=args.overwrite)
-    except (AccessPolicyError, AccessDenied, OSError, RecordIOError, SourceIngestionError) as exc:
+    except (OSError, RecordIOError, SourceIngestionError) as exc:
         print(f"ERROR SOURCE_IMPORT_BLOCKED: {exc}")
         return 1
-    _audit_cli_allowed(args, args.actor_id, "dataset", "source_import", str(args.output_path))
     print(f"OK: imported {count} {args.source} source work item(s) to {args.output_path}")
     return 0
 
@@ -787,10 +660,6 @@ def _cmd_source_import_job(args: argparse.Namespace) -> int:
         manifest = load_manifest(args.manifest_path)
         if manifest["lifecycle"] != "dataset" or manifest["operation"] != "source_import":
             raise BatchError("expected a dataset source_import manifest")
-        _authorize_cli_action(
-            args, actor_id=args.actor_id, lifecycle="dataset", permission="source_import",
-            resource_id=manifest["job_id"],
-        )
         adapter = get_source_adapter(args.source, source_terms_accepted=args.source_terms_accepted)
         validator = RuleBasedValidator()
         source_file = Path(manifest["input_path"]).name
@@ -803,10 +672,9 @@ def _cmd_source_import_job(args: argparse.Namespace) -> int:
             return item
 
         completed = run_job(args.manifest_path, process)
-    except (AccessPolicyError, AccessDenied, BatchError, SourceIngestionError) as exc:
+    except (BatchError, SourceIngestionError) as exc:
         print(f"ERROR SOURCE_IMPORT_BLOCKED: {exc}")
         return 1
-    _audit_cli_allowed(args, args.actor_id, "dataset", "source_import", completed["job_id"])
     _print_payload(
         {
             "job_id": completed["job_id"],
@@ -820,19 +688,8 @@ def _cmd_source_import_job(args: argparse.Namespace) -> int:
 
 def _cmd_source_localize(args: argparse.Namespace) -> int:
     try:
-        _authorize_cli_action(
-            args, actor_id=args.actor_id, lifecycle="dataset", permission="localize",
-            resource_id=str(args.output_path),
-        )
         records = load_records(args.input_path)
         patches = load_records(args.patches_path)
-        mismatched_actors = [
-            patch.get("source_example_id", "<unknown>")
-            for patch in patches
-            if patch.get("actor_id") != args.actor_id
-        ]
-        if mismatched_actors:
-            raise LocalizationError("patch actor_id must match the authorized actor: " + ", ".join(mismatched_actors))
         validation = _validate_loaded_records("source", records)
         if validation:
             print(validation)
@@ -843,26 +700,15 @@ def _cmd_source_localize(args: argparse.Namespace) -> int:
             print(validation)
             return 1
         count = write_records(args.output_path, localized, overwrite=args.overwrite)
-    except (AccessPolicyError, AccessDenied, OSError, RecordIOError, LocalizationError) as exc:
+    except (OSError, RecordIOError, LocalizationError) as exc:
         print(f"ERROR LOCALIZATION_BLOCKED: {exc}")
         return 1
-    _audit_cli_allowed(args, args.actor_id, "dataset", "localize", str(args.output_path))
     print(f"OK: localized {count} source work item(s) to {args.output_path}; human review still required")
     return 0
 
 
 def _cmd_batch_plan(args: argparse.Namespace) -> int:
-    permission = {
-        "source_import": "source_import",
-        "source_localization": "localize",
-        "scenario_generation": "generate",
-        "benchmark_generation": "generate",
-    }[args.operation]
     try:
-        _authorize_cli_action(
-            args, actor_id=args.actor_id, lifecycle=args.record_kind, permission=permission,
-            resource_id=args.job_id,
-        )
         if args.operation in {"scenario_generation", "benchmark_generation"} and (
             args.source_type is None or args.start_number is None
         ):
@@ -896,10 +742,9 @@ def _cmd_batch_plan(args: argparse.Namespace) -> int:
             timestamp=args.timestamp,
         )
         write_manifest(args.manifest_path, manifest)
-    except (AccessPolicyError, AccessDenied, OSError, json.JSONDecodeError, BatchError) as exc:
+    except (OSError, json.JSONDecodeError, BatchError) as exc:
         print(f"ERROR BATCH_PLAN_BLOCKED: {exc}")
         return 1
-    _audit_cli_allowed(args, args.actor_id, args.record_kind, permission, args.job_id)
     print(f"OK: planned {manifest['total_items']} item(s) in {len(manifest['shards'])} shard(s) at {args.manifest_path}")
     return 0
 
@@ -939,10 +784,6 @@ def _cmd_generate_candidates(args: argparse.Namespace) -> int:
             raise BatchError(f"expected a {args.record_kind} {expected_operation} manifest")
         if manifest["id_plan"] is None:
             raise BatchError("candidate generation requires a manifest ID plan")
-        _authorize_cli_action(
-            args, actor_id=args.actor_id, lifecycle=args.record_kind, permission="generate",
-            resource_id=manifest["job_id"],
-        )
         settings = Settings.from_env()
         provider = DeepSeekIntegration.from_settings(settings)
         provider.require_configured()
@@ -954,10 +795,9 @@ def _cmd_generate_candidates(args: argparse.Namespace) -> int:
             provider=provider,
             fallback_provider=fallback_provider,
         )
-    except (AccessPolicyError, AccessDenied, BatchError, ProviderNotConfigured, DatasetWorkflowError) as exc:
+    except (BatchError, ProviderNotConfigured, DatasetWorkflowError) as exc:
         print(f"ERROR GENERATION_BLOCKED: {exc}")
         return 1
-    _audit_cli_allowed(args, args.actor_id, args.record_kind, "generate", completed["job_id"])
     _print_payload(
         {
             "job_id": completed["job_id"],
@@ -1013,13 +853,6 @@ def _cmd_generate_dataset(args: argparse.Namespace) -> int:
             else next_dataset_number(existing_ids, source_type)
         )
 
-        _authorize_cli_action(
-            args,
-            actor_id=args.actor_id,
-            lifecycle="dataset",
-            permission="generate",
-            resource_id=job_id,
-        )
         manifest = create_job_manifest(
             job_id=job_id,
             lifecycle="dataset",
@@ -1045,8 +878,6 @@ def _cmd_generate_dataset(args: argparse.Namespace) -> int:
             fallback_provider=fallback_provider,
         )
     except (
-        AccessPolicyError,
-        AccessDenied,
         BatchError,
         DatasetWorkflowError,
         IdError,
@@ -1058,7 +889,6 @@ def _cmd_generate_dataset(args: argparse.Namespace) -> int:
         print(f"ERROR GENERATION_BLOCKED: {exc}")
         return 1
 
-    _audit_cli_allowed(args, args.actor_id, "dataset", "generate", completed["job_id"])
     _print_payload(
         {
             "job_id": completed["job_id"],
@@ -1219,21 +1049,6 @@ def _cmd_dataset_quality(args: argparse.Namespace) -> int:
             occupied = [str(path) for path in (args.output_path, report_path) if path.exists()]
             if occupied:
                 raise QualityError("quality output already exists: " + ", ".join(occupied))
-        _authorize_cli_action(
-            args,
-            actor_id=args.actor_id,
-            lifecycle="dataset",
-            permission="quality_check",
-            resource_id=str(args.output_path),
-        )
-        if args.confirm_live:
-            _authorize_cli_action(
-                args,
-                actor_id=args.actor_id,
-                lifecycle="platform",
-                permission="real_api",
-                resource_id=str(args.input_path),
-            )
         records = load_records(args.input_path)
         registry_path = (args.registry or Settings.from_env().registry_path).resolve()
         registry = _load_generation_registry(registry_path)
@@ -1305,8 +1120,6 @@ def _cmd_dataset_quality(args: argparse.Namespace) -> int:
         write_records(args.output_path, result.records, overwrite=args.overwrite)
         write_quality_report(report_path, result.report, overwrite=args.overwrite)
     except (
-        AccessPolicyError,
-        AccessDenied,
         OSError,
         ProviderError,
         ProviderNotConfigured,
@@ -1316,15 +1129,6 @@ def _cmd_dataset_quality(args: argparse.Namespace) -> int:
     ) as exc:
         print(f"ERROR QUALITY_BLOCKED: {exc}")
         return 1
-    _audit_cli_allowed(
-        args,
-        args.actor_id,
-        "dataset",
-        "quality_check",
-        str(args.output_path),
-    )
-    if args.confirm_live:
-        _audit_cli_allowed(args, args.actor_id, "platform", "real_api", str(args.input_path))
     _print_payload(
         {
             "output": str(args.output_path),
@@ -1344,10 +1148,6 @@ def _cmd_generate_localizations(args: argparse.Namespace) -> int:
         manifest = load_manifest(args.manifest_path)
         if manifest["lifecycle"] != "dataset" or manifest["operation"] != "source_localization":
             raise BatchError("expected a dataset source_localization manifest")
-        _authorize_cli_action(
-            args, actor_id=args.actor_id, lifecycle="dataset", permission="localize",
-            resource_id=manifest["job_id"],
-        )
         settings = Settings.from_env()
         provider = DeepSeekIntegration.from_settings(settings)
         provider.require_configured()
@@ -1374,10 +1174,9 @@ def _cmd_generate_localizations(args: argparse.Namespace) -> int:
             return localized
 
         completed = run_job(args.manifest_path, process)
-    except (AccessPolicyError, AccessDenied, BatchError, ProviderNotConfigured) as exc:
+    except (BatchError, ProviderNotConfigured) as exc:
         print(f"ERROR LOCALIZATION_BLOCKED: {exc}")
         return 1
-    _audit_cli_allowed(args, args.actor_id, "dataset", "localize", completed["job_id"])
     _print_payload({"job_id": completed["job_id"], "status": completed["status"], "counts": completed["counts"]}, "json")
     return 0 if completed["counts"]["failed"] == 0 else 1
 
@@ -1410,60 +1209,8 @@ def _cmd_duplicates(args: argparse.Namespace) -> int:
     return 1 if any(report.decision in {"duplicate", "possible_duplicate"} for report in reports) else 0
 
 
-def _cmd_review(args: argparse.Namespace) -> int:
-    try:
-        permission = "accept" if args.decision == "approve" else "review"
-        _authorize_cli_action(
-            args,
-            actor_id=args.reviewer_id,
-            lifecycle=args.record_kind,
-            permission=permission,
-            reviewer_role=args.role,
-            resource_id=args.record_id,
-        )
-        records = load_records(args.input_path)
-        matches = [index for index, record in enumerate(records) if record.get("id") == args.record_id]
-        if len(matches) != 1:
-            raise ReviewError(f"record ID must match exactly one input record: {args.record_id}")
-        index = matches[0]
-        reviewed = apply_review(
-            records[index],
-            reviewer_id=args.reviewer_id,
-            reviewer_role=args.role,
-            decision=args.decision,
-            notes=args.notes,
-            timestamp=args.timestamp,
-        )
-        report = RuleBasedValidator().validate_record(args.record_kind, reviewed)
-        if not report.valid:
-            print(report.human())
-            return 1
-        records[index] = reviewed
-        write_records(args.output_path, records, overwrite=args.overwrite)
-    except (AccessPolicyError, AccessDenied, RecordIOError, ReviewError) as exc:
-        print(f"ERROR REVIEW_BLOCKED: {exc}")
-        return 1
-    _audit_cli_allowed(args, args.reviewer_id, args.record_kind, permission, args.record_id)
-    print(
-        f"OK: reviewed {args.record_id}; decision={args.decision}; "
-        f"record_status={reviewed['metadata']['review']['status']}; wrote {args.output_path}"
-    )
-    return 0
-
-
 def _cmd_export(args: argparse.Namespace) -> int:
-    try:
-        _authorize_cli_action(
-            args, actor_id=args.actor_id, lifecycle=args.record_kind, permission="export",
-            resource_id=str(args.output_path),
-        )
-    except (AccessPolicyError, AccessDenied) as exc:
-        print(f"ERROR EXPORT_BLOCKED: {exc}")
-        return 1
-    result = _export(args.record_kind, args.input_path, args.output_path, args.overwrite)
-    if result == 0:
-        _audit_cli_allowed(args, args.actor_id, args.record_kind, "export", str(args.output_path))
-    return result
+    return _export(args.record_kind, args.input_path, args.output_path, args.overwrite)
 
 
 def _export(kind: str, input_path: Path, output_path: Path, overwrite: bool) -> int:
@@ -1572,10 +1319,6 @@ def _cmd_contamination(args: argparse.Namespace) -> int:
 def _cmd_freeze(args: argparse.Namespace) -> int:
     manifest_path = args.manifest or Path(str(args.output_path) + ".manifest.json")
     try:
-        _authorize_cli_action(
-            args, actor_id=args.actor_id, lifecycle="benchmark", permission="freeze",
-            resource_id=args.freeze_id,
-        )
         records = load_records(args.input_path)
         dataset = load_records(args.dataset)
         dataset_validation = _validate_loaded_records("dataset", dataset)
@@ -1600,12 +1343,11 @@ def _cmd_freeze(args: argparse.Namespace) -> int:
             frozen_at=args.frozen_at,
             overwrite=args.overwrite,
         )
-    except (AccessPolicyError, AccessDenied, ProviderError, ProviderNotConfigured, OSError, RecordIOError, FreezeError, ValueError) as exc:
+    except (ProviderError, ProviderNotConfigured, OSError, RecordIOError, FreezeError, ValueError) as exc:
         print(f"ERROR FREEZE_BLOCKED: {exc}")
         return 1
     payload = {**manifest, "gold_path": str(args.output_path), "manifest_path": str(manifest_path)}
     _print_payload(payload, args.output)
-    _audit_cli_allowed(args, args.actor_id, "benchmark", "freeze", args.freeze_id)
     return 0
 
 
@@ -1621,13 +1363,9 @@ def _cmd_verify_freeze(args: argparse.Namespace) -> int:
 
 def _cmd_benchmark_run(args: argparse.Namespace) -> int:
     try:
-        _authorize_cli_action(
-            args, actor_id=args.actor_id, lifecycle="benchmark", permission="benchmark_run",
-            resource_id=args.run_id,
-        )
         gold = load_records(args.gold_path)
         predictions = load_records(args.predictions_path)
-    except (AccessPolicyError, AccessDenied, RecordIOError) as exc:
+    except RecordIOError as exc:
         print(f"ERROR RUN_BLOCKED: {exc}")
         return 1
     validation = _validate_loaded_records("benchmark", gold)
@@ -1654,7 +1392,6 @@ def _cmd_benchmark_run(args: argparse.Namespace) -> int:
         print(f"ERROR RUN_BLOCKED: {exc}")
         return 1
     _print_payload({"run_log": str(path), "metrics": metrics}, args.output)
-    _audit_cli_allowed(args, args.actor_id, "benchmark", "benchmark_run", args.run_id)
     return 0
 
 
@@ -1699,54 +1436,6 @@ def _print_payload(payload: dict[str, Any], output: str) -> None:
     for key, value in payload.items():
         rendered = json.dumps(value, ensure_ascii=False, sort_keys=True) if isinstance(value, (dict, list)) else value
         print(f"{key}={rendered}")
-
-
-def _authorize_cli_action(
-    args: argparse.Namespace,
-    *,
-    actor_id: str,
-    lifecycle: str,
-    permission: str,
-    resource_id: str,
-    reviewer_role: str | None = None,
-) -> None:
-    try:
-        AccessPolicy.load(args.policy).authorize(
-            actor_id,
-            lifecycle=lifecycle,
-            permission=permission,
-            reviewer_role=reviewer_role,
-        )
-    except (AccessPolicyError, AccessDenied):
-        try:
-            append_audit_event(
-                args.audit_log,
-                actor_id=actor_id,
-                lifecycle=lifecycle,
-                action=permission,
-                resource_id=resource_id,
-                decision="denied",
-            )
-        except AccessPolicyError:
-            pass
-        raise
-
-
-def _audit_cli_allowed(
-    args: argparse.Namespace,
-    actor_id: str,
-    lifecycle: str,
-    permission: str,
-    resource_id: str,
-) -> None:
-    append_audit_event(
-        args.audit_log,
-        actor_id=actor_id,
-        lifecycle=lifecycle,
-        action=permission,
-        resource_id=resource_id,
-        decision="allowed",
-    )
 
 
 def _semantic_similarity(args: argparse.Namespace):

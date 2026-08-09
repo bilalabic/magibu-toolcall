@@ -171,16 +171,12 @@ def test_job_blocks_when_input_changes_after_plan(tmp_path: Path) -> None:
 
 
 def test_batch_cli_plans_reports_and_runs_validated_candidate_job(
-    tmp_path: Path, capsys, access_files, monkeypatch,
+    tmp_path: Path, capsys, monkeypatch,
 ) -> None:
     root = Path(__file__).resolve().parents[2]
     blueprint = root / "tests" / "fixtures" / "blueprints" / "valid" / "no_tool.json"
     manifest = tmp_path / "job.json"
     output = tmp_path / "candidates.jsonl"
-    access = [
-        "--actor-id", "dataset_operator_01", "--policy", access_files["policy"],
-        "--audit-log", access_files["audit"],
-    ]
     assert main([
         "dataset", "batch", "plan", str(blueprint), str(manifest),
         "--job-id", "dataset-generation-020",
@@ -192,7 +188,6 @@ def test_batch_cli_plans_reports_and_runs_validated_candidate_job(
         "--source-type", "original_turkish",
         "--start-number", "20",
         "--timestamp", "2026-08-06T00:00:00+00:00",
-        *access,
     ]) == 0
     capsys.readouterr()
     assert main(["dataset", "batch", "status", str(manifest), "--output", "json"]) == 0
@@ -215,7 +210,7 @@ def test_batch_cli_plans_reports_and_runs_validated_candidate_job(
             )
 
     monkeypatch.setattr("tool_call_tr.cli.DeepSeekIntegration.from_settings", lambda settings: FakeProvider())
-    assert main(["dataset", "batch", "run", str(manifest), "--execute-live", *access]) == 0
+    assert main(["dataset", "batch", "run", str(manifest), "--execute-live"]) == 0
     result = json.loads(capsys.readouterr().out)
     assert result["status"] == "completed"
     assert result["provider_budget_accounted_tokens"] < 5000
@@ -228,7 +223,7 @@ def test_batch_cli_plans_reports_and_runs_validated_candidate_job(
 
 
 def test_normal_dataset_generation_plans_paths_and_sanitizes_provider_quality_claims(
-    tmp_path: Path, capsys, access_files, monkeypatch,
+    tmp_path: Path, capsys, monkeypatch,
 ) -> None:
     root = Path(__file__).resolve().parents[2]
     blueprint = root / "tests" / "fixtures" / "blueprints" / "valid" / "no_tool.json"
@@ -251,10 +246,6 @@ def test_normal_dataset_generation_plans_paths_and_sanitizes_provider_quality_cl
 
     monkeypatch.setattr("tool_call_tr.cli.DeepSeekIntegration.from_settings", lambda settings: FakeProvider())
     monkeypatch.setattr("tool_call_tr.cli.dataset_record_paths", lambda project_root: [])
-    access = [
-        "--actor-id", "dataset_operator_01", "--policy", access_files["policy"],
-        "--audit-log", access_files["audit"],
-    ]
     assert main([
         "dataset", "generate", str(blueprint),
         "--job-id", "dataset-pilot-001",
@@ -262,7 +253,6 @@ def test_normal_dataset_generation_plans_paths_and_sanitizes_provider_quality_cl
         "--output", str(output),
         "--timestamp", "2026-08-07T00:00:00+00:00",
         "--execute-live",
-        *access,
     ]) == 0
     result = json.loads(capsys.readouterr().out)
     assert result["job_id"] == "dataset-pilot-001"
@@ -274,7 +264,6 @@ def test_normal_dataset_generation_plans_paths_and_sanitizes_provider_quality_cl
     generated = json.loads(output.read_text(encoding="utf-8"))
     assert generated["id"] == "tctr_ot_000001"
     assert generated["metadata"]["review"]["status"] == "needs_revision"
-    assert generated["metadata"]["review"]["reviewer_ids"] == []
     assert generated["metadata"]["validation"]["language"] == "not_run"
     assert generated["metadata"]["validation"]["duplicate"] == "not_run"
     assert generated["metadata"]["provenance"]["generator_model"] == "fixture-model"
@@ -282,7 +271,7 @@ def test_normal_dataset_generation_plans_paths_and_sanitizes_provider_quality_cl
 
 
 def test_normal_generation_falls_back_to_pro_and_records_provenance(
-    tmp_path: Path, capsys, access_files, monkeypatch,
+    tmp_path: Path, capsys, monkeypatch,
 ) -> None:
     root = Path(__file__).resolve().parents[2]
     blueprint = root / "tests" / "fixtures" / "blueprints" / "valid" / "no_tool.json"
@@ -319,10 +308,6 @@ def test_normal_generation_falls_back_to_pro_and_records_provenance(
     monkeypatch.setattr("tool_call_tr.cli.DeepSeekIntegration.from_settings", lambda settings: flash)
     monkeypatch.setattr("tool_call_tr.cli._deepseek_fallback_provider", lambda settings, primary: pro)
     monkeypatch.setattr("tool_call_tr.cli.dataset_record_paths", lambda project_root: [])
-    access = [
-        "--actor-id", "dataset_operator_01", "--policy", access_files["policy"],
-        "--audit-log", access_files["audit"],
-    ]
     assert main([
         "dataset", "generate", str(blueprint),
         "--job-id", "dataset-fallback-001",
@@ -330,7 +315,6 @@ def test_normal_generation_falls_back_to_pro_and_records_provenance(
         "--output", str(output),
         "--timestamp", "2026-08-07T00:00:00+00:00",
         "--execute-live",
-        *access,
     ]) == 0
     result = json.loads(capsys.readouterr().out)
     assert result["provider_fallbacks_used"] == 1

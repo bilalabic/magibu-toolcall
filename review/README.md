@@ -1,17 +1,21 @@
-# İnceleme kararları
+# Kalite kanıtları
 
-Dataset ve benchmark inceleme kararları birbirinden ayrı tutulur:
+Bu klasör otomatik kalite raporları ve incelemeyi destekleyen kanıtlar içindir.
+Reviewer kimliği, rolü veya giriş bilgisi burada tutulmaz.
 
-- `dataset/`: `tctr_*` kayıtlarına ait dil ve teknik inceleme kararları.
-- `benchmark/`: `bench_*` kayıtlarına ait bağımsız gold inceleme kararları.
+İnsan incelemesi GitHub pull request üzerinden yürütülür:
 
-İnceleme kararları CLI ile uygulanırken giriş kaydı doğrudan değiştirilmez; açıkça
-belirtilen yeni bir çıktı dosyası oluşturulur.
+1. Katkı ayrı bir branch üzerinde hazırlanır.
+2. `dataset validate`, kalite kontrolleri ve GitHub Actions doğrulaması çalışır.
+3. Reviewer Türkçe, tool seçimi, argümanlar, sonuç grounding'i, provenance,
+   lisans ve güvenlik kontrollerini PR üzerinde yapar.
+4. Gerekli düzeltmeler aynı PR'a eklenir.
+5. Zorunlu kontrol ve PR onayı tamamlanınca değişiklik `main` branch'ine alınır.
 
-Üretim CLI komutları reviewer/operator kimliğini access-policy dosyasından
-doğrular. Dataset principal’ı benchmark kapsamında işlem yapamaz. Başarılı ve
-engellenen yetkilendirme kararları ilgili lifecycle altında JSONL audit kaydına
-yazılır; her olay önceki olayın SHA-256 değerini içerir. Zincir
-`magibu-toolcall access verify-audit` ile doğrulanır. Bu uygulama kontrolü,
-benchmark klasörleri için işletim sistemi veya nesne depolama ACL’inin yerine
-geçmez.
+Kayıttaki `review.status` yalnız yaşam döngüsü etiketidir. Güvenilir reviewer
+kimliği ve karar geçmişinin kaynağı GitHub PR geçmişidir. CLI kullanıcı hesabı,
+reviewer rolü, access-policy dosyası veya ayrı audit girişi istemez.
+
+Repository ayarlarında `main` için branch protection etkinleştirilmeli; pull
+request, en az bir onay, güncel branch ve `validate` durum kontrolü zorunlu
+olmalıdır. Eski onayların yeni commit geldiğinde düşürülmesi önerilir.

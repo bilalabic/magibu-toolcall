@@ -13,13 +13,18 @@
 6. Execute only through the recorded environment. Any real-to-mock change must be
    explicit in transformation history; never use live changing benchmark gold.
 7. Run duplicate/provenance checks and semantic/Turkish quality review.
-8. Assign a language or technical reviewer. Contributors cannot finally approve
-   their own records; multi-tool/sequential/marked records need both perspectives.
+8. Open a GitHub pull request. Reviewers inspect language, technical correctness,
+   provenance, and quality evidence in GitHub. Apply stricter review ownership for
+   multi-tool, sequential, or other high-risk records through CODEOWNERS/rulesets.
 9. Export through `dataset export` or `benchmark export`; do not copy files
    manually into a release.
 10. Compare accepted benchmark candidates against the accepted dataset with
     `benchmark contamination-check`, then freeze gold with a checksum manifest.
 11. Store model predictions under `runs/`, never back into benchmark gold.
+
+The CLI has no reviewer login or role system. GitHub retains reviewer identity,
+discussion, timestamps, approvals, and change requests; records retain only the
+resulting review status and notes.
 
 Machine identifiers, function names, parameter keys, enum values, call IDs, and
 structured result fields stay unchanged and English where specified. Natural

@@ -1,37 +1,39 @@
 # Review guide
 
-Overall statuses are `needs_revision`, `accepted`, and `rejected`. Reviewer
-decisions are separately recorded as `approve`, `needs_revision`, or `reject`.
-Every event records reviewer ID, perspective (`language` or `technical`),
-decision, previous/computed overall status, notes, and timestamp.
+Human approval is performed through protected GitHub pull requests. The CLI has
+no reviewer login, user directory, role assignment, access-policy file, or
+review-decision command.
 
-Language review checks natural Turkish, realistic expression, inflection,
-localization, repetition, and whether the final answer completes the request.
-Technical review checks category priority, tool choice, schemas, arguments,
-call/result linkage, execution evidence, grounding, provenance, and duplicates.
+Record statuses remain `needs_revision`, `accepted`, and `rejected`, but these
+are lifecycle labels rather than authenticated reviewer events. GitHub is the
+authoritative source for reviewer identity, approval, requested changes, and
+history.
 
-Before human review, the production quality run must include the OpenAI primary
-judge and, when enabled for the run, escalation evidence. The model rubric
-covers language naturalness, tool necessity/selection, argument grounding,
-clarification, result grounding, and Turkey-specific realism. Any non-pass,
-budget exhaustion, provider failure, or primary/escalation disagreement blocks
-acceptance. Model evidence informs reviewers but never counts as a reviewer
-identity or decision.
+Before requesting review:
 
-A contributor cannot approve their own record. Language approval sets the
-language validation gate to passed. The overall record becomes accepted only
-when all automatic gates are complete and the required reviewer perspectives
-have approved. Multi-tool, sequential, and explicitly marked records require
-two distinct reviewers and both perspectives. Production sampling rules
-(including the later 20–25% second review sample) remain a team decision. An
-accepted record with deterministic errors or incomplete validation is blocked
-at export.
+1. Run the deterministic schema, registry, execution, duplicate, and provenance
+   checks that apply to the change.
+2. Run the production OpenAI quality judge when the production workflow
+   requires it. Model evidence informs the reviewer but never counts as human
+   approval.
+3. Keep incomplete records at `needs_revision`. An `accepted` record must have
+   no validation stage marked `failed` or `not_run`.
+4. Open a pull request using the repository template and include the generated
+   quality report when applicable.
 
-Production CLI generation/quality/review/export/freeze/run operations require
-an access-policy principal. The principal must be active, scoped to the
-lifecycle, hold the required permission, and hold the reviewer role matching
-the declared review perspective. Real API quality execution additionally needs
-platform scope and `real_api` permission. Dataset and benchmark team membership
-can be mutually exclusive. Authorization decisions are appended to a SHA-256
-hash-chained audit JSONL. This application policy complements rather than
-replaces filesystem/storage ACLs.
+The PR reviewer checks natural Turkish, realistic localization, category and
+tool choice, arguments, call/result linkage, execution evidence, grounding,
+provenance, licensing, duplicates, safety, and side effects. Requested changes
+are made on the same branch so GitHub retains the complete discussion.
+
+Recommended `main` branch protection:
+
+- require a pull request before merging;
+- require at least one approval;
+- dismiss stale approvals when new commits are pushed;
+- require the `validate` status check and an up-to-date branch;
+- block force pushes and deletion.
+
+High-risk, stateful, multi-tool, or license-sensitive changes can request an
+additional reviewer in the PR without introducing application-level roles.
+CODEOWNERS may be added later when stable GitHub usernames are known.

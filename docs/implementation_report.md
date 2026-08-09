@@ -29,7 +29,7 @@ The deterministic flows are parallel and independent:
 shared registry/schema/category infrastructure
   -> dataset candidate -> automatic quality evidence -> human review
      -> accepted training data
-  -> benchmark candidate -> benchmark review -> contamination gate
+  -> benchmark candidate -> independent GitHub PR review -> contamination gate
      -> frozen gold + checksum manifest -> isolated run logs
 ```
 
@@ -37,8 +37,9 @@ Dataset records remain under `data/dataset`; benchmark candidates and frozen gol
 remain under `data/benchmark`; predictions and evaluation output belong under
 `runs/<model_name>/<run_id>.jsonl`. Adapters route only to the
 requested execution type. Quality reports preserve execution and duplicate
-evidence. Review events distinguish reviewer decisions from computed overall
-status, and accepted export revalidates records.
+evidence. GitHub pull requests preserve reviewer identity, discussion, and
+approval history; records keep only lifecycle status and accepted export
+revalidates them.
 
 ## 3. Implemented components
 
@@ -46,8 +47,8 @@ status, and accepted export revalidates records.
   `configs/default.json`, `src/tool_call_tr/config.py`, `logging.py`, `cli.py`.
 - Schemas: `schemas/common.schema.json`, `dataset.schema.json`,
   `benchmark.schema.json`, `tool_registry.schema.json`, and
-  `scenario_blueprint.schema.json`, plus source-work-item, job-manifest, and
-  access-policy schemas.
+  `scenario_blueprint.schema.json`, plus source-work-item and job-manifest
+  schemas.
 - Schema engine and diagnostics: `src/tool_call_tr/schemas/` and `validation/`.
 - Registry and clearly marked demo fixtures: `src/tool_call_tr/registry.py`,
   `registry/registry.jsonl`, and `registry/fixtures/`.
@@ -66,9 +67,8 @@ status, and accepted export revalidates records.
   validation, bounded concurrency, provider token budgets, atomic parts,
   checkpoints, and error queues:
   `batch.py` and the dataset/benchmark CLI namespaces.
-- Active principals, role/scope/permission checks, dataset/benchmark team
-  isolation, and hash-chained audit events: `access.py` and the access-policy
-  gates in the CLI.
+- Pull-request review conventions, a Turkish PR template, and automatic PR
+  validation workflow; reviewer identity and approvals are owned by GitHub.
 - Final-response methods, conflict/grounding hooks, provider protocols/mocks,
   retries, and configuration gates: `generation/`.
 - Exact/five-point evaluation, category metrics, semantic hook, and isolated run
@@ -77,7 +77,7 @@ status, and accepted export revalidates records.
   freeze/verification, lifecycle reports, and generalized run orchestration:
   `cli.py`, `contamination.py`, `freeze.py`, `reporting.py`, and
   `evaluation/runner.py`.
-- Review transitions and accepted-only export: `review.py`.
+- Validated accepted-only export after GitHub PR approval: `review.py`.
 - Valid/invalid schema/category/evaluator fixtures and unit/integration tests:
   `tests/fixtures`, `tests/unit`, and `tests/integration`.
 - Contributor, proposal, blueprint, validation, execution, review, versioning,
@@ -96,11 +96,11 @@ API is thereby approved.
 ### 20–30-example pilot
 
 Actual pilot blueprints/candidates, live provider calls, threshold/rubric
-calibration, contributor ranges, reviewer assignments, and pilot-driven
+calibration, contributor ranges, GitHub rulesets/CODEOWNERS, and pilot-driven
 schema/validator revisions are deferred. Pinned model defaults, ignored local
 `.env` loading, redacted config diagnostics, provider usage evidence, and quota
 guards are implemented. Dataset and benchmark
-ownership, directories, CLI namespaces, policy scopes, batch manifests, and
+ownership, directories, CLI namespaces, pull-request conventions, batch manifests, and
 contamination/freeze gates are structurally isolated; real staff assignments and
 storage ACLs remain deferred.
 
@@ -135,18 +135,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\verify.ps1
 .venv\Scripts\python.exe -m pip check
 ```
 
-The final suite passes 156 tests, including the original deterministic flow and
+The final suite passes 181 tests, including the original deterministic flow and
 an independent parallel dataset/benchmark lifecycle flow. Added tests cover
 actual xLAM/When2Call shapes, machine-safe localization, source terms gates,
 DeepSeek/OpenAI request parsing, strict judge rubrics, primary/escalation
 disagreement, token-budget exhaustion, unique-text embedding batches, compact
 duplicate findings, embedding cache/cosine behavior, HTTPS allowlist
-and normalized statuses, access scopes/roles/permissions/audit tamper detection,
+and normalized statuses, GitHub PR lifecycle and accepted-export behavior,
 streaming shard plans, checksum/ID/distribution gates, interruption/resume,
 failure queues, dataset/benchmark batch CLI flows, normal dataset job planning,
 active-source enforcement, provider quality-claim sanitization, automatic
-execution/result evidence, duplicate/semantic gate state, and computed reviewer
-acceptance.
+execution/result evidence, duplicate/semantic gate state, and accepted-record
+validation.
 The verification script also validates all three registry JSONL records and the
 complete dataset fixture. Compilation succeeds and pip reports no broken
 requirements. Final failures: 0. Remaining warnings: 0.
@@ -175,20 +175,20 @@ verification.
 
 Production infrastructure now includes semantic embedding similarity, DeepSeek
 structured generation, primary/escalation OpenAI dataset judging, read-only real
-API execution, source import/localization, access policy, and resumable bounded
+API execution, source import/localization, GitHub PR review conventions, and resumable bounded
 scale controls. Partially implemented by deliberate scope: benchmark free-text
 response judging, state-changing external sandboxes, and production final-answer
 generation. Execution of volume targets
 and final publications is deferred. External decisions remain: approved
-tools/licenses, model versions/thresholds, reviewer IDs, storage ACLs, and
+tools/licenses, model versions/thresholds, GitHub rulesets/CODEOWNERS, storage ACLs, and
 budgets. The row-level matrix is in
 `requirement_traceability.md`.
 
 ## 7. Next safe step
 
 Before generating data, research and team-approve a small diverse tool subset,
-freeze the next `0.1.x` registry revision, create the real access-policy
-principal directory plus storage ACLs, then author and validate a 30-record
+freeze the next `0.1.x` registry revision, configure GitHub branch protection,
+CODEOWNERS where appropriate, and storage ACLs, then author and validate a 30-record
 `original_turkish`/`turkey_native` blueprint pilot. Confirm local credentials via
 redacted config output, run with conservative concurrency/budgets, reconcile
 provider usage, calibrate rubric/thresholds against real reviewers, then progress
