@@ -243,6 +243,7 @@ def _validate_language_plan(
             language_plan,
             multi_turn=blueprint["metadata"]["main_category"] == "multi_turn",
             requires_clarification="clarification" in blueprint["metadata"]["secondary_tags"],
+            allow_internal_markers="internal_marker_topic" in blueprint["metadata"]["secondary_tags"],
         )
     except LanguagePlanValidationError as exc:
         raise DatasetWorkflowError(str(exc)) from exc

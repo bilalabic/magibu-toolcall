@@ -2,6 +2,6 @@
   "fixture_id": "calendar.create_event.confirmed",
   "function_name": "calendar_create_event",
   "arguments": {"title": "Pilot sonuçlarını değerlendir", "start_datetime": "2026-08-12T14:00:00+03:00", "end_datetime": "2026-08-12T14:30:00+03:00", "confirmed": true},
-  "result": {"event_id": "SYN-EVENT-002", "status": "created"},
+  "result": {"event_id": "EVT-CALENDAR-002", "status": "created"},
   "provenance": "Synthetic state-change fixture; no external calendar write occurs."
 }

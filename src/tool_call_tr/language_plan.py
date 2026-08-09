@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from tool_call_tr.text_quality import contains_unexpected_script
+from tool_call_tr.text_quality import contains_unexpected_script, find_internal_operation_markers
 
 
 class LanguagePlanValidationError(ValueError):
@@ -20,6 +20,7 @@ def validate_language_plan(
     *,
     multi_turn: bool,
     requires_clarification: bool = False,
+    allow_internal_markers: bool = False,
 ) -> tuple[list[str], str | None, str]:
     if not isinstance(language_plan, dict) or set(language_plan) != {
         "user_messages", "intermediate_assistant_response", "final_response"
@@ -65,4 +66,9 @@ def validate_language_plan(
         raise LanguagePlanValidationError("provider language plan contains a raw ISO timestamp")
     if any("**" in text or "`" in text for text in natural_text):
         raise LanguagePlanValidationError("provider language plan contains markdown formatting")
+    leaked_markers = sorted({marker for text in natural_text for marker in find_internal_operation_markers(text)})
+    if leaked_markers and not allow_internal_markers:
+        raise LanguagePlanValidationError(
+            "provider language plan exposes internal operation markers: " + ", ".join(leaked_markers)
+        )
     return user_messages, intermediate_response, final_response

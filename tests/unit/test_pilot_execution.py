@@ -164,7 +164,7 @@ def test_synthetic_calendar_requires_confirmation_and_resets() -> None:
         ExecutionType.FULLY_SIMULATED,
     ))
     assert created.status == ExecutionStatus.PASSED
-    assert created.data == {"event_id": "SYN-EVENT-002", "status": "created"}
+    assert created.data == {"event_id": "EVT-CALENDAR-002", "status": "created"}
 
     listed = engine.execute(ExecutionRequest(
         "list",
@@ -175,7 +175,7 @@ def test_synthetic_calendar_requires_confirmation_and_resets() -> None:
         },
         ExecutionType.FULLY_SIMULATED,
     ))
-    assert [event["event_id"] for event in listed.data["events"]] == ["SYN-EVENT-002"]
+    assert [event["event_id"] for event in listed.data["events"]] == ["EVT-CALENDAR-002"]
 
     adapter.reset()
     listed_after_reset = engine.execute(ExecutionRequest(

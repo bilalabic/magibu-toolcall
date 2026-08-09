@@ -1,7 +1,7 @@
 {
   "fixture_id": "parcel.status.synthetic",
   "function_name": "parcel_get_status",
-  "arguments": {"tracking_id": "SYN-AB12CD34"},
-  "result": {"tracking_id": "SYN-AB12CD34", "status": "in_transit", "events": [{"status": "accepted", "occurred_at": "2026-08-06T10:00:00+03:00", "location": "Sentetik Kabul Merkezi"}, {"status": "in_transit", "occurred_at": "2026-08-07T02:15:00+03:00", "location": "Sentetik Transfer Merkezi"}], "synthetic": true},
+  "arguments": {"tracking_id": "MGB-AB12CD34"},
+  "result": {"tracking_id": "MGB-AB12CD34", "status": "in_transit", "events": [{"status": "accepted", "occurred_at": "2026-08-06T10:00:00+03:00", "location": "Kabul Merkezi"}, {"status": "in_transit", "occurred_at": "2026-08-07T02:15:00+03:00", "location": "Transfer Merkezi"}]},
   "provenance": "Fully synthetic parcel lifecycle; no real shipment or customer data."
 }

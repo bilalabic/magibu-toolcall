@@ -74,6 +74,7 @@ doğrulanır. Böylece model üretimi ile kanonik kayıt yapısı birbirinden ay
 - Checkpoint, shard, hata kuyruğu ve kaldığı yerden devam edebilme
 - Blueprint ve registry checksum’larını manifestte sabitleme
 - Model çıktısındaki güvenilmez kabul veya kalite iddialarını temizleme
+- İç yürütme ve provenance etiketlerinin doğal kullanıcı/asistan metnine sızmasını engelleme
 
 ### Otomatik kalite
 
@@ -82,6 +83,7 @@ doğrulanır. Böylece model üretimi ile kanonik kayıt yapısı birbirinden ay
 - Birincil mini ve gerektiğinde tam modelle kalite değerlendirmesi
 - Model anlaşmazlığında kaydı otomatik olarak bloke eden escalation akışı
 - Han/Çince karakter, `<think>`, ham ISO zaman ve Markdown sızıntısı korumaları
+- `sentetik`, `mock`, `fixture` ve benzeri iç operasyon etiketleri için deterministik sızıntı kapısı
 
 ### Yürütme
 
@@ -109,7 +111,7 @@ Mevcut pilot yalnızca bir demo değildir; aynı üretim ve kalite hattının k�
 | Proposal tool sayısı | 20 |
 | Pilot blueprint sayısı | 30 |
 | Genel Türkçe / Türkiye-native dağılımı | 15 / 15 |
-| Otomatik test | 181/181 |
+| Otomatik test | 192/192 |
 | Genel dataset kalite geçişi | 15/15 |
 | Türkiye-native kalite geçişi | 14/15 |
 

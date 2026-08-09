@@ -128,6 +128,51 @@ def test_language_plan_rejects_machine_style_natural_text(final_response: str, m
         )
 
 
+@pytest.mark.parametrize(
+    "marker",
+    [
+        "sentetik",
+        "synthetic",
+        "mock",
+        "fixture",
+        "fikstür",
+        "fully_simulated",
+        "simulated",
+        "simüle",
+        "simülasyon",
+    ],
+)
+def test_language_plan_rejects_internal_operation_markers(marker: str) -> None:
+    blueprint = load(ROOT / "tests" / "fixtures" / "blueprints" / "valid" / "no_tool.json")
+    with pytest.raises(DatasetWorkflowError, match="internal operation markers"):
+        build_candidate_from_language_plan(
+            {
+                "user_messages": ["Merhaba"],
+                "intermediate_assistant_response": None,
+                "final_response": f"Bu bir {marker} kaydıdır.",
+            },
+            blueprint=blueprint,
+            record_id="tctr_ot_000001",
+            registry=ToolRegistry.load(),
+        )
+
+
+def test_language_plan_allows_explicit_internal_marker_topic() -> None:
+    blueprint = load(ROOT / "tests" / "fixtures" / "blueprints" / "valid" / "no_tool.json")
+    blueprint["metadata"]["secondary_tags"].append("internal_marker_topic")
+    candidate = build_candidate_from_language_plan(
+        {
+            "user_messages": ["Sentetik veri nedir?"],
+            "intermediate_assistant_response": None,
+            "final_response": "Sentetik veri, gerçek kayıtların özelliklerini taklit eden yapay veridir.",
+        },
+        blueprint=blueprint,
+        record_id="tctr_ot_000001",
+        registry=ToolRegistry.load(),
+    )
+    assert candidate["metadata"]["secondary_tags"][-1] == "internal_marker_topic"
+
+
 def test_provider_cannot_self_certify_quality_or_human_review() -> None:
     blueprint = load(ROOT / "tests" / "fixtures" / "blueprints" / "valid" / "single_tool.json")
     candidate = load(ROOT / "tests" / "fixtures" / "dataset" / "valid_single_tool.json")

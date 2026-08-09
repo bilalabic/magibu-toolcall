@@ -69,6 +69,8 @@ def test_deepseek_language_plan_uses_bounded_non_thinking_json_contract() -> Non
     assert request["max_tokens"] == 1600
     assert "Example JSON output" in request["messages"][0]["content"]
     assert "exactly 1 non-empty" in request["messages"][0]["content"]
+    assert "Treat execution modes, fixtures, provenance" in request["messages"][0]["content"]
+    assert "internal_marker_topic" in request["messages"][0]["content"]
 
 
 def test_deepseek_language_plan_rejects_missing_multi_turn_response() -> None:

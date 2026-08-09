@@ -355,6 +355,16 @@ daha denenir. Birincil ve fallback çağrılarının bütçesi ayrı hesaplanır
 provenance'a yazılır. Fallback de başarısızsa kayıt hata kuyruğuna gider.
 OpenAI kalite kapısından geçmeyen hiçbir kayıt otomatik kabul edilmez.
 
+Yürütme türü, fixture kimliği, provenance, kaynak kimliği ve veri sürümü gibi
+alanlar iç operasyon bilgisidir; doğal kullanıcı veya asistan cümlesi değildir.
+DeepSeek promptu bu etiketleri doğal dile taşımamasını açıkça ister. Aynı kural
+model yanıtından sonra deterministik olarak yeniden denetlenir; `sentetik`,
+`synthetic`, `mock`, `fixture`, `fikstür`, `simulation` ve `simülasyon` sızıntısı
+kaydı retry/fallback akışına gönderir. Bu kavramların gerçekten konuşulduğu bir
+senaryo ancak blueprint'te `internal_marker_topic` etiketiyle açıkça işaretlenirse
+istisna oluşturur. Sistem provenance gerçeğini silmez; onu eğitim diyaloğundan
+ayrı, yapılandırılmış metadata ve fixture provenance alanlarında korur.
+
 Modelin döndürdüğü `accepted`, reviewer veya validation beyanları güvenilir kabul
 edilmez. CLI bunları kanıta dayalı draft durumuna çevirir:
 

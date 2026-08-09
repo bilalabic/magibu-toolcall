@@ -11,7 +11,7 @@
         "parallel_tool", "sequential_tool", "tool_failure", "tool_unavailable",
         "user_correction", "self_correction", "context_retention", "clarification",
         "direct_answer", "confirmation_required", "localized", "similar_tools",
-        "implicit_parameter", "empty_result", "invalid_result"
+        "implicit_parameter", "empty_result", "invalid_result", "internal_marker_topic"
       ]
     },
     "source_type": {

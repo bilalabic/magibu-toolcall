@@ -117,6 +117,21 @@ def test_category_final_method_execution_and_review_rules() -> None:
     assert "REVIEW_ACCEPTED_BEFORE_VALIDATION" in codes(validate.validate_record("dataset", record))
 
 
+def test_internal_operation_markers_are_blocked_in_natural_text_and_blueprints() -> None:
+    validate = validator()
+    record = load(FIXTURES / "dataset" / "valid_single_tool.json")
+    record["metadata"]["review"]["status"] = "needs_revision"
+    record["messages"][-1]["content"] = "Bu sonuç sentetik fixture üzerinden hazırlandı."
+    assert "NATURAL_TEXT_INTERNAL_MARKER" in codes(validate.validate_record("dataset", record))
+
+    blueprint = load(FIXTURES / "blueprints" / "valid" / "no_tool.json")
+    blueprint["user_goal"] = "Sentetik bir fixture hakkında bilgi istemek"
+    assert "BLUEPRINT_INTERNAL_MARKER" in codes(validate.validate_record("blueprint", blueprint))
+
+    blueprint["metadata"]["secondary_tags"].append("internal_marker_topic")
+    assert "BLUEPRINT_INTERNAL_MARKER" not in codes(validate.validate_record("blueprint", blueprint))
+
+
 def test_benchmark_decision_and_expected_arguments() -> None:
     validate = validator()
     record = load(FIXTURES / "benchmark" / "valid_tool_call.json")

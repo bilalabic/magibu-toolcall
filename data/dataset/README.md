@@ -39,6 +39,13 @@ fixture-origin alanı otomatik yakalama hattıyla birlikte eklenebilir. Canlı v
 zamanla değişen API yanıtları geçmiş dataset kaydını yeniden doğrulamak için
 kullanılmaz.
 
+Bu köken bilgisi kullanıcı ve asistan mesajlarına otomatik olarak yazılmaz.
+Yürütme türleri ile `sentetik`, `mock` ve `fixture` gibi operasyon etiketleri
+yapılandırılmış metadata/provenance alanlarında tutulur. Blueprint ve üretilmiş
+kayıt doğrulayıcıları bu etiketlerin doğal metne sızmasını reddeder. Yalnızca
+kavramın kendisini konu alan senaryolar `internal_marker_topic` etiketiyle bilinçli
+olarak bu kuraldan muaf tutulabilir.
+
 1000 kayıt tek kontrolsüz çağrı olarak çalıştırılmaz. Önce 30, sonra 100 ve 250
 kayıtlık kapılar geçilir; tam üretim dört adet 250 kayıtlık run olarak yürütülür.
 Her run ayrı manifest, checkpoint, hata dosyası, token bütçesi ve kalite raporu

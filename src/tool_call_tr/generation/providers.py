@@ -229,6 +229,7 @@ class DeepSeekIntegration:
 
     def generate_language_plan(self, blueprint: dict[str, Any]) -> ProviderResponse:
         user_message_count = 2 if blueprint["metadata"]["main_category"] == "multi_turn" else 1
+        allow_internal_markers = "internal_marker_topic" in blueprint["metadata"].get("secondary_tags", [])
         intermediate_rule = (
             "a Turkish clarification question containing '?' that does not assume details only supplied by the second user message"
             if user_message_count == 2
@@ -262,6 +263,12 @@ class DeepSeekIntegration:
                 "must be grounded in expected_tool_result or the user's messages. Translate machine enum values into "
                 "natural Turkish and render ISO timestamps as natural Turkish dates and times. Include relevant result "
                 "context such as event locations when the blueprint asks for it. Use natural Turkey Turkish only. "
+                "Treat execution modes, fixtures, provenance, source IDs and data-version labels as internal metadata. "
+                "Unless metadata.secondary_tags contains internal_marker_topic, never mention sentetik, synthetic, "
+                "mock, fixture, fikstür, simulated, simulation, simüle, simülasyon or fully_simulated in any "
+                "natural-language field, and "
+                "do not verbalize machine-only source or data_version values. State a user-relevant freshness or live-data "
+                "limitation naturally only when it is required by expected_final_behavior or must_avoid. "
                 "Do not emit Chinese Han characters, reasoning text, <think> tags, markdown, machine metadata, tool calls, "
                 f"or tool results. Example JSON output: {example}"
             ),
@@ -277,6 +284,7 @@ class DeepSeekIntegration:
                 requires_clarification=(
                     "clarification" in blueprint["metadata"].get("secondary_tags", [])
                 ),
+                allow_internal_markers=allow_internal_markers,
             )
         except (KeyError, TypeError, LanguagePlanValidationError) as exc:
             reason = str(exc) if isinstance(exc, LanguagePlanValidationError) else "invalid blueprint context"

@@ -2,6 +2,6 @@
   "fixture_id": "air_quality.current.istanbul",
   "function_name": "air_quality_get_current",
   "arguments": {"latitude": 41.0082, "longitude": 28.9784},
-  "result": {"latitude": 41.0082, "longitude": 28.9784, "pm2_5": 14.2, "pm10": 28.6, "european_aqi": 42, "observed_at": "2026-08-07T09:00:00+03:00", "source": "synthetic_pilot_fixture"},
+  "result": {"latitude": 41.0082, "longitude": 28.9784, "pm2_5": 14.2, "pm10": 28.6, "european_aqi": 42, "observed_at": "2026-08-07T09:00:00+03:00", "source": "pilot_snapshot_v1"},
   "provenance": "Synthetic air-quality-shaped fixture; not a live environmental measurement."
 }
