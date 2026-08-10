@@ -1,7 +1,0 @@
-{
-  "fixture_id": "calendar.synthetic.seed",
-  "function_name": "calendar_list_events",
-  "arguments": {"start_datetime": "2026-08-10T00:00:00+03:00", "end_datetime": "2026-08-11T00:00:00+03:00"},
-  "result": {"events": [{"event_id": "EVT-CALENDAR-001", "title": "Proje değerlendirme toplantısı", "start_datetime": "2026-08-10T10:00:00+03:00", "end_datetime": "2026-08-10T10:45:00+03:00", "location": "Toplantı odası A"}]},
-  "provenance": "Synthetic calendar fixture with no real people, accounts, locations, or meeting links."
-}

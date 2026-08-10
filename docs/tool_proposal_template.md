@@ -1,7 +1,7 @@
 # Tool proposal template
 
 Use this worksheet before adding a new entry to
-`registry/proposals/pilot_candidates.jsonl`. It gathers the human research needed
+`registry/proposals/registry.jsonl`. It gathers the human research needed
 to write a machine-valid registry record; it does not replace
 `schemas/tool_registry.schema.json`.
 

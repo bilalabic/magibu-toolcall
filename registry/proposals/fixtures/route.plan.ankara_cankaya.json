@@ -1,7 +1,0 @@
-{
-  "fixture_id": "route.plan.ankara_cankaya",
-  "function_name": "route_plan",
-  "arguments": {"origin_place_id": "GEO-TR-ANKARA-GARI-01", "destination_place_id": "GEO-TR-CANKAYA-BELEDIYESI-01", "travel_mode": "driving"},
-  "result": {"distance_meters": 6200, "duration_seconds": 960, "route_summary": ["Başlangıç noktasından güneye ilerle", "Çankaya yönündeki ana yola bağlan", "Hedefe ulaş"], "data_version": "pilot-snapshot-v1"},
-  "provenance": "Synthetic route fixture; not computed from live or frozen OSM routing data."
-}

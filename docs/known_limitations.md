@@ -1,17 +1,17 @@
 # Current limitations
 
-- The repository contains production-shaped infrastructure and pilot assets, not
-  a completed or published 1,000-record dataset.
-- All 20 proposal tools are still `candidate`. A proposal is not evidence that a
-  live API, license, quota, or long-term access has been approved.
+- The repository contains production-shaped infrastructure, not a completed or
+  published 1,000-record dataset. No active proposal tool or production
+  blueprint is currently committed.
+- A future `candidate` proposal will not by itself prove that a live API,
+  license, quota, or long-term access has been approved.
 - Standalone `dataset validate` and `benchmark validate` use the canonical
   registry and do not accept a registry override. Proposal-backed drafts are
   validated inside `dataset generate` and `dataset quality --registry ...`;
   accepted records must resolve against the canonical registry used by CI.
-- The pilot execution mix is 4 local tools, 14 fixture-backed mock tools, and 2
-  stateful simulations. This is suitable for pipeline verification but not
-  enough source diversity for the target dataset. A fixture may be synthetic or
-  an approved frozen snapshot; its provenance must say which.
+- The canonical registry has three `demo` tools for infrastructure tests. It is
+  not a production tool catalog. A future fixture may be simulated data or an
+  approved frozen snapshot; its provenance must say which.
 - `sandbox` exists in the execution contract but has no runnable adapter.
 - The generic live adapter supports only approved, read-only HTTPS GET JSON
   contracts. It does not support POST, payments, email, or other side effects.
@@ -26,6 +26,6 @@
   dataset production.
 - The code and dataset publication licenses have not been selected. Do not make
   a public release until ownership and compatible source licenses are confirmed.
-- Generated pilot outputs are not canonical accepted data. Only deliberately
+- Generated working outputs are not canonical accepted data. Only deliberately
   selected review packages and the merged canonical accepted dataset belong in
   the documented Git paths.

@@ -30,17 +30,28 @@ jobs:
         run: python -m pytest
 
       - name: Validate registries
+        shell: bash
         run: |
           magibu-toolcall registry validate registry/registry.jsonl
-          magibu-toolcall registry validate registry/proposals/pilot_candidates.jsonl
+          if [[ -f registry/proposals/registry.jsonl ]]; then
+            magibu-toolcall registry validate registry/proposals/registry.jsonl
+          fi
 
       - name: Validate blueprints
         shell: bash
         run: |
-          find blueprints -type f \( -name '*.json' -o -name '*.jsonl' \) -print0 |
-            while IFS= read -r -d '' file; do
-              magibu-toolcall blueprint validate "$file" --registry registry/proposals/pilot_candidates.jsonl
+          mapfile -d '' blueprint_files < <(
+            find blueprints -type f \( -name '*.json' -o -name '*.jsonl' \) -print0
+          )
+          if (( ${#blueprint_files[@]} > 0 )); then
+            if [[ ! -f registry/proposals/registry.jsonl ]]; then
+              echo "Blueprint validation requires registry/proposals/registry.jsonl." >&2
+              exit 1
+            fi
+            for file in "${blueprint_files[@]}"; do
+              magibu-toolcall blueprint validate "$file" --registry registry/proposals/registry.jsonl
             done
+          fi
 
       - name: Validate representative dataset record
         run: magibu-toolcall dataset validate tests/fixtures/dataset/valid_single_tool.json

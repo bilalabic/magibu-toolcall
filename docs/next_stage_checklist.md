@@ -1,6 +1,6 @@
 # Dataset production readiness checklist
 
-Complete these gates before scaling beyond the current pilot:
+Complete these gates before starting and then scaling the next dataset pilot:
 
 1. Approve a small, diverse subset of proposal tools and record the source,
    access, license/terms check date, freshness policy, and fixture plan for each.

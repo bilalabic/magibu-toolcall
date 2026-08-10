@@ -1,7 +1,0 @@
-{
-  "fixture_id": "holiday.business_day.republic_day",
-  "function_name": "holiday_is_business_day",
-  "arguments": {"date": "2026-10-29"},
-  "result": {"date": "2026-10-29", "day_status": "public_holiday", "is_full_business_day": false, "holiday_name": "Cumhuriyet Bayramı", "source_version": "tr-holidays-2026-v1"},
-  "provenance": "Derived from the official public-holiday law; checked 2026-08-07."
-}

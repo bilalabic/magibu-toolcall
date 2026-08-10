@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 import json
 from typing import Any, Callable
 
@@ -15,7 +14,6 @@ from tool_call_tr.execution.core import (
     ExecutionTimeout,
     ExecutionType,
 )
-from tool_call_tr.execution.local_tools import LOCAL_PILOT_FUNCTIONS
 from tool_call_tr.registry import ToolRegistry
 
 
@@ -43,7 +41,6 @@ class LocalExecutableAdapter:
         self._functions: dict[str, Callable[[dict[str, Any]], Any]] = {
             "utility_add": lambda args: {"result": args["left"] + args["right"]},
             "utility_multiply": lambda args: {"result": args["left"] * args["right"]},
-            **LOCAL_PILOT_FUNCTIONS,
         }
 
     def execute(self, request: ExecutionRequest) -> ExecutionResult:
@@ -89,16 +86,6 @@ class StatefulSimulationAdapter:
 
     def __init__(self) -> None:
         self._state: dict[str, Any] = {}
-        self._calendar_seed = [{
-            "event_id": "EVT-CALENDAR-001",
-            "title": "Proje değerlendirme toplantısı",
-            "start_datetime": "2026-08-10T10:00:00+03:00",
-            "end_datetime": "2026-08-10T10:45:00+03:00",
-            "location": "Toplantı odası A",
-        }]
-        self._calendar_events: list[dict[str, Any]] = []
-        self._next_calendar_id = 2
-        self.reset()
 
     def execute(self, request: ExecutionRequest) -> ExecutionResult:
         if request.execution_type != self.execution_type:
@@ -108,58 +95,10 @@ class StatefulSimulationAdapter:
             return _normalized_call(request, lambda _: {"stored": True})
         if request.function_name == "simulation_get":
             return _normalized_call(request, lambda args: {"value": self._state.get(args["key"])})
-        if request.function_name == "calendar_list_events":
-            return _normalized_call(request, self._calendar_list_events)
-        if request.function_name == "calendar_create_event":
-            return _normalized_call(request, self._calendar_create_event)
         return ExecutionResult(request.call_id, request.function_name, self.execution_type, ExecutionStatus.FAILED, error="simulation_function_not_found")
 
     def reset(self) -> None:
         self._state.clear()
-        self._calendar_events = [event.copy() for event in self._calendar_seed]
-        self._next_calendar_id = 2
-
-    def _calendar_list_events(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        start = _aware_datetime(arguments["start_datetime"])
-        end = _aware_datetime(arguments["end_datetime"])
-        if end <= start:
-            raise ValueError("calendar_range_must_end_after_start")
-        query = arguments.get("query", "").casefold()
-        events = []
-        for event in self._calendar_events:
-            event_start = _aware_datetime(event["start_datetime"])
-            event_end = _aware_datetime(event["end_datetime"])
-            if event_start < end and event_end > start and (not query or query in event["title"].casefold()):
-                events.append(event.copy())
-        return {"events": events}
-
-    def _calendar_create_event(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        start = _aware_datetime(arguments["start_datetime"])
-        end = _aware_datetime(arguments["end_datetime"])
-        if end <= start:
-            raise ValueError("calendar_event_must_end_after_start")
-        if not arguments["confirmed"]:
-            return {"event_id": None, "status": "confirmation_required"}
-        event_id = f"EVT-CALENDAR-{self._next_calendar_id:03d}"
-        self._next_calendar_id += 1
-        self._calendar_events.append({
-            "event_id": event_id,
-            "title": arguments["title"],
-            "start_datetime": start.isoformat(),
-            "end_datetime": end.isoformat(),
-            "location": arguments.get("location"),
-        })
-        return {"event_id": event_id, "status": "created"}
-
-
-def _aware_datetime(value: str) -> datetime:
-    try:
-        parsed = datetime.fromisoformat(value)
-    except ValueError as exc:
-        raise ValueError("invalid_datetime") from exc
-    if parsed.tzinfo is None or parsed.utcoffset() is None:
-        raise ValueError("calendar_datetime_requires_utc_offset")
-    return parsed
 
 
 class ControlledStatusAdapter:

@@ -3,10 +3,10 @@
 | Type | Use | Current implementation |
 |---|---|---|
 | `real_api` | Approved, stable, licensed, read-only external APIs | Generic HTTPS GET JSON adapter with host allowlist, env auth, timeout and status normalization; no approved canonical live tool yet |
-| `local_executable` | Deterministic local calculation or versioned lookup | Demo arithmetic plus pilot calculator, unit conversion, timezone conversion and 2026 business-day lookup |
+| `local_executable` | Deterministic local calculation or versioned lookup | Demo arithmetic; new implementations are registered with focused tests |
 | `sandbox` | Isolated state-changing service with reset | Contract only; no runnable adapter |
 | `mock` | Exact schema-valid fixed response | Registry fixture adapter |
-| `fully_simulated` | Rule-driven state transitions | Resettable key/value demo and pilot calendar operations |
+| `fully_simulated` | Rule-driven state transitions | Resettable key/value infrastructure demo |
 | `not_applicable` | No tool call | Normalized `not_called` result |
 
 Normalized statuses are `not_called`, `passed`, `failed`, `timeout`,
@@ -22,4 +22,4 @@ only when the generic query/header/response-path mapping cannot normalize the
 contract. No credentials or personal data belong in fixtures.
 
 Banking, payments, healthcare, e-Government, real accounts, email delivery and
-other sensitive or side-effecting tools are outside the active pilot.
+other sensitive or side-effecting tools are outside the active dataset scope.

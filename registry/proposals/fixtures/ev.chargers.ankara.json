@@ -1,7 +1,0 @@
-{
-  "fixture_id": "ev.chargers.ankara",
-  "function_name": "ev_search_chargers",
-  "arguments": {"latitude": 39.9334, "longitude": 32.8597, "radius_km": 10, "minimum_power_kw": 100, "available_now": true},
-  "result": {"stations": [{"station_id": "EV-TR-ANKARA-001", "name": "Merkez Hızlı Şarj İstasyonu", "operator": "Yerel İşletmeci", "latitude": 39.94, "longitude": 32.85, "connectors": [{"type": "CCS2", "power_kw": 180, "available": true}], "observed_at": "2026-08-07T09:00:00+03:00"}]},
-  "provenance": "Fully synthetic charging-station fixture; not an EPDK record or availability claim."
-}
