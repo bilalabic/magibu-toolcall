@@ -255,6 +255,12 @@ class DeepSeekIntegration:
             if user_message_count == 2
             else ""
         )
+        single_turn_clarification_rule = (
+            "For this single-turn missing-information case, user_messages[0] must be the user's incomplete request. "
+            "It must not ask the user for the missing value; final_response must ask for that value. "
+            if user_message_count == 1 and brief["clarification_required"]
+            else ""
+        )
         repair_rule = (
             "This is a fresh rewrite after a previous response violated the natural-language policy. "
             "Use completely new phrasing and follow the supplied brief without discussing the violation. "
@@ -278,6 +284,9 @@ class DeepSeekIntegration:
                 f"user_messages must contain exactly {user_message_count} non-empty string(s). "
                 f"intermediate_assistant_response must be {intermediate_rule}. "
                 f"{chronology_rule}"
+                "Every user_messages item must be written from the user's perspective, never as an assistant question "
+                "or an instruction asking the user to provide information. "
+                f"{single_turn_clarification_rule}"
                 f"{repair_rule}"
                 "final_response must follow final_response_requirements and avoid, and every factual or numeric claim "
                 "must be grounded in grounding_facts or the user's messages. Translate machine enum values into "

@@ -87,6 +87,26 @@ def test_deepseek_language_plan_uses_bounded_non_thinking_json_contract() -> Non
     assert not find_internal_operation_markers(request["messages"][1]["content"])
 
 
+def test_deepseek_missing_parameter_prompt_keeps_request_in_user_role() -> None:
+    plan = {
+        "user_messages": ["Hava durumuna bakar mısın?"],
+        "intermediate_assistant_response": None,
+        "final_response": "Hangi şehir için bakmamı istersiniz?",
+    }
+    transport = FakeTransport([JsonHttpResponse(200, {
+        "model": "deepseek-v4-flash",
+        "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(plan)}}],
+    }, {})])
+    provider = DeepSeekIntegration("secret", "deepseek-v4-flash", transport=transport)
+
+    provider.generate_language_plan(load_blueprint("missing_parameter.json"))
+
+    prompt = transport.requests[0]["body"]["messages"][0]["content"]
+    assert "user's incomplete request" in prompt
+    assert "must not ask the user for the missing value" in prompt
+    assert "never as an assistant question" in prompt
+
+
 def test_deepseek_full_record_generation_is_disabled_before_network() -> None:
     transport = FakeTransport([])
     provider = DeepSeekIntegration("secret", "deepseek-v4-flash", transport=transport)
