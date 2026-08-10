@@ -29,8 +29,8 @@ jobs:
       - name: Run tests
         run: python -m pytest
 
-      - name: Validate canonical registry
-        run: magibu-toolcall registry validate registry/registry.jsonl
+      - name: Validate registries, fixtures, and blueprints
+        run: python scripts/check_repository_contributions.py
 
       - name: Validate representative dataset record
         run: magibu-toolcall dataset validate tests/fixtures/dataset/valid_single_tool.json

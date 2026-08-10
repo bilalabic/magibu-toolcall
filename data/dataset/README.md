@@ -23,6 +23,9 @@ review durumu `needs_revision` olarak tutulur. Boş job klasörleri depoda tutul
 `dataset quality`, otomatik execution, toplu embedding tabanlı duplicate ve
 OpenAI structured-output kalite judge kanıtlarını yeniden hesaplayıp kayıtları
 `needs_revision/` altında yazar; ayrıntılı rapor `review/` alanında tutulur.
+GitHub incelemesine seçilen dosyalar `<job_id>.pr.review.jsonl` ve
+`review/dataset/<job_id>.pr.quality.json` adlarını kullanır. Diğer üretilmiş
+çıktılar yerel kalır.
 Birincil judge bütün kayıtları, escalation judge ise başarısız/belirsiz kayıtlar
 ile geçenlerin belirlenmiş örneklemini denetler. İnsan dil ve teknik incelemesi
 GitHub pull request üzerinde tamamlanmadan kayıt `accepted/` alanına geçirilemez.

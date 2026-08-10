@@ -1,35 +1,24 @@
-# Known limitations
+# Current limitations
 
-- DeepSeek structured generation, OpenAI embeddings/structured dataset judging,
-  and read-only HTTPS JSON execution are implemented but no live request is made
-  by the test suite or this handover. Credentials remain local; observed costs,
-  quota behavior, rubric calibration, and final thresholds still require the
-  gated pilot.
-- OpenAI embedding similarity is production-capable; semantic judging of free
-  text benchmark responses remains a separate provider interface/test double.
-- Turkish naturalness, tool necessity, clarification adequacy, and broad factual
-  grounding have a primary/escalation model-judge gate but still require human
-  review; the judge has not yet been calibrated against human labels.
-- The dataset quality command can certify declared local/mock execution and
-  compare recorded results. Sandbox execution remains pending; real API quality
-  execution requires explicit confirmation, approved registry tools, and live
-  platform authorization.
-- Human language approval is intentionally not automated. Deterministic model
-  and similarity test doubles cannot certify production quality gates.
-- Entity-shape duplicate detection needs supplied entity values; production NER
-  is deferred.
-- The local/stateful adapters are demonstration contracts, not approved tools.
-- Reviewer identity and approval history live in GitHub, not in the CLI or record
-  schema. Correct governance therefore depends on repository rulesets/branch
-  protection; GitHub controls do not enforce local or object-store ACLs.
-- xLAM/When2Call local-file import and localization are implemented. Gated source
-  download, terms acceptance evidence, and human Turkish/source review remain
-  operator responsibilities.
-- The real API adapter is intentionally limited to read-only HTTPS JSON. No final
-  Türkiye-native API is approved or committed in the registry.
-- Benchmark freeze detects later modification through a checksum manifest; it
-  does not provide operating-system or remote object-store write protection.
-- Sharded/checkpointed bounded-concurrency throughput, compact batched duplicate
-  scanning, token budgets, and target-distribution reporting are included;
-  the actual 250/1,000 dataset runs, 100/150-200 benchmark runs, final Dataset
-  Card, quality/error analysis, and benchmark results remain absent.
+- The repository contains production-shaped infrastructure and pilot assets, not
+  a completed or published 1,000-record dataset.
+- All 20 proposal tools are still `candidate`. A proposal is not evidence that a
+  live API, license, quota, or long-term access has been approved.
+- The pilot execution mix is 4 local tools, 14 fixed fixtures, and 2 stateful
+  simulations. This is suitable for pipeline verification but not enough source
+  diversity for the target dataset.
+- `sandbox` exists in the execution contract but has no runnable adapter.
+- The generic live adapter supports only approved, read-only HTTPS GET JSON
+  contracts. It does not support POST, payments, email, or other side effects.
+- OpenAI judging and semantic similarity are automated quality evidence, not
+  human approval. Turkish naturalness, tool necessity, provenance, and source
+  rights still require PR review.
+- Reviewer identity and approval history live in GitHub. Repository rulesets and
+  storage access controls must be configured outside the CLI.
+- Translation/import and benchmark production are outside the current active
+  workflow. Their namespaces remain available but must not be mixed with active
+  dataset production.
+- The code and dataset publication licenses have not been selected. Do not make
+  a public release until ownership and compatible source licenses are confirmed.
+- Generated pilot outputs are not canonical accepted data. Only deliberately
+  reviewed files are committed under the documented review paths.

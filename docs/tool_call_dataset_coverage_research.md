@@ -22,17 +22,18 @@ This separation provides broad scenario coverage without turning each dataset ro
 
 ## What the repository already has
 
-The current foundation already provides:
+The current repository already provides:
 
 - separate dataset, blueprint, registry, provenance, review, and validation schemas;
 - explicit decisions for tool call, direct answer, missing information, and inability to answer;
 - single-tool, multi-tool, multi-turn, missing-parameter, and no-tool categories;
 - parallel/sequential, correction, context, failure, unavailable-tool, empty-result, and invalid-result tags;
-- real API, local executable, sandbox, mock, simulation, and no-call modes;
+- real API, local executable, sandbox, mock, simulation, and no-call contracts;
+  the sandbox contract does not yet have a runnable adapter;
 - strict tool input/output schemas, registry versions, lifecycle, fixture, and risk fields;
 - GitHub PR review history, language/semantic/execution validation, duplicate checks, and benchmark-isolation metadata.
 
-The current pilot is therefore a sound foundation. The issue is not that it contains too little structure; the issue is that some concepts are represented at record level when they need to be represented per call, per state transition, or per source snapshot.
+The current pilot provides the required core contracts. Some concepts are still represented at record level when they need to be represented per call, per state transition, or per source snapshot.
 
 ## Main gaps before broad dataset production
 
@@ -361,7 +362,7 @@ Additional advanced categories supported by the design but not required in the f
 | IoT/industry | sensor reads, alarm plans | simulation | no physical actuation |
 | IAM/security | policy analysis, synthetic logs, defensive tasks | simulation/sandbox | no real credential/role change or unauthorized action |
 
-Real email and payment scenarios remain out of scope as previously decided. Their reasoning patterns may be represented only through generic simulated state transitions if needed; no provider integration is planned.
+Real email and payment integrations are out of scope. Their reasoning patterns may be represented only through generic simulated state transitions if needed; no provider integration is planned.
 
 ## Turkey-native source qualification
 
@@ -494,7 +495,7 @@ These counts are a planning proposal, not a frozen generation quota. The 100-rec
 - Add a separate execution-evidence schema with per-call results and normalized errors.
 - Provide explicit `0.1.0 -> 0.2.x` migration and tests; do not silently reinterpret old records.
 
-### Phase 2 — safe execution foundation
+### Phase 2 — safe execution coverage
 
 - Expand registered pure-Python tools.
 - Add episode-local filesystem, SQLite, and dataframe adapters.
