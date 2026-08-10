@@ -40,7 +40,9 @@ conversation rules that JSON Schema cannot express clearly.
   reports without human acceptance.
 - `evaluation`: exact success, five diagnostic criteria, category metrics,
   semantic-judge hook, and isolated run-log writer.
-- `review`: validated accepted-only export after GitHub PR approval.
+- `review`: accepted-only export based on validated lifecycle fields. GitHub PR
+  protection supplies the approval trust boundary; the module does not query the
+  GitHub API.
 - `contamination`: cross-corpus benchmark/dataset comparison with blocking and
   semantic-review outcomes.
 - `freeze`: validated benchmark-gold snapshots and checksum manifests.
@@ -51,18 +53,20 @@ conversation rules that JSON Schema cannot express clearly.
 ## Data flow
 
 ```text
-translated/original_turkish/turkey_native
-                  |                         |
-                  v                         v
-data/dataset/{raw,staging,...,accepted}   data/benchmark/{raw,staging,...,accepted}
-                  |                         |
-                  +---- contamination ------+
-                                            |
-                                            v
-                                data/benchmark/gold + manifest
-                                            |
-                                            v
-                                  runs/<model>/<run>.jsonl
+original_turkish + turkey_native        independent benchmark authoring
+              |                                   | (paused)
+              v                                   v
+data/dataset/{raw,...,accepted}   data/benchmark/{raw,...,accepted}
+              |                                   |
+              +--------- contamination -----------+
+                                                  |
+                                                  v
+                                      data/benchmark/gold + manifest
+                                                  |
+                                                  v
+                                        runs/<model>/<run>.jsonl
+
+translated source import/localization is paused before dataset authoring.
 ```
 
 Dataset and benchmark lifecycles share schemas, registry versions, categories,
@@ -106,10 +110,11 @@ as `not_run`. Provider-supplied `accepted` or `passed` claims cannot make a draf
 exportable. Canonical export preserves audit metadata, while the explicit dataset
 training projection contains only `id`, `messages`, and `tools`.
 
-The dataset quality command recomputes deterministic gates, executes local/mock
-calls in their declared mode, and compares actual data with recorded tool-result
-messages. Real API execution additionally requires explicit live confirmation
-and platform permission. Exact/normalized duplicate checks are always run. The
+The dataset quality command recomputes deterministic gates, executes
+local/mock/fully-simulated calls in their declared mode, and compares actual data
+with recorded tool-result messages. Real API execution additionally requires
+explicit live confirmation and an `approved` registry entry. Exact/normalized
+duplicate checks are always run. The
 duplicate gate is certified by deterministic fingerprints plus the configured
 production embedding provider. Unique texts are embedded in batches, vectors
 are compared in memory, and only threshold findings are retained in the durable
@@ -148,10 +153,12 @@ automatic evidence, then requests changes or approves the pull request.
 
 The reviewer identity, timestamps, discussion, requested changes, and approval
 history live in GitHub. The canonical record stores only the lifecycle result:
-`review.status` and `review.notes`. Before merge, the approved change marks the
-language gate as passed and the record as accepted. Validation still rejects an
-accepted record if any required automatic gate is failed or not run. Export
-revalidates and emits accepted records only.
+`review.status` and `review.notes`. After a human confirms the language and
+technical evidence, the contribution updates the language gate and review
+lifecycle fields in the same PR. The final commit must pass CI and receive the
+required approval before merge. Validation still rejects an accepted record if
+any required gate is failed or not run. Export revalidates and emits accepted
+records only; it cannot independently prove that GitHub approval occurred.
 
 The CLI intentionally has no login, reviewer role, user directory, access-policy
 file, or authorization audit log. Repository branch protection is the trust

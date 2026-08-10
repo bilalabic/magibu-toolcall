@@ -18,5 +18,9 @@ bench_tr_000001 bench_ot_000001 bench_tn_000001
 call_001
 ```
 
-Use `dataset generate-id` or `benchmark generate-id`. Source prefixes are validated, collisions and optional
-contributor ranges are enforced, and accepted record IDs are immutable.
+Use `dataset generate-id` or `benchmark generate-id` for a single ID. These
+commands validate the source prefix; repository-wide collision checks happen
+during dataset planning/generation against the supplied and discovered existing
+records. The Python ID helper also supports optional contributor ranges, but the
+single-ID CLI command does not expose a range option. Accepted record IDs are
+immutable.

@@ -6,6 +6,12 @@ Research date: 2026-08-07
 
 Scope: the dataset pipeline. Translation/import and benchmark production remain deferred and separate.
 
+Reading rule: sections titled **Proposed**, **Recommended**, **Implementation
+sequence**, or **Acceptance criteria** describe future design work, not current
+`0.1.0` behavior. For implemented commands and present limitations, use the
+[technical guide](../README_TEKNIK.md) and
+[known limitations](known_limitations.md) as the operational sources of truth.
+
 ## Executive decision
 
 There is no single authoritative tool-calling dataset standard. Public datasets share a small core—user request, available tool definitions, and expected calls—but stronger systems add state, execution results, acceptable paths, and explicit evaluation rules.
