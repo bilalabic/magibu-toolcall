@@ -17,7 +17,8 @@ Representative codes include `JSONL_RECORD_PARSE_ERROR`, `SCHEMA_REQUIRED`,
 magibu-toolcall dataset validate <file.json-or-jsonl>
 magibu-toolcall benchmark validate <file.json-or-jsonl> --output json
 magibu-toolcall registry validate registry/registry.jsonl
-magibu-toolcall blueprint validate <file.json>
+magibu-toolcall registry validate registry/proposals/pilot_candidates.jsonl
+magibu-toolcall blueprint validate <file.json-or-jsonl> --registry registry/proposals/pilot_candidates.jsonl
 ```
 
 Syntactic success is not semantic success. Natural Turkish, tool necessity,

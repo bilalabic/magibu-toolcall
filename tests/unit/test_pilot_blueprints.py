@@ -148,3 +148,18 @@ def test_parcel_natural_v2_regression_blueprint_is_valid_and_versioned() -> None
     assert validator.validate_record("blueprint", blueprint).valid
     assert "ISO zaman damgalarını ham biçimde aktarmak." in blueprint["must_avoid"]
     assert "Olay konumlarını atlamak." in blueprint["must_avoid"]
+
+
+def test_all_repository_blueprint_ids_are_unique() -> None:
+    seen: dict[str, Path] = {}
+    paths = [
+        *(ROOT / "blueprints").rglob("*.json"),
+        *(ROOT / "blueprints").rglob("*.jsonl"),
+    ]
+    for path in sorted(paths):
+        records, issues = parse_path(path)
+        assert issues == []
+        for _, record in records:
+            blueprint_id = record["id"]
+            assert blueprint_id not in seen, f"{blueprint_id} is repeated in {seen[blueprint_id]} and {path}"
+            seen[blueprint_id] = path

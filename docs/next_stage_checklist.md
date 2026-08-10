@@ -1,38 +1,26 @@
-# Next safe step: 30-example live provider pilot
+# Dataset production readiness checklist
 
-Do not generate candidates yet. First complete this exact gate:
+Complete these gates before scaling beyond the current pilot:
 
-1. Research several safe, read-only general and Türkiye-native tools using the
-   proposal template; confirm API access, licenses, freshness, and fixture plans.
-2. Team-approve a small diverse subset and change their lifecycle from
-   `candidate` to `approved`; bump only the `0.x` registry version as required.
-3. Confirm the pinned pilot choices: `deepseek-v4-pro` generation,
-   `gpt-5.4-mini-2026-03-17` primary judging,
-   `gpt-5.4-2026-03-05` escalation judging, and
-   `text-embedding-3-small` similarity. Load credentials only from process
-   environment or the ignored local `.env`; verify `magibu-toolcall config`
-   displays only `<configured>` markers.
-4. Assign contributor ID ranges and a dataset quality operator. Configure GitHub
-   rulesets for pull-request-only merges, at least one approval, stale-approval
-   dismissal, the required `validate` check, and CODEOWNERS where stricter domain
-   review is needed. Apply storage ACLs separately.
-5. Author dataset blueprints covering all five categories, both parallel and
-   sequential structures, `original_turkish` and `turkey_native` source types,
-   and multiple difficulties/domains.
-6. Run normal `dataset generate` with a conservative worker limit and explicit
-   token budget; let it freeze checksum, distribution, ID, checkpoint, and error
-   paths automatically. Use advanced batch commands only for explicit planning
-   or resume.
-7. Run `dataset quality` with production embeddings, the primary OpenAI judge,
-   escalation on every non-pass, and a deterministic 10% pass sample. Require
-   execution evidence, no unresolved duplicate/model gate, a durable quality
-   report, then obtain the required language/technical approval through the
-   GitHub pull request before export.
-8. Reconcile provider usage with the DeepSeek/OpenAI dashboards and confirm that
-   the OpenAI shared-traffic incentive is actually applied; do not infer this
-   from configuration alone.
-9. Analyze failures and revise prompts/rubrics while versions remain `0.x`.
-   Proceed through 100-example calibration and 250-example rehearsal before four
-   separately budgeted 250-example production runs.
+1. Approve a small, diverse subset of proposal tools and record the source,
+   access, license/terms check date, freshness policy, and fixture plan for each.
+2. Replace repetitive synthetic fixtures with versioned, provenance-backed
+   snapshots where redistribution is permitted.
+3. Add or verify the execution implementation and focused tests for every tool;
+   do not mark `sandbox` or `real_api` as supported without a runnable adapter.
+4. Review blueprint coverage across all five categories, both active source
+   types, domains, difficulties, missing-parameter cases, and parallel/sequential
+   multi-tool behavior.
+5. Run a small generation job with an explicit token budget, checkpoint, error
+   queue, and pinned registry/blueprint checksums.
+6. Run deterministic validation, execution, semantic duplicate detection, the
+   primary OpenAI judge, and configured escalation sampling.
+7. Submit the candidate records and matching quality report through a protected
+   GitHub pull request. Resolve automated findings and obtain independent human
+   language/technical review.
+8. Compare provider usage with provider dashboards and review failure patterns,
+   source balance, tool balance, and category coverage.
+9. Scale through separate 100- and 250-record gates. Start the 1,000-record plan
+   only after the smaller gates meet the agreed acceptance thresholds.
 
-Translation/localization and benchmark work remain paused during this pilot.
+Translation/import and benchmark production remain separate from this checklist.

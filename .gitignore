@@ -30,3 +30,8 @@ data/benchmark/staging/**/*.json
 data/benchmark/staging/**/*.jsonl
 review/**/*.json
 review/**/*.jsonl
+
+# Reviewable dataset packages may be committed deliberately with these names.
+!data/dataset/accepted/dataset.jsonl
+!data/dataset/needs_revision/**/*.pr.review.jsonl
+!review/dataset/**/*.pr.quality.json

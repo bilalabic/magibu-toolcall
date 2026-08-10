@@ -2,7 +2,7 @@
 
 ## Boundaries
 
-The foundation is a small Python library plus a CLI. JSON Schema remains the
+The project is a small Python library plus a CLI. JSON Schema remains the
 authoritative structural contract. Python modules add cross-record and
 conversation rules that JSON Schema cannot express clearly.
 

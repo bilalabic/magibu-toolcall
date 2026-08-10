@@ -1,7 +1,7 @@
 # Dependency decisions
 
-- Python `>=3.11`: matches the brief, supports `StrEnum`, modern typing, and a
-  maintainable standard-library-first implementation. Verification used 3.12.13.
+- Python `>=3.11`: supports `StrEnum`, modern typing, and a maintainable
+  standard-library-first implementation.
 - `jsonschema>=4.21,<5`: the only runtime dependency; supplies Draft 2020-12,
   reference registries, meta-schema checks, and format validation.
 - `pytest>=8,<9` and `pytest-cov>=5,<7`: development/test dependencies only.

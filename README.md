@@ -1,206 +1,136 @@
 # magibu-toolcall
 
-Türkçe tool-calling verisini tasarımdan insan onayına kadar yöneten,
-kalite-odaklı dataset üretim altyapısı.
+`magibu-toolcall`, Türkçe tool-calling eğitim verisini scenario tasarımından
+insan onayına kadar izlenebilir ve tekrar üretilebilir biçimde yöneten bir Python
+projesidir.
 
-`magibu-toolcall`; bir dil modelinin ne zaman araç kullanması gerektiğini
-anlaması, doğru aracı seçmesi, geçerli argüman üretmesi ve araç sonucunu doğal
-Türkiye Türkçesiyle aktarması için eğitim verisi hazırlamaya yardımcı olur.
-Yalnızca metin üretmez: her aday kaydı doğrulanabilir bir üretim, yürütme ve
-inceleme zincirinden geçirir.
+Sistem; modelin ne zaman tool kullanması gerektiğini, doğru function’ı seçmesini,
+geçerli argüman üretmesini ve tool sonucunu doğal Türkiye Türkçesiyle aktarmasını
+öğretecek kayıtlar hazırlamaya odaklanır. Model çıktısı tek başına kabul edilmez;
+registry, execution, doğrulama, kalite kanıtı ve GitHub incelemesi birlikte
+değerlendirilir.
 
-> **Proje durumu:** Altyapı pilotu çalışıyor ve testlerle doğrulanıyor. Bu depo
-> henüz yayımlanmış 1000 kayıtlık bir dataset veya dondurulmuş benchmark değildir.
+> **Güncel durum:** Kod, CLI, testler ve 30 pilot blueprint çalışır durumdadır.
+> Repository henüz yayımlanmış 1.000 kayıtlık bir dataset veya kabul edilmiş
+> canlı API kataloğu içermez.
 
-Kurulum, ortam değişkenleri ve bütün CLI komutları için
-**[teknik kullanım rehberine](README_TEKNIK.md)** geçin.
+Kurulum ve komutlar için [teknik kullanım rehberine](README_TEKNIK.md), katkı
+hazırlamak için [katkı rehberine](CONTRIBUTING.md) bakın.
 
-## Neden bu proje var?
+## Kapsam
 
-Tool-calling dataseti hazırlamak yalnızca doğru biçimde JSON üretmek değildir.
-Kaliteli bir kaydın aynı anda şu sorulara cevap verebilmesi gerekir:
+Aktif dataset çalışması iki kaynak türünü kapsar:
 
-- Kullanıcının isteği doğal ve yerel Türkçeyle mi yazılmış?
-- Gerçekten bir araç gerekiyor mu ve seçilen araç doğru mu?
-- Argümanlar yalnızca kullanıcı mesajından mı geliyor?
-- Son yanıt, araç sonucunu eksiksiz ve uydurmadan mı aktarıyor?
-- Kaydın kaynağı, dönüşüm geçmişi ve üretici modeli izlenebiliyor mu?
-- Aynı veya çok benzer bir kayıt daha önce üretildi mi?
-- Otomatik kontrollerin ardından insan incelemesi yapıldı mı?
-
-`magibu-toolcall` bu soruları bağımsız kalite kapılarına dönüştürür. Bir modelin
-“başarılı” demesi, kaydın kabul edilmesi için hiçbir zaman yeterli değildir.
-
-## Kapsam ve güncel odak
-
-Üç veri kaynağı aynı dataset sözleşmesi altında yönetilir:
-
-| Kaynak türü | Açıklama | Durum |
+| Kaynak türü | Amaç | Durum |
 | --- | --- | --- |
-| `original_turkish` | Genel araçlar için doğrudan Türkçe hazırlanan senaryolar | Aktif |
-| `turkey_native` | Türkiye kurumları, açık verileri ve yerel hizmetleriyle ilgili senaryolar | Aktif |
-| `translated` | xLAM, When2Call ve benzeri kaynakların Türkçeleştirilmesi | Askıda |
+| `original_turkish` | Genel amaçlı tool’lar için doğrudan Türkçe senaryolar | Aktif |
+| `turkey_native` | Türkiye’deki kurum, açık veri ve yerel hizmet senaryoları | Aktif |
+| `translated` | xLAM, When2Call ve benzeri kaynakların lokalizasyonu | Askıda |
 
-Benchmark altyapısı kodda korunur ancak dataset’ten fiziksel ve operasyonel
-olarak ayrıdır. Dataset kaydı benchmark gold alanına kopyalanmaz; benchmark
-üretimi güncel çalışma planında askıdadır.
+Benchmark kodu ve klasörleri dataset’ten ayrıdır. Benchmark üretimi güncel
+dataset akışının parçası değildir ve dataset kayıtları benchmark gold alanına
+taşınmaz.
 
-## Kalite-odaklı çalışma akışı
+## Sistem nasıl çalışır?
 
 ```mermaid
 flowchart TD
-    A["Araştırılmış tool sözleşmesi"] --> B["Doğrulanmış blueprint"]
-    B --> C["DeepSeek Flash ile dil üretimi"]
-    C -->|"Retry'ler tükenirse"| D["DeepSeek Pro fallback"]
-    C --> E["Makine kontrollü kayıt kurulumu"]
+    A["Araştırılmış tool sözleşmesi"] --> B["Doğrulanmış scenario blueprint"]
+    B --> C["DeepSeek Flash ile doğal dil üretimi"]
+    C -->|"Retry tükenirse"| D["DeepSeek Pro fallback"]
+    C --> E["Kanonik kaydın kodla kurulması"]
     D --> E
-    E --> F["Local / mock / simülasyon yürütmesi"]
-    F --> G["Şema ve tool-call doğrulaması"]
-    G --> H["Duplicate ve OpenAI kalite kontrolü"]
+    E --> F["Local, mock veya simülasyon execution"]
+    F --> G["Şema, argüman, sonuç ve duplicate kontrolleri"]
+    G --> H["OpenAI kalite değerlendirmesi"]
     H --> I["GitHub PR insan incelemesi"]
     I --> J["Accepted dataset"]
 ```
 
-DeepSeek yalnızca doğal dil alanlarını üretir. Tool tanımı, çağrı kimliği,
-argüman, sonuç, metadata ve kalite durumu kod tarafından kurulur veya
-doğrulanır. Ham blueprint modele gönderilmez; kullanıcı amacı, konuşma yapısı ve
-kullanıcıya açıklanabilir sonuç alanlarından oluşturulan güvenli bir üretim
-brief’i kullanılır. Böylece model üretimi, kanonik audit kaydı ve eğitim exportu
-birbirinden ayrılır.
+DeepSeek yalnız doğal dil üretiminde kullanılır. Function tanımları, call ID’leri,
+argümanlar, execution sonuçları, provenance ve kalite durumları kod tarafından
+kurulur veya doğrulanır. Model iç operasyon metadata’sını görmez; eğitim exportu
+da canonical audit kaydından ayrı üretilir.
 
-## Bugün hazır olan altyapı
+## Hazır olan yetenekler
 
-### Üretim
+- JSON Schema tabanlı registry, blueprint, dataset ve benchmark doğrulaması
+- Genel Türkçe ve Türkiye-native scenario üretimi
+- DeepSeek Flash-first, Pro-fallback üretim politikası
+- Token bütçesi, sınırlı paralellik, retry, checkpoint ve hata kuyruğu
+- Deterministik local tool, sabit fixture ve resetlenebilir simülasyon execution’ı
+- Onaylı sözleşmeler için salt-okunur HTTPS GET JSON adaptörü
+- Exact, normalize ve OpenAI embedding tabanlı semantic duplicate kontrolü
+- OpenAI birincil kalite hakemi ve yapılandırılabilir escalation hakemi
+- Çince/Han karakteri, `<think>`, iç operasyon etiketi ve biçim sızıntısı kontrolleri
+- GitHub PR üzerinden insan incelemesi ve hafif katkı rehberi botu
+- Canonical audit kaydı ve metadata’sız training projection exportu
 
-- DeepSeek V4 Flash birincil, V4 Pro kontrollü fallback politikası
-- Token bütçeli, retry destekli ve sınırlı paralel üretim
-- Checkpoint, shard, hata kuyruğu ve kaldığı yerden devam edebilme
-- Blueprint ve registry checksum’larını manifestte sabitleme
-- Model çıktısındaki güvenilmez kabul veya kalite iddialarını temizleme
-- İç yürütme ve provenance etiketlerinin doğal kullanıcı/asistan metnine sızmasını engelleme
-- Ham blueprint yerine izinli alanlardan kurulan model-girdi projeksiyonu
+## Mevcut içerik
 
-### Otomatik kalite
-
-- JSON Schema, tool seçimi, argüman ve sonuç doğrulaması
-- OpenAI embedding tabanlı semantic duplicate taraması
-- Birincil mini ve gerektiğinde tam modelle kalite değerlendirmesi
-- Model anlaşmazlığında kaydı otomatik olarak bloke eden escalation akışı
-- Han/Çince karakter, `<think>`, ham ISO zaman ve Markdown sızıntısı korumaları
-- `sentetik`, `mock`, `fixture` ve benzeri iç operasyon etiketleri için deterministik sızıntı kapısı
-
-### Yürütme
-
-- Deterministik yerel fonksiyonlar
-- Dondurulmuş veya sentetik mock fixture’lar
-- Sıfırlanabilir ve dış sisteme dokunmayan stateful simülasyonlar
-- Onaylı araçlar için kontrollü, salt-okunur HTTPS JSON adaptörü
-- Timeout, rate-limit, boş sonuç ve geçersiz sonuç durumlarının normalizasyonu
-
-### Yönetişim
-
-- Dataset ve benchmark için ayrı kimlik, klasör ve yaşam döngüleri
-- GitHub pull request üzerinden insan incelemesi ve karar geçmişi
-- `main` branch protection ve zorunlu durum kontrolü
-- CLI'da reviewer girişi, rolü veya access-policy bağımlılığı olmaması
-- Otomatik kalite sonrasında zorunlu PR onayı
-
-## Doğrulanmış pilot
-
-Mevcut pilot yalnızca bir demo değildir; aynı üretim ve kalite hattının küçük,
-ölçülebilir uygulamasıdır.
-
-| Gösterge | Sonuç |
-| --- | ---: |
-| Proposal tool sayısı | 20 |
-| Pilot blueprint sayısı | 30 |
-| Genel Türkçe / Türkiye-native dağılımı | 15 / 15 |
-| Otomatik test | 210/210 |
-| Genel dataset kalite geçişi | 15/15 |
-| Türkiye-native kalite geçişi | 14/15 |
-
-7 Ağustos 2026 tarihinde aynı 30 blueprint üzerinde yapılan model
-karşılaştırması:
-
-| Model | Üretim | OpenAI kalite geçişi | Ortalama skor |
-| --- | ---: | ---: | ---: |
-| DeepSeek V4 Flash | 30/30 | 30/30 | 4,9857 |
-| DeepSeek V4 Pro | 30/30 | 28/30 | 4,9191 |
-
-Bu sonuçla `Flash-first, Pro fallback` politikası kabul edildi. Dataset
-pilotundaki tek başarısız kargo kaydı geçmiş kanıtı olarak değiştirilmeden
-korundu; ayrı bir regresyon blueprint’iyle yeniden üretildi ve hem mini hem tam
-OpenAI hakeminden geçti.
-
-Bu sonuçlar otomatik kaliteyi gösterir. Pilot kayıtları henüz insan dil ve teknik
-incelemesini tamamlamadığı için `accepted` değildir.
-
-## Neler yapabilir?
-
-`magibu-toolcall` bugün:
-
-- Registry, fixture, blueprint, dataset ve benchmark kayıtlarını doğrulayabilir.
-- Genel Türkçe ve Türkiye-native dataset adayları üretebilir.
-- Tool çağrılarını tanımlanan yürütme modunda gerçekten çalıştırabilir.
-- Tool argümanlarını ve sonuçlarını şemaya karşı sınayabilir.
-- Exact, normalize ve semantic tekrarları bulabilir.
-- OpenAI hakemiyle dil ve tool-grounding kalitesini puanlayabilir.
-- İnsan inceleme kararlarını GitHub PR geçmişi üzerinden izleyebilir.
-- Yalnızca bütün kapıları geçen kayıtları accepted dataset’e aktarabilir.
-- Canonical audit kaydı ile modele verilecek eğitim projeksiyonunu ayrı dışa aktarabilir.
-- Model, token, request, checksum ve kalite kanıtlarını raporlayabilir.
-
-## Neleri yapamaz veya yapmamalıdır?
-
-Sistemin sınırları bilinçli olarak açıktır:
-
-- Henüz tamamlanmış 1000 kayıtlık bir dataset sunmaz.
-- Proposal registry’deki araçları otomatik olarak canlı ve onaylı API saymaz.
-- Mock sonucu gerçek kurum verisi veya gerçek zamanlı gözlem gibi göstermez.
-- Belgelenmemiş servisleri scrape etmez ya da kullanım koşullarını kullanıcı adına kabul etmez.
-- Reviewer kimliği uydurmaz veya model değerlendirmesini GitHub PR onayı yerine koymaz.
-- Contributor’ın kendi PR'ını onaylamaması branch protection ile uygulanır.
-- Secret değerlerini fixture, manifest, kalite raporu veya hata çıktısına yazmaz.
-- Mevcut HTTP adaptörüyle POST, ödeme, e-posta veya başka yan etkili işlem yapmaz.
-- Değişken canlı API sonucunu geçmiş dataset kaydının doğrulama temeli yapmaz.
-- Askıdaki çeviri ve benchmark hatlarını kendiliğinden çalıştırmaz.
-
-## Mock ve gerçek API ilişkisi
-
-Pilot güvenli yürütme ağırlıklıdır: 20 aracın 14’ü mock, pilot içindeki toplam
-30 tool çağrısının 22’si fixture üzerinden çalışır. Bu dağılım altyapıyı sınamak
-için uygundur; 1000 kayıtlık üretim için mevcut sentetik çeşitlilik yeterli
-değildir.
-
-Gerçek bir API bulunduğunda mock katmanı silinmez. Önerilen veri yolu şöyledir:
-
-```text
-Gerçek API veya resmî kaynak
-  → erişim ve lisans incelemesi
-  → normalizasyon ve kişisel veri temizliği
-  → kaynak, zaman, sürüm ve checksum kaydı
-  → dondurulmuş fixture
-  → deterministik dataset üretimi
-```
-
-API’den kaydedilmiş fixture yürütme sırasında mock olabilir; ancak provenance
-bilgisi bunun tamamen sentetik olmadığını açıkça gösterir. Bu yaklaşım gerçekçilik
-ile tekrar üretilebilirliği birlikte korur.
-
-| Yürütme türü | Kullanım alanı |
+| Varlık | Mevcut durum |
 | --- | --- |
-| `local_executable` | Ağ gerektirmeyen deterministik hesaplama ve yerel veri |
-| `mock` | Dondurulmuş gerçek kaynak veya tamamen sentetik fixture |
-| `fully_simulated` | Durum değiştiren fakat dış sisteme dokunmayan senaryo |
-| `real_api` | Açıkça onaylanmış salt-okunur canlı kaynak |
-| `not_applicable` | Tool çağrısı gerekmeyen kayıt |
+| Canonical registry | 3 adet `demo` tool |
+| Proposal registry | 20 adet `candidate` tool |
+| Pilot blueprint | 30 adet: 15 genel Türkçe, 15 Türkiye-native |
+| Regresyon blueprint | 1 adet |
+| Proposal execution dağılımı | 4 local, 14 mock, 2 fully simulated |
+| Accepted dataset | Henüz yok |
 
-Yürütme modu sessizce değiştirilmez. Her mod geçişi açık bir neden ve provenance
-olayı gerektirir.
+`candidate`, canlı API onayı anlamına gelmez. Kaynak erişimi, kullanım koşulları,
+lisans, güncellik ve execution implementasyonu bağımsız olarak doğrulanmadan tool
+`approved` sayılmaz.
+
+## Kalite kapıları
+
+Bir kaydın accepted olabilmesi için:
+
+1. Dataset ve tool şemaları geçerli olmalı.
+2. Tool seçimi, argümanlar, çağrı sırası ve sonuç eşleşmeli.
+3. Tanımlanan execution gerçekten çalışmalı ve sonucu output schema’ya uymalı.
+4. Duplicate ve provenance kontrolleri tamamlanmalı.
+5. Otomatik Türkçe/grounding değerlendirmesi geçmeli.
+6. GitHub PR üzerinde bağımsız insan incelemesi tamamlanmalı.
+
+Provider’ın `passed` veya `accepted` demesi bu kapılardan hiçbirini atlayamaz.
+PR botu açıklama bölümlerini ve test/kalite raporu gibi temel katkı eşleşmelerini
+kontrol eder. Registry, fixture, blueprint, dataset ve test doğrulamaları ayrı
+`validate` workflow’unda çalışır. Bot insan onayı vermez.
+
+## Execution türleri
+
+| Tür | Kullanım |
+| --- | --- |
+| `local_executable` | Ağsız, deterministik hesaplama veya sürümlü yerel lookup |
+| `mock` | Şema uyumlu, dondurulmuş gerçek kaynak ya da sentetik fixture |
+| `fully_simulated` | Dış sisteme dokunmayan, resetlenebilir durum değişimi |
+| `real_api` | Açıkça onaylanmış salt-okunur canlı kaynak |
+| `sandbox` | Sözleşmede var; çalışır adapter henüz yok |
+| `not_applicable` | Tool çağrısı gerekmeyen senaryo |
+
+`mock` kelimesi veri kökenini tek başına açıklamaz. Resmî/API snapshot’ı izinli
+biçimde normalize edilip kaynak, tarih, sürüm ve checksum ile dondurulabilir;
+tamamen sentetik fixture da kullanılabilir. Köken provenance’da açıkça belirtilir.
+Execution modu sessizce değiştirilmez.
+
+## Bilinçli sınırlar
+
+Proje şu anda:
+
+- proposal tool’ları kendiliğinden canlı veya onaylı saymaz;
+- belgelenmemiş servisleri scrape etmez ve kullanım koşullarını kullanıcı adına
+  kabul etmez;
+- POST, ödeme, e-posta veya başka yan etkili canlı işlem çalıştırmaz;
+- gerçek kişi verisini fixture ya da dataset içine kabul etmez;
+- model değerlendirmesini insan onayı yerine koymaz;
+- askıdaki çeviri veya benchmark üretimini dataset akışına karıştırmaz;
+- seçilmemiş kod/dataset lisansıyla açık kaynak yayını yapmaz.
+
+Güncel açık noktalar [sınırlamalar belgesinde](docs/known_limitations.md) tutulur.
 
 ## Hızlı başlangıç
 
-Python 3.11 veya daha yeni bir sürüm gereklidir.
+Python 3.11 veya daha yeni bir sürüm gerekir.
 
 ```powershell
 python -m venv .venv
@@ -208,59 +138,48 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-API anahtarları yalnız Git tarafından yok sayılan `.env` dosyasına yazılır:
-
-```powershell
-Copy-Item .env.example .env
-notepad .env
-.\.venv\Scripts\magibu-toolcall.exe config
-```
-
-Yerel registry ve blueprint doğrulaması API anahtarı gerektirmez:
+API gerektirmeyen ilk kontroller:
 
 ```powershell
 .\.venv\Scripts\magibu-toolcall.exe registry validate registry\proposals\pilot_candidates.jsonl
 .\.venv\Scripts\magibu-toolcall.exe blueprint validate blueprints\pilot_general.jsonl --registry registry\proposals\pilot_candidates.jsonl
+.\.venv\Scripts\magibu-toolcall.exe tool run-fixture calculator.evaluate.basic --registry registry\proposals\pilot_candidates.jsonl
 ```
 
-Canlı model erişimi, dataset üretimi ve kalite kontrolü için gereken bütün
-komutlar [teknik kullanım rehberinde](README_TEKNIK.md) yer alır. İnsan incelemesi
-CLI üzerinden değil GitHub pull request üzerinden yapılır.
+Canlı provider kullanımı için `.env.example` dosyasını `.env` olarak kopyalayın,
+yalnız kendi anahtarlarınızı girin ve `.env` dosyasını commit etmeyin. Ayrıntılı
+tek-kayıt ve toplu akış [teknik rehberde](README_TEKNIK.md) yer alır.
 
-## Bundan sonra ne var?
+## Katkı akışı
 
-Altyapının temel akışı hazırdır. 1000 kayda ölçeklenmeden önce:
+Tool sözleşmesi, execution kodu, blueprint ve test aynı PR’da birlikte
+incelenebilir. Dataset adayı varsa eşleşen kalite raporu da PR’a eklenir.
+Reviewer kimliği ve karar geçmişi GitHub’da tutulur; CLI reviewer girişi istemez.
 
-1. Uygun gerçek API ve resmî veri kaynakları seçilecek.
-2. Erişim, lisans ve yeniden kullanım koşulları doğrulanacak.
-3. API yanıtları mevcut tool sözleşmelerine normalize edilecek.
-4. Gerçek kaynaklı ve dondurulmuş fixture çeşitliliği artırılacak.
-5. Pilot kayıtları branch protection altındaki GitHub PR'larında incelenecek.
-6. İnsan incelemesi tamamlanan pilotun ardından 100 kayıtlık ikinci kapıya geçilecek.
+Başlangıç noktası: **[CONTRIBUTING.md](CONTRIBUTING.md)**
 
 ## Proje yapısı
 
 ```text
-blueprints/              Üretim planları ve kalite regresyonları
+blueprints/              Scenario planları ve regresyon kayıtları
 configs/                 Çalışma ayarları
 data/dataset/            Dataset yaşam döngüsü
-data/benchmark/          Dataset’ten ayrı benchmark yaşam döngüsü
-registry/                Kanonik tool registry ve fixture’lar
-registry/proposals/      Henüz onaylanmamış pilot araçları
-review/                  Otomatik kalite raporları ve inceleme kanıtları
-runs/                    Manifest, checkpoint ve çalışma kanıtları
-schemas/                 Makine tarafından doğrulanan veri sözleşmeleri
-src/tool_call_tr/        CLI ve uygulama kodu
+data/benchmark/          Ayrı ve askıdaki benchmark yaşam döngüsü
+registry/                Canonical registry ve fixture’lar
+registry/proposals/      Candidate tool sözleşmeleri ve fixture’ları
+review/                  Commit edilebilir kalite kanıtları
+runs/                    Yerel manifest, checkpoint ve çalışma çıktıları
+schemas/                 Makine tarafından doğrulanan sözleşmeler
+src/tool_call_tr/        Uygulama ve CLI kodu
 tests/                   Deterministik test paketi
 ```
 
 ## Belgeler
 
-- **[Teknik kullanım rehberi](README_TEKNIK.md):** Kurulum, yapılandırma, CLI akışları ve ayrıntılı çalışma kuralları
-- [Pilot tool seçim dosyası](docs/pilot_tool_selection.md): Tool adayları, kaynak araştırması, riskler ve onay engelleri
-- [Dataset yaşam döngüsü](data/dataset/README.md): Staging, kalite, review ve accepted alanları
-- [Benchmark yaşam döngüsü](data/benchmark/README.md): Ayrı benchmark alanı ve freeze kuralları
-- [İnceleme alanı](review/README.md): GitHub PR akışı ve kalite kanıtları
-
-Uygulamayı kullanmaya başlamak için:
-**[README_TEKNIK.md — teknik kullanım rehberi](README_TEKNIK.md)**
+- [Teknik kullanım rehberi](README_TEKNIK.md)
+- [Katkı rehberi](CONTRIBUTING.md)
+- [Tool seçimi ve kaynak sınırları](docs/pilot_tool_selection.md)
+- [Scenario blueprint kuralları](docs/scenario_blueprints.md)
+- [Execution ortamları](docs/execution_environments.md)
+- [Dataset yaşam döngüsü](data/dataset/README.md)
+- [Kalite ve PR inceleme alanı](review/README.md)
