@@ -1,0 +1,362 @@
+{
+  "actor_id": "magibu_toolcall_cli",
+  "created_at": "2026-08-10T15:20:00Z",
+  "duplicate_pairs": [],
+  "duplicate_scan": {
+    "findings_retained": 0,
+    "pairs_checked": 10,
+    "semantic_comparisons": 10
+  },
+  "input_path": "D:\\Magibu\\magibu-toolcall\\data\\dataset\\staging\\small-e2e-pilot-20260810-final.jsonl",
+  "judge": {
+    "escalation_budget_accounted_tokens": 3034,
+    "escalation_model": "gpt-5.4-2026-03-05",
+    "escalation_sample_rate": 0.2,
+    "escalation_token_budget": 10000,
+    "escalation_tokens_used": 1433,
+    "max_workers": 1,
+    "model": "gpt-5.4-mini-2026-03-17",
+    "primary_budget_accounted_tokens": 15913,
+    "primary_token_budget": 20000,
+    "primary_tokens_used": 7512,
+    "production": true,
+    "provider": "openai"
+  },
+  "quality_version": "0.2.0",
+  "records": [
+    {
+      "automatic_failures": [],
+      "execution": {
+        "status": "passed",
+        "type": "local_executable"
+      },
+      "execution_evidence": [
+        {
+          "call_id": "call_001",
+          "function_name": "math_calculate_percentage",
+          "status": "passed"
+        }
+      ],
+      "judge_evidence": {
+        "agreement": null,
+        "escalation": null,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "primary": {
+          "attempts": 1,
+          "issues": [],
+          "request_id": "chatcmpl-EBLCYWKn615XHHh22FrIL6Fy8OGSg",
+          "requested_model": "gpt-5.4-mini-2026-03-17",
+          "response_model": "gpt-5.4-mini-2026-03-17",
+          "scores": {
+            "argument_grounding": 5,
+            "clarification_behavior": 5,
+            "language_naturalness": 5,
+            "result_grounding": 5,
+            "tool_necessity": 5,
+            "tool_selection": 5,
+            "turkey_context": 5
+          },
+          "summary": "Türkçe doğal ve akıcı. Yüzde hesaplama için araç kullanımı yerinde, seçilen araç doğru ve argümanlar kullanıcı sorusuyla tam uyumlu. Araç sonucu doğru şekilde son yanıta yansıtılmış. Ek açıklama ya da netleştirme gerekmiyordu ve Türkiye bağlamı uygundu.",
+          "system_fingerprint": null,
+          "usage": {
+            "input_tokens": 1277,
+            "output_tokens": 180,
+            "total_tokens": 1457
+          },
+          "verdict": "pass"
+        },
+        "provider": "openai",
+        "rubric_version": "dataset-quality-0.1.0",
+        "status": "passed"
+      },
+      "pending_gates": [
+        "language"
+      ],
+      "record_id": "tctr_ot_000012",
+      "validation": {
+        "duplicate": "passed",
+        "execution": "passed",
+        "json": "passed",
+        "language": "not_run",
+        "schema": "passed",
+        "semantic": "passed",
+        "tool_call": "passed",
+        "turn_level": "not_applicable"
+      }
+    },
+    {
+      "automatic_failures": [],
+      "execution": {
+        "status": "passed",
+        "type": "local_executable"
+      },
+      "execution_evidence": [
+        {
+          "call_id": "call_001",
+          "function_name": "math_calculate_percentage",
+          "status": "passed"
+        },
+        {
+          "call_id": "call_002",
+          "function_name": "unit_convert_speed",
+          "status": "passed"
+        }
+      ],
+      "judge_evidence": {
+        "agreement": null,
+        "escalation": null,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "primary": {
+          "attempts": 1,
+          "issues": [],
+          "request_id": "chatcmpl-EBLCacTEbzNOY0kWfgGXBTAuFv86L",
+          "requested_model": "gpt-5.4-mini-2026-03-17",
+          "response_model": "gpt-5.4-mini-2026-03-17",
+          "scores": {
+            "argument_grounding": 5,
+            "clarification_behavior": 5,
+            "language_naturalness": 5,
+            "result_grounding": 5,
+            "tool_necessity": 5,
+            "tool_selection": 5,
+            "turkey_context": 5
+          },
+          "summary": "Yanıt doğal Türkiye Türkçesiyle yazılmış. İki bağımsız matematiksel işlem için uygun araçlar doğru seçilmiş, argümanlar kullanıcı isteğine tam olarak dayanıyor ve sonuçlar araç çıktılarıyla tutarlı biçimde yeniden ifade edilmiş. Eksik bilgi gerekmiyor; açıklama istemeden doğru şekilde doğrudan işlem yapılmış. Türkiye bağlamı ve birim kullanımı da yerinde.",
+          "system_fingerprint": null,
+          "usage": {
+            "input_tokens": 1436,
+            "output_tokens": 211,
+            "total_tokens": 1647
+          },
+          "verdict": "pass"
+        },
+        "provider": "openai",
+        "rubric_version": "dataset-quality-0.1.0",
+        "status": "passed"
+      },
+      "pending_gates": [
+        "language"
+      ],
+      "record_id": "tctr_ot_000013",
+      "validation": {
+        "duplicate": "passed",
+        "execution": "passed",
+        "json": "passed",
+        "language": "not_run",
+        "schema": "passed",
+        "semantic": "passed",
+        "tool_call": "passed",
+        "turn_level": "not_applicable"
+      }
+    },
+    {
+      "automatic_failures": [],
+      "execution": {
+        "status": "not_called",
+        "type": "not_applicable"
+      },
+      "execution_evidence": [],
+      "judge_evidence": {
+        "agreement": null,
+        "escalation": null,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "primary": {
+          "attempts": 1,
+          "issues": [],
+          "request_id": "chatcmpl-EBLCjTdBdgz8vcj4JQax35Nuk9HYN",
+          "requested_model": "gpt-5.4-mini-2026-03-17",
+          "response_model": "gpt-5.4-mini-2026-03-17",
+          "scores": {
+            "argument_grounding": 5,
+            "clarification_behavior": 5,
+            "language_naturalness": 5,
+            "result_grounding": 5,
+            "tool_necessity": 5,
+            "tool_selection": 5,
+            "turkey_context": 5
+          },
+          "summary": "Yanıt doğal ve yerinde. Soru eksik parametre içerdiği için araç çağrısı yapılmaması doğru; asistan uygun biçimde yüzde oranını netleştiren bir açıklama istemiş. Türkiye Türkçesi akıcı ve bağlama uygun.",
+          "system_fingerprint": null,
+          "usage": {
+            "input_tokens": 1203,
+            "output_tokens": 245,
+            "total_tokens": 1448
+          },
+          "verdict": "pass"
+        },
+        "provider": "openai",
+        "rubric_version": "dataset-quality-0.1.0",
+        "status": "passed"
+      },
+      "pending_gates": [
+        "language"
+      ],
+      "record_id": "tctr_ot_000014",
+      "validation": {
+        "duplicate": "passed",
+        "execution": "not_applicable",
+        "json": "passed",
+        "language": "not_run",
+        "schema": "passed",
+        "semantic": "passed",
+        "tool_call": "not_applicable",
+        "turn_level": "not_applicable"
+      }
+    },
+    {
+      "automatic_failures": [],
+      "execution": {
+        "status": "not_called",
+        "type": "not_applicable"
+      },
+      "execution_evidence": [],
+      "judge_evidence": {
+        "agreement": true,
+        "escalation": {
+          "attempts": 1,
+          "issues": [],
+          "request_id": "chatcmpl-EBLCouNJH77R7vxbb8DOvzWVIc9Cl",
+          "requested_model": "gpt-5.4-2026-03-05",
+          "response_model": "gpt-5.4-2026-03-05",
+          "scores": {
+            "argument_grounding": 5,
+            "clarification_behavior": 5,
+            "language_naturalness": 5,
+            "result_grounding": 4,
+            "tool_necessity": 5,
+            "tool_selection": 5,
+            "turkey_context": 4
+          },
+          "summary": "Yanıt doğal ve akıcı Turkey Turkcesiyle verilmis. Kullanici genel bir tanim istedigi icin arac kullanilmamasi dogru. Asistanin verdigi aciklama soruyla uyumlu, gereksiz netlestirme istemiyor ve sonuc dogrudan kullanici talebine dayaniyor. Kayit genel olarak tutarli ve gercekci.",
+          "system_fingerprint": null,
+          "usage": {
+            "input_tokens": 1211,
+            "output_tokens": 222,
+            "total_tokens": 1433
+          },
+          "verdict": "pass"
+        },
+        "model": "gpt-5.4-mini-2026-03-17",
+        "primary": {
+          "attempts": 1,
+          "issues": [],
+          "request_id": "chatcmpl-EBLCmfS1KkRxcY8egvQxVdbJHbmIt",
+          "requested_model": "gpt-5.4-mini-2026-03-17",
+          "response_model": "gpt-5.4-mini-2026-03-17",
+          "scores": {
+            "argument_grounding": 5,
+            "clarification_behavior": 5,
+            "language_naturalness": 5,
+            "result_grounding": 5,
+            "tool_necessity": 5,
+            "tool_selection": 5,
+            "turkey_context": 5
+          },
+          "summary": "İletişim doğal Türkiye Türkçesiyle yazılmış. Soru genel bir tanım istiyor; araç çağrısı gereksizdi ve doğru biçimde kullanılmamış. Yanıt doğrudan, anlaşılır ve bağlama uygun bir açıklama veriyor. Eksik bilgi olmadığı için netleştirme istememesi de doğru.",
+          "system_fingerprint": null,
+          "usage": {
+            "input_tokens": 1211,
+            "output_tokens": 161,
+            "total_tokens": 1372
+          },
+          "verdict": "pass"
+        },
+        "provider": "openai",
+        "rubric_version": "dataset-quality-0.1.0",
+        "status": "passed"
+      },
+      "pending_gates": [
+        "language"
+      ],
+      "record_id": "tctr_ot_000015",
+      "validation": {
+        "duplicate": "passed",
+        "execution": "not_applicable",
+        "json": "passed",
+        "language": "not_run",
+        "schema": "passed",
+        "semantic": "passed",
+        "tool_call": "not_applicable",
+        "turn_level": "not_applicable"
+      }
+    },
+    {
+      "automatic_failures": [],
+      "execution": {
+        "status": "passed",
+        "type": "local_executable"
+      },
+      "execution_evidence": [
+        {
+          "call_id": "call_001",
+          "function_name": "unit_convert_speed",
+          "status": "passed"
+        }
+      ],
+      "judge_evidence": {
+        "agreement": null,
+        "escalation": null,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "primary": {
+          "attempts": 1,
+          "issues": [],
+          "request_id": "chatcmpl-EBLCspqU5Ix6A4Wla1ETezp3K4Yxt",
+          "requested_model": "gpt-5.4-mini-2026-03-17",
+          "response_model": "gpt-5.4-mini-2026-03-17",
+          "scores": {
+            "argument_grounding": 5,
+            "clarification_behavior": 5,
+            "language_naturalness": 5,
+            "result_grounding": 5,
+            "tool_necessity": 5,
+            "tool_selection": 5,
+            "turkey_context": 5
+          },
+          "summary": "Diyalog doğal ve akıcı Türkiye Türkçesiyle kurulmuş. İlk mesajda birim eksik olduğu için açıklama istenmesi doğru; kullanıcı kaynak ve hedef birimleri netleştirince uygun araç çağrısı yapılmış. Seçilen araç doğru, argümanlar kullanıcı bağlamına tam dayanıyor ve sonuç doğru biçimde geri yansıtılmış. Türkiye bağlamı ve metin kullanımı da uygun.",
+          "system_fingerprint": null,
+          "usage": {
+            "input_tokens": 1353,
+            "output_tokens": 235,
+            "total_tokens": 1588
+          },
+          "verdict": "pass"
+        },
+        "provider": "openai",
+        "rubric_version": "dataset-quality-0.1.0",
+        "status": "passed"
+      },
+      "pending_gates": [
+        "language"
+      ],
+      "record_id": "tctr_ot_000016",
+      "validation": {
+        "duplicate": "passed",
+        "execution": "passed",
+        "json": "passed",
+        "language": "not_run",
+        "schema": "passed",
+        "semantic": "passed",
+        "tool_call": "passed",
+        "turn_level": "passed"
+      }
+    }
+  ],
+  "reference_paths": [],
+  "registry_path": "D:\\Magibu\\magibu-toolcall\\registry\\proposals\\registry.jsonl",
+  "registry_sha256": "b642832b76b3480748335675e920b1f36ec50c098a0d2b9fde60e6c4f3dd8b65",
+  "semantic": {
+    "model": "text-embedding-3-small",
+    "production": true,
+    "provider": "openai",
+    "threshold": 0.9
+  },
+  "summary": {
+    "duplicate_findings": 0,
+    "pairs_checked": 10,
+    "records_checked": 5,
+    "records_pending_human_language_review": 5,
+    "records_with_automatic_failures": 0,
+    "records_with_model_pass": 5,
+    "reference_records": 0
+  }
+}

@@ -14,6 +14,7 @@ from tool_call_tr.execution.core import (
     ExecutionTimeout,
     ExecutionType,
 )
+from tool_call_tr.execution.small_pilot_tools import SMALL_PILOT_FUNCTIONS
 from tool_call_tr.registry import ToolRegistry
 
 
@@ -41,6 +42,7 @@ class LocalExecutableAdapter:
         self._functions: dict[str, Callable[[dict[str, Any]], Any]] = {
             "utility_add": lambda args: {"result": args["left"] + args["right"]},
             "utility_multiply": lambda args: {"result": args["left"] * args["right"]},
+            **SMALL_PILOT_FUNCTIONS,
         }
 
     def execute(self, request: ExecutionRequest) -> ExecutionResult:

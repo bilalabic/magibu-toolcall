@@ -1,0 +1,7 @@
+{
+  "fixture_id": "math.calculate_percentage.basic",
+  "function_name": "math_calculate_percentage",
+  "arguments": {"value": 320, "percentage": 15},
+  "result": {"input_value": 320, "percentage": 15, "result": 48},
+  "provenance": "Deterministic project-local calculation used to verify the pilot tool contract."
+}

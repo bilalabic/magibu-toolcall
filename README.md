@@ -15,6 +15,10 @@ oluşturmaktır.
 > tool'u yoktur. `registry/registry.jsonl` içindeki üç `demo` tool yalnız altyapı
 > testleri içindir.
 
+> **Geçici pilot dalı:** `pilot/small-e2e-20260810`, akışı gerçek provider'larla
+> doğrulamak için iki `candidate` tool, beş üretim blueprint'i ve beş kayıtlık
+> review paketi içerir. Bu dal `main`e merge edilmek için hazırlanmamıştır.
+
 ## Temel yetenekler
 
 - JSON Schema tabanlı registry, blueprint, dataset ve benchmark sözleşmeleri
@@ -62,8 +66,8 @@ modüller [mimari belgesinde](docs/architecture.md), uygulanabilir komutlar ise
 | Varlık | Mevcut durum |
 | --- | --- |
 | Canonical registry | 3 adet `demo` tool |
-| Proposal registry | Henüz etkin `candidate` tool yok |
-| Üretim blueprint'i | Henüz yok |
+| Proposal registry | `main`: yok; bu geçici pilot dalında 2 `candidate` tool |
+| Üretim blueprint'i | `main`: yok; bu geçici pilot dalında 5 blueprint |
 | Accepted dataset | Henüz yok |
 | Onaylı canlı API tool'u | Henüz yok |
 

@@ -1,0 +1,7 @@
+{
+  "fixture_id": "unit.convert_speed.basic",
+  "function_name": "unit_convert_speed",
+  "arguments": {"value": 72, "from_unit": "kilometer_per_hour", "to_unit": "meter_per_second"},
+  "result": {"input_value": 72, "input_unit": "kilometer_per_hour", "result": 20, "output_unit": "meter_per_second"},
+  "provenance": "Deterministic project-local conversion used to verify the pilot tool contract."
+}
