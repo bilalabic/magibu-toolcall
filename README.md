@@ -183,3 +183,5 @@ tests/                   Deterministik test paketi
 - [Execution ortamları](docs/execution_environments.md)
 - [Dataset yaşam döngüsü](data/dataset/README.md)
 - [Kalite ve PR inceleme alanı](review/README.md)
+
+<!-- contribution-guidance-smoke-test -->
