@@ -129,16 +129,23 @@ $FixtureId = "your.fixture.id"
 
 ## Pull request ve otomatik yorum
 
-PR şablonundaki katkı türü, değişiklik, kaynak/lisans ve otomatik kontrol
-bölümlerini doldurun. `İnsan incelemesi` kontrol listesini reviewer değerlendirir.
+Önerilen PR şablonu değişiklik, doğrulama ve gerektiğinde kaynak-lisans olmak
+üzere üç kısa bölümden oluşur. Her PR'da değişikliği ve çalıştırılan doğrulamaları
+açıkça belirtin. Bot
+`Değişiklik`, `Değişiklikler`, `Sorun ve çözüm`, `Özet`, `Doğrulama`, `Testler`
+gibi eş anlamlı başlıkları kabul eder; kod, test ve dokümantasyon PR'larını tam
+şablonu kullanmaya zorlamaz. Tool, fixture, blueprint veya dataset katkılarında
+kaynak ve lisans açıklaması gerekir. İnsan incelemesini reviewer GitHub PR
+üzerinden yapar.
 `Contribution guidance` workflow'u:
 
-- PR şablonundaki zorunlu bölümleri ve seçilen katkı türünü;
-- execution/registry değişikliğiyle test ve dataset değişikliğiyle kalite raporu
-  ilişkisini kontrol eder.
+- değişiklik açıklamasını ve kod değişikliklerinde doğrulama bilgisini;
+- kod değişikliğiyle test, tool/veri katkısıyla kaynak-lisans ve dataset
+  değişikliğiyle kalite raporu ilişkisini kontrol eder.
 
 Bot yalnız PR açıklamasını ve değişen dosya adlarını okur; tek bir güncellenebilir
-yorum üretir. Bulgu varsa PR durumunu tek başına başarısız yapmaz; düzeltilecek
-noktaları görünür kılar. Katkı dalındaki kodu çalıştırmaz, otomatik düzeltme veya
-onay vermez. Registry, fixture, blueprint, dataset ve test doğrulamaları ayrı
-`validate` workflow'unda; nihai karar insan incelemesindedir.
+yorum üretir. Öneriler açıklayıcıdır ve tek başına merge engeli değildir. Yorumun
+GitHub'daki oluşturulma zamanı değişmediği için bot, son kontrol zamanını ve commit
+kimliğini yorumun içinde ayrıca gösterir. Katkı dalındaki kodu çalıştırmaz,
+otomatik düzeltme veya onay vermez. Registry, fixture, blueprint, dataset ve test
+doğrulamaları ayrı `validate` workflow'unda; nihai karar insan incelemesindedir.

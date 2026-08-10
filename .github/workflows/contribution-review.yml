@@ -18,54 +18,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      # This trusted base-branch script reads only PR metadata and file names.
-      # It never checks out or executes code from the contribution branch.
+      - name: Check out trusted base revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      # This trusted base-branch script reads only PR metadata and file names. It
+      # never checks out or executes code from the contribution branch.
       - name: Check contribution form and update PR comment
         uses: actions/github-script@v9
         with:
           retries: 2
           script: |
-            const marker = '<!-- magibu-contribution-guidance -->';
+            const {
+              MARKER,
+              analyzeContribution,
+              renderComment,
+            } = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/contribution-guidance.cjs`);
             const body = context.payload.pull_request.body || '';
-            const requiredSections = [
-              'katkı türü',
-              'değişiklik',
-              'kaynak ve lisans',
-              'otomatik kontroller',
-              'insan incelemesi',
-            ];
-            const headings = [...body.matchAll(/^##\s+(.+?)\s*$/gm)];
-            const sections = new Map();
-            for (let index = 0; index < headings.length; index += 1) {
-              const start = headings[index].index + headings[index][0].length;
-              const end = index + 1 < headings.length ? headings[index + 1].index : body.length;
-              sections.set(
-                headings[index][1].trim().toLocaleLowerCase('tr-TR'),
-                body.slice(start, end).trim(),
-              );
-            }
-
-            const errors = [];
-            const warnings = [];
-            for (const section of requiredSections) {
-              if (!sections.has(section)) {
-                errors.push(`Eksik PR bölümü: **${section}**.`);
-              }
-            }
-            const contributionType = sections.get('katkı türü') || '';
-            if (sections.has('katkı türü') && !/^- \[[xX]\] /m.test(contributionType)) {
-              errors.push('En az bir katkı türü seçilmelidir.');
-            }
-            for (const section of ['değişiklik', 'kaynak ve lisans']) {
-              const value = (sections.get(section) || '')
-                .replace(/<!--.*?-->/gs, '')
-                .replace(/^- \[[ xX]\].*$/gm, '')
-                .trim();
-              if (sections.has(section) && !value) {
-                errors.push(`**${section}** bölümü somut bilgi içermelidir.`);
-              }
-            }
-
             const files = await github.paginate(github.rest.pulls.listFiles, {
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -73,43 +44,18 @@ jobs:
               per_page: 100,
             });
             const paths = files.map(file => file.filename);
-            const testsChanged = paths.some(path => path.startsWith('tests/'));
-            const implementationChanged = paths.some(path =>
-              path.startsWith('src/tool_call_tr/execution/') ||
-              (path.startsWith('registry/') && path.endsWith('.jsonl'))
-            );
-            if (implementationChanged && !testsChanged) {
-              warnings.push('Registry veya execution değişmiş ancak test değişikliği görünmüyor.');
-            }
-            const datasetChanged = paths.some(path =>
-              path.startsWith('data/dataset/needs_revision/') ||
-              path === 'data/dataset/accepted/dataset.jsonl'
-            );
-            const qualityReportChanged = paths.some(path =>
-              path.startsWith('review/dataset/') && path.endsWith('.pr.quality.json')
-            );
-            if (datasetChanged && !qualityReportChanged) {
-              warnings.push('Dataset katkısı var ancak eşleşen `.pr.quality.json` raporu görünmüyor.');
-            }
-
-            const lines = [marker, '## Magibu katkı rehberi', ''];
-            const guideUrl = `${context.payload.repository.html_url}/blob/${context.payload.pull_request.base.sha}/CONTRIBUTING.md`;
-            if (errors.length === 0 && warnings.length === 0) {
-              lines.push('✅ PR açıklaması ve katkı paketi temel kontrollerden geçti.');
-            } else {
-              lines.push(errors.length ? `❌ ${errors.length} düzeltme gerekli.` : '✅ PR açıklaması tamamlandı.');
-            }
-            if (errors.length) {
-              lines.push('', '### Düzeltilmesi gerekenler', '', ...errors.map(item => `- ${item}`));
-            }
-            if (warnings.length) {
-              lines.push('', '### Uyarılar', '', ...warnings.map(item => `- ${item}`));
-            }
-            lines.push(
-              '',
-              `> Ayrıntılar: [Katkı rehberi](${guideUrl}). Registry, fixture, blueprint, dataset ve test doğrulamaları ayrı \`validate\` kontrolünde çalışır. Nihai kabul insan incelemesindedir.`,
-            );
-            const commentBody = `${lines.join('\n')}\n`;
+            const analysis = analyzeContribution({body, paths});
+            const checkedAt = new Intl.DateTimeFormat('tr-TR', {
+              timeZone: 'Europe/Istanbul',
+              dateStyle: 'long',
+              timeStyle: 'medium',
+            }).format(new Date());
+            const commentBody = renderComment({
+              analysis,
+              guideUrl: `${context.payload.repository.html_url}/blob/${context.payload.pull_request.base.sha}/CONTRIBUTING.md`,
+              checkedAt,
+              headSha: context.payload.pull_request.head.sha,
+            });
 
             const comments = await github.paginate(github.rest.issues.listComments, {
               owner: context.repo.owner,
@@ -118,7 +64,7 @@ jobs:
               per_page: 100,
             });
             const existing = comments.find(comment =>
-              comment.user?.type === 'Bot' && comment.body?.includes(marker)
+              comment.user?.type === 'Bot' && comment.body?.includes(MARKER)
             );
             if (existing) {
               await github.rest.issues.updateComment({

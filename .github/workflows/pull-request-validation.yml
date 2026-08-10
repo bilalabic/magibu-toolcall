@@ -18,6 +18,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Test contribution guidance
+        run: node --test .github/scripts/contribution-guidance.test.cjs
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
