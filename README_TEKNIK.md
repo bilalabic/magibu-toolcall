@@ -139,14 +139,16 @@ olmalıdır.
 .\.venv\Scripts\magibu-toolcall.exe blueprint validate blueprints\pilot_turkey_native.jsonl --registry registry\proposals\pilot_candidates.jsonl
 ```
 
-Repository geneli için daha güçlü kontrol:
+İki registry ve tüm test paketi birlikte çalıştırılabilir:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\check_repository_contributions.py
+.\.venv\Scripts\magibu-toolcall.exe registry validate registry\registry.jsonl
+.\.venv\Scripts\magibu-toolcall.exe registry validate registry\proposals\pilot_candidates.jsonl
+.\.venv\Scripts\python.exe -m pytest
 ```
 
-Bu kontrol iki registry’yi, bütün fixture bağlantılarını, sonuç şemalarını, bütün
-blueprint dosyalarını ve dosyalar arası yinelenen blueprint ID’lerini denetler.
+Test paketi fixture execution’larını, bütün pilot blueprint’leri ve repository
+genelindeki blueprint ID benzersizliğini de denetler.
 
 ## 6. Tek kayıtla uçtan uca CLI testi
 
@@ -253,13 +255,13 @@ oranı, insan inceleme uyumu, token kullanımı ve provider maliyeti değerlendi
 
 - `Pull request validation`, PR branch’ini checkout eder ve testleri çalıştırır;
   token yetkisi salt okunurdur.
-- `Contribution review`, güvenilir base revision’ı çalıştırır. PR blob’larını
-  yalnız veri olarak indirir, katkı kodunu çalıştırmaz ve tek bir güncellenebilir
-  yorum bırakır.
+- `Contribution guidance`, base branch’te tanımlı tek bir GitHub API adımıdır.
+  Yalnız PR açıklamasını ve değişen dosya adlarını okur; checkout, kurulum veya
+  katkı kodu çalıştırmadan tek bir güncellenebilir yorum bırakır.
 
-Katkı botu danışman niteliğindedir. Şema değişiklikleri base şemayla güvenli
-biçimde değerlendirilemeyeceği için ayrıca normal CI ve insan incelemesi ister.
-Reviewer kimliği, yorumlar, onay ve change-request geçmişi GitHub’da tutulur.
+Katkı botu yalnız şablon ve katkı paketi rehberliği yapar. Teknik doğrulamalar
+normal CI’da, nihai değerlendirme insan incelemesinde kalır. Reviewer kimliği,
+yorumlar, onay ve change-request geçmişi GitHub’da tutulur.
 
 `pull_request_target` workflow’u yalnız default branch’teki workflow tanımıyla
 çalışır. Bu nedenle workflow’u ilk kez ekleyen PR’da yalnız normal `validate`
@@ -340,7 +342,8 @@ Yalnız `<job_id>.pr.review.jsonl`, `<job_id>.pr.quality.json` ve canonical
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
-.\.venv\Scripts\python.exe scripts\check_repository_contributions.py
+.\.venv\Scripts\magibu-toolcall.exe registry validate registry\registry.jsonl
+.\.venv\Scripts\magibu-toolcall.exe registry validate registry\proposals\pilot_candidates.jsonl
 git status --short
 ```
 

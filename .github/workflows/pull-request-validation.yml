@@ -29,8 +29,18 @@ jobs:
       - name: Run tests
         run: python -m pytest
 
-      - name: Validate registries, fixtures, and blueprints
-        run: python scripts/check_repository_contributions.py
+      - name: Validate registries
+        run: |
+          magibu-toolcall registry validate registry/registry.jsonl
+          magibu-toolcall registry validate registry/proposals/pilot_candidates.jsonl
+
+      - name: Validate blueprints
+        shell: bash
+        run: |
+          find blueprints -type f \( -name '*.json' -o -name '*.jsonl' \) -print0 |
+            while IFS= read -r -d '' file; do
+              magibu-toolcall blueprint validate "$file" --registry registry/proposals/pilot_candidates.jsonl
+            done
 
       - name: Validate representative dataset record
         run: magibu-toolcall dataset validate tests/fixtures/dataset/valid_single_tool.json

@@ -63,7 +63,7 @@ da canonical audit kaydından ayrı üretilir.
 - Exact, normalize ve OpenAI embedding tabanlı semantic duplicate kontrolü
 - OpenAI birincil kalite hakemi ve yapılandırılabilir escalation hakemi
 - Çince/Han karakteri, `<think>`, iç operasyon etiketi ve biçim sızıntısı kontrolleri
-- GitHub PR üzerinden insan incelemesi ve deterministik katkı botu
+- GitHub PR üzerinden insan incelemesi ve hafif katkı rehberi botu
 - Canonical audit kaydı ve metadata’sız training projection exportu
 
 ## Mevcut içerik
@@ -93,8 +93,9 @@ Bir kaydın accepted olabilmesi için:
 6. GitHub PR üzerinde bağımsız insan incelemesi tamamlanmalı.
 
 Provider’ın `passed` veya `accepted` demesi bu kapılardan hiçbirini atlayamaz.
-PR botu şablon, registry, fixture, blueprint, değişen dataset kaydı ve belirgin
-secret desenlerini kontrol eder; PR kodunu çalıştırmaz ve insan onayı vermez.
+PR botu açıklama bölümlerini ve test/kalite raporu gibi temel katkı eşleşmelerini
+kontrol eder. Registry, fixture, blueprint, dataset ve test doğrulamaları ayrı
+`validate` workflow’unda çalışır. Bot insan onayı vermez.
 
 ## Execution türleri
 
@@ -135,7 +136,6 @@ Python 3.11 veya daha yeni bir sürüm gerekir.
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 .\.venv\Scripts\python.exe -m pytest
-.\.venv\Scripts\python.exe scripts\check_repository_contributions.py
 ```
 
 API gerektirmeyen ilk kontroller:

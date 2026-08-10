@@ -47,10 +47,6 @@ conversation rules that JSON Schema cannot express clearly.
 - `reporting`: dataset distribution and benchmark-run summaries.
 - `cli`: separate `dataset` and `benchmark` namespaces, source/batch/generation
   operations, plus shared registry, blueprint, and tool commands.
-- `contribution_review`: deterministic repository/PR checks for registries,
-  fixtures, blueprints, review datasets, PR sections, and obvious secret leaks.
-- `github_review`: a `pull_request_target` adapter that executes only trusted
-  base code, materializes PR blobs as data, and maintains one advisory comment.
 
 ## Data flow
 

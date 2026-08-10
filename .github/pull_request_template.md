@@ -8,11 +8,11 @@
 
 ## Değişiklik
 
-Neyi değiştirdiğinizi ve bunun neden gerekli olduğunu kısa ve somut biçimde açıklayın.
+<!-- Neyi değiştirdiğinizi ve bunun neden gerekli olduğunu kısa ve somut biçimde açıklayın. -->
 
 ## Kaynak ve lisans
 
-Kullanılan API/veri kaynağını, kullanım koşullarını ve kontrol tarihini yazın. Kaynak kullanılmadıysa `Uygulanamaz` yazın.
+<!-- Kullanılan API/veri kaynağını, kullanım koşullarını ve kontrol tarihini yazın. Kaynak kullanılmadıysa `Uygulanamaz` yazın. -->
 
 ## Otomatik kontroller
 

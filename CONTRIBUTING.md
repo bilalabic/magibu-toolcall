@@ -94,7 +94,7 @@ Windows PowerShell:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
-.\.venv\Scripts\python.exe scripts\check_repository_contributions.py
+.\.venv\Scripts\magibu-toolcall.exe registry validate registry\registry.jsonl
 .\.venv\Scripts\magibu-toolcall.exe registry validate registry\proposals\pilot_candidates.jsonl
 .\.venv\Scripts\magibu-toolcall.exe blueprint validate blueprints\pilot_general.jsonl --registry registry\proposals\pilot_candidates.jsonl
 ```
@@ -108,15 +108,13 @@ Değişen bir fixture’ı ayrıca çalıştırın:
 ## Pull request ve otomatik yorum
 
 PR şablonundaki katkı türü, değişiklik, kaynak/lisans, otomatik kontrol ve insan
-incelemesi bölümlerini doldurun. `Contribution review` workflow’u:
+incelemesi bölümlerini doldurun. `Contribution guidance` workflow’u:
 
-- PR şablonunu ve değişen metin dosyalarında belirgin secret desenlerini;
-- iki registry’yi, bütün tanımlı fixture bağlantılarını ve bütün blueprint’leri;
-- değişen review dataset kayıtlarını;
+- PR şablonundaki zorunlu bölümleri ve seçilen katkı türünü;
 - execution/registry değişikliğiyle test ve dataset değişikliğiyle kalite raporu
   ilişkisini kontrol eder.
 
-Bot tek bir güncellenebilir PR yorumu ve dosya/satır annotation’ları üretir.
-Katkı dalındaki Python kodunu çalıştırmaz, otomatik düzeltme veya onay vermez.
-Başlangıçta danışman niteliğindedir; gerçek CI ve insan incelemesi merge için
-ayrı kapılardır.
+Bot yalnız PR açıklamasını ve değişen dosya adlarını okur; tek bir güncellenebilir
+yorum üretir. Katkı dalındaki kodu çalıştırmaz, otomatik düzeltme veya onay vermez.
+Registry, fixture, blueprint, dataset ve test doğrulamaları ayrı `validate`
+workflow’unda; nihai karar insan incelemesindedir.

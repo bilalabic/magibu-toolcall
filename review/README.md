@@ -7,11 +7,13 @@ Yerel geçici provider çıktıları ve reviewer kimlik bilgileri burada tutulma
 
 1. Katkı ayrı bir branch’te hazırlanır.
 2. Normal CI, PR kodunu salt-okunur token ile test eder.
-3. `Contribution review` workflow’u güvenilir base kodla registry, fixture,
-   blueprint, review dataset ve PR şablonunu denetler; PR kodunu çalıştırmaz.
-4. Reviewer Türkçe, tool seçimi, argümanlar, grounding, provenance, lisans,
+3. `Contribution guidance` workflow’u yalnız PR açıklamasını ve değişen dosya
+   adlarını denetleyip rehber yorum bırakır; PR kodunu çalıştırmaz.
+4. Normal `validate` workflow’u testleri ve yapılandırılmış veri sözleşmelerini
+   doğrular.
+5. Reviewer Türkçe, tool seçimi, argümanlar, grounding, provenance, lisans,
    güncellik ve güvenlik sınırlarını inceler.
-5. Düzeltmeler aynı PR’a eklenir; gerekli kontroller ve güncel onay tamamlandığında
+6. Düzeltmeler aynı PR’a eklenir; gerekli kontroller ve güncel onay tamamlandığında
    değişiklik `main` branch’ine alınır.
 
 Dataset katkısı için izlenebilir dosya adları:
