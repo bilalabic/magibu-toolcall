@@ -1,7 +1,0 @@
-{
-  "fixture_id": "calculator.evaluate.basic",
-  "function_name": "calculator_evaluate",
-  "arguments": {"expression": "18 * 0.25"},
-  "result": {"result": 4.5, "normalized_expression": "18 * 0.25"},
-  "provenance": "Deterministic arithmetic fixture; no provider data."
-}

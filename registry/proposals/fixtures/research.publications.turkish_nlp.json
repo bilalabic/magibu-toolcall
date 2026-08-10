@@ -1,7 +1,0 @@
-{
-  "fixture_id": "research.publications.turkish_nlp",
-  "function_name": "research_search_publications",
-  "arguments": {"query": "Türkçe doğal dil işleme", "year": 2025, "limit": 10},
-  "result": {"publications": [{"record_id": "PUB-TR-2025-001", "title": "Türkçe Doğal Dil İşleme Sistemlerinde Değerlendirme Yöntemleri", "authors": ["Deniz Kaya"], "year": 2025, "doi": null, "source": "pilot_snapshot_v1", "record_license": null}]},
-  "provenance": "Fully synthetic publication metadata; no real author, paper, DOI, TR Dizin, or Aperta record."
-}

@@ -5,8 +5,9 @@
 
 Bu belge kurulabilir ve çalıştırılabilir CLI akışının teknik başvuru kaynağıdır.
 Mimari kararlar, kavramsal açıklamalar ve proje durumu burada tekrarlanmaz;
-[dokümantasyon merkezindeki](docs/README.md) ilgili belgelere yönlendirilir. Aktif
-üretim kapsamı `original_turkish` ve `turkey_native` dataset kayıtlarıdır.
+[dokümantasyon merkezindeki](docs/README.md) ilgili belgelere yönlendirilir.
+`original_turkish` ve `turkey_native` akışları desteklenir; etkin proposal ve
+üretim blueprint katalogları henüz oluşturulmamıştır.
 
 Rehberi ilk kez kullanıyorsanız şu sırayı izleyin:
 
@@ -93,9 +94,10 @@ koşulları için doğruluk kaynağı provider dashboard'udur.
 Machine alanları İngilizce ve kararlı kalır. Kullanıcı/asistan metinleri ile tool
 ve parametre açıklamaları Türkiye Türkçesiyle yazılır.
 
-Kanonik registry yalnız `demo` kayıtları içerir. Pilot tool’lar
-`registry/proposals/pilot_candidates.jsonl` içinde `candidate` durumundadır.
-`candidate`, canlı kaynak veya lisans onayı değildir.
+Kanonik registry yalnız altyapı testlerinde kullanılan `demo` kayıtlarını içerir.
+Yeni tool’lar `registry/proposals/registry.jsonl` dosyasına `candidate` olarak
+eklenir; dosya ilk tool katkısıyla oluşturulur. `candidate`, canlı kaynak veya
+lisans onayı değildir.
 
 ## 4. Tool katkısı ve execution
 
@@ -103,17 +105,17 @@ Ayrıntılı katkı sözleşmesi [CONTRIBUTING.md](CONTRIBUTING.md) içindedir. 
 doğrulama ve smoke testi:
 
 ```powershell
-.\.venv\Scripts\magibu-toolcall.exe registry validate registry\proposals\pilot_candidates.jsonl
-.\.venv\Scripts\magibu-toolcall.exe tool run-fixture calculator.evaluate.basic --registry registry\proposals\pilot_candidates.jsonl
-.\.venv\Scripts\magibu-toolcall.exe tool run-fixture calendar.create_event.confirmed --registry registry\proposals\pilot_candidates.jsonl
+.\.venv\Scripts\magibu-toolcall.exe registry validate registry\registry.jsonl
+.\.venv\Scripts\magibu-toolcall.exe tool run-fixture utility.add.basic
 ```
 
-Mevcut proposal dağılımı 4 `local_executable`, 14 `mock` ve 2
-`fully_simulated` tool’dur. Modların sözleşmeleri, status değerleri ve fallback
-kuralları [execution ortamları belgesinde](docs/execution_environments.md)
-tutulur. CLI hiçbir execution modunu sessizce başka moda düşürmez. `tool run-api`
-yalnız canonical registry'deki `approved` read-only tool için ve
-`--confirm-live` ile çalışır; bugün böyle bir kayıt yoktur.
+Bu komutlar yalnız demo altyapısını sınar. Yeni proposal fixture'ı için aynı
+komutlara `--registry registry\proposals\registry.jsonl` eklenir. Modların
+sözleşmeleri, status değerleri ve fallback kuralları
+[execution ortamları belgesinde](docs/execution_environments.md) tutulur. CLI
+hiçbir execution modunu sessizce başka moda düşürmez. `tool run-api` yalnız
+canonical registry'deki `approved` read-only tool için ve `--confirm-live` ile
+çalışır; bugün böyle bir kayıt yoktur.
 
 ## 5. Blueprint hazırlama
 
@@ -122,30 +124,38 @@ Blueprint model çağrısından önce yazılır. Alanların anlamı, beş katego
 tutulur. Bu bölüm yalnız doğrulama komutlarını gösterir.
 
 ```powershell
-.\.venv\Scripts\magibu-toolcall.exe blueprint validate blueprints\pilot_general.jsonl --registry registry\proposals\pilot_candidates.jsonl
-.\.venv\Scripts\magibu-toolcall.exe blueprint validate blueprints\pilot_turkey_native.jsonl --registry registry\proposals\pilot_candidates.jsonl
+.\.venv\Scripts\magibu-toolcall.exe blueprint validate tests\fixtures\blueprints\valid\single_tool.json --registry registry\registry.jsonl
 ```
 
-İki registry ve tüm test paketi birlikte çalıştırılabilir:
+Proposal ve production blueprint dosyaları eklendikten sonra:
+
+```powershell
+$ProposalRegistry = "registry\proposals\registry.jsonl"
+$BlueprintFile = "blueprints\contribution.jsonl"
+.\.venv\Scripts\magibu-toolcall.exe registry validate $ProposalRegistry
+.\.venv\Scripts\magibu-toolcall.exe blueprint validate $BlueprintFile --registry $ProposalRegistry
+```
+
+Canonical registry ve tüm test paketi birlikte çalıştırılabilir:
 
 ```powershell
 .\.venv\Scripts\magibu-toolcall.exe registry validate registry\registry.jsonl
-.\.venv\Scripts\magibu-toolcall.exe registry validate registry\proposals\pilot_candidates.jsonl
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-Test paketi fixture execution’larını, bütün pilot blueprint’leri ve repository
-genelindeki blueprint ID benzersizliğini de denetler.
+Test paketi fixture execution’larını, örnek blueprint kategorilerini ve
+repository genelindeki blueprint ID benzersizliğini de denetler.
 
 ## 6. Tek kayıtla uçtan uca CLI testi
 
-Tek kayıtlık regresyon blueprint’i güvenli bir smoke test sağlar.
+Depodaki `single_tool.json` test fixture'ı, üretim kataloğu oluşturmadan güvenli
+bir altyapı smoke testi sağlar. Bu fixture dataset içeriği olarak yayımlanmaz.
 
 ### 6.1 Provider ve sözleşme kontrolü
 
 ```powershell
 .\.venv\Scripts\magibu-toolcall.exe provider check --provider all --confirm-live --output json
-.\.venv\Scripts\magibu-toolcall.exe blueprint validate blueprints\regressions\parcel_natural_v2.jsonl --registry registry\proposals\pilot_candidates.jsonl
+.\.venv\Scripts\magibu-toolcall.exe blueprint validate tests\fixtures\blueprints\valid\single_tool.json --registry registry\registry.jsonl
 ```
 
 İlk komut canlıdır; ikinci komut tamamen yereldir.
@@ -153,8 +163,8 @@ Tek kayıtlık regresyon blueprint’i güvenli bir smoke test sağlar.
 ### 6.2 Aday üretimi
 
 ```powershell
-.\.venv\Scripts\magibu-toolcall.exe dataset generate blueprints\regressions\parcel_natural_v2.jsonl `
-  --registry registry\proposals\pilot_candidates.jsonl `
+.\.venv\Scripts\magibu-toolcall.exe dataset generate tests\fixtures\blueprints\valid\single_tool.json `
+  --registry registry\registry.jsonl `
   --job-id dataset-smoke-001 `
   --output data\dataset\staging\dataset-smoke-001.jsonl `
   --start-number 1 `
@@ -171,17 +181,17 @@ kayıt otomatik olarak insan onaylı sayılmaz. Aynı tamamlanmış job yerinde 
 ### 6.3 Üretim sonrası doğrulama sınırı
 
 `dataset generate`, yazmadan önce blueprint'i ve üretilen kaydı komutta verilen
-registry ile doğrular. Bağımsız `dataset validate` komutu ise varsayılan canonical
-registry'yi kullanır ve `--registry` seçeneği sunmaz. Bu nedenle proposal
-registry'deki tool'larla üretilen staging kaydını bu komutla tekrar doğrulamayın;
-bir sonraki `dataset quality --registry ...` adımı aynı kaydı proposal registry
-ile yeniden doğrular ve execution kanıtını hesaplar.
+registry ile doğrular. Bağımsız `dataset validate` komutu varsayılan canonical
+registry'yi kullanır ve `--registry` seçeneği sunmaz. Bu smoke testi canonical
+demo registry kullandığı için üretilen kayıt bağımsız olarak da doğrulanabilir.
+Gelecekte proposal tool'larıyla üretilen kayıtlar aynı registry yolu verilerek
+`dataset quality` içinde yeniden doğrulanır.
 
-Canonical registry tool'larını kullanan kayıtlar ayrıca şu şekilde
-doğrulanabilir:
+Smoke çıktısı ve hazır test kaydı şu şekilde doğrulanabilir:
 
 ```powershell
 .\.venv\Scripts\magibu-toolcall.exe dataset validate tests\fixtures\dataset\valid_single_tool.json --output json
+.\.venv\Scripts\magibu-toolcall.exe dataset validate data\dataset\staging\dataset-smoke-001.jsonl --output json
 ```
 
 ### 6.4 Execution, duplicate ve OpenAI kalite kontrolü
@@ -192,7 +202,7 @@ Accepted referans dosyası henüz yoksa `--reference` vermeyin:
 .\.venv\Scripts\magibu-toolcall.exe dataset quality `
   data\dataset\staging\dataset-smoke-001.jsonl `
   data\dataset\needs_revision\dataset-smoke-001.pr.review.jsonl `
-  --registry registry\proposals\pilot_candidates.jsonl `
+  --registry registry\registry.jsonl `
   --semantic-provider openai `
   --semantic-threshold 0.90 `
   --semantic-cache .cache\semantic `
@@ -224,9 +234,12 @@ Normal başlangıç komutu `dataset generate`’dır. Ayrı `batch plan/run` kom
 yalnız önceden planlanmış işi devam ettirmek veya özel shard yönetmek içindir.
 
 ```powershell
-.\.venv\Scripts\magibu-toolcall.exe dataset generate blueprints\pilot_general.jsonl `
-  --registry registry\proposals\pilot_candidates.jsonl `
-  --job-id general-pilot-v1 `
+$BlueprintFile = "blueprints\production_batch.jsonl"
+$ProposalRegistry = "registry\proposals\registry.jsonl"
+$JobId = "dataset-batch-001"
+.\.venv\Scripts\magibu-toolcall.exe dataset generate $BlueprintFile `
+  --registry $ProposalRegistry `
+  --job-id $JobId `
   --max-workers 4 `
   --token-budget 250000 `
   --execute-live
@@ -241,8 +254,9 @@ hedefleri için `--targets` kullanılabilir.
 Durum ve dağılım raporu:
 
 ```powershell
-.\.venv\Scripts\magibu-toolcall.exe dataset batch status runs\dataset\general-pilot-v1\manifest.json --output json
-.\.venv\Scripts\magibu-toolcall.exe dataset batch report runs\dataset\general-pilot-v1\manifest.json --output json
+$Manifest = "runs\dataset\$JobId\manifest.json"
+.\.venv\Scripts\magibu-toolcall.exe dataset batch status $Manifest --output json
+.\.venv\Scripts\magibu-toolcall.exe dataset batch report $Manifest --output json
 ```
 
 1.000 kayıt tek kontrolsüz çağrı olarak üretilmemelidir. Önerilen hazırlık
@@ -335,7 +349,6 @@ Yalnız `<job_id>.pr.review.jsonl`, `<job_id>.pr.quality.json` ve canonical
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
 .\.venv\Scripts\magibu-toolcall.exe registry validate registry\registry.jsonl
-.\.venv\Scripts\magibu-toolcall.exe registry validate registry\proposals\pilot_candidates.jsonl
 git status --short
 ```
 

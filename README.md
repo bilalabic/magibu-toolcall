@@ -10,9 +10,10 @@ akışta birleştirir. Amaç; doğal Türkiye Türkçesi kullanan, doğru tool'u
 argümanlarla çağıran ve cevabını gerçek tool sonucuna dayandıran eğitim kayıtları
 oluşturmaktır.
 
-> **Proje durumu:** Altyapı ve teknik pilot çalışır durumdadır. Depoda henüz
-> yayımlanmış 1.000 kayıtlık dataset, kabul edilmiş dataset kaydı veya onaylı
-> canlı API tool'u yoktur.
+> **Proje durumu:** Altyapı çalışır durumdadır. Depoda şu anda etkin aday tool
+> kataloğu, üretim blueprint'i, kabul edilmiş dataset kaydı veya onaylı canlı API
+> tool'u yoktur. `registry/registry.jsonl` içindeki üç `demo` tool yalnız altyapı
+> testleri içindir.
 
 ## Temel yetenekler
 
@@ -33,8 +34,8 @@ tarafından oluşturulur veya doğrulanır. Provider çıktısı tek başına bi
 
 | Kaynak türü | Amaç | Durum |
 | --- | --- | --- |
-| `original_turkish` | Genel amaçlı tool'lar için doğrudan Türkçe senaryolar | Aktif |
-| `turkey_native` | Türkiye'deki kurum, açık veri ve yerel hizmet senaryoları | Aktif |
+| `original_turkish` | Genel amaçlı tool'lar için doğrudan Türkçe senaryolar | Altyapı hazır; katalog oluşturulacak |
+| `turkey_native` | Türkiye'deki kurum, açık veri ve yerel hizmet senaryoları | Altyapı hazır; kaynaklar onaylanacak |
 | `translated` | xLAM, When2Call ve benzeri kaynakların lokalizasyonu | Askıda |
 
 Dataset ve benchmark birbirinden ayrı yaşam döngüleridir. Benchmark doğrulama ve
@@ -56,15 +57,13 @@ Her aşama bir sonrakine doğrulanmış kanıt bırakır. Ayrıntılı güven s�
 modüller [mimari belgesinde](docs/architecture.md), uygulanabilir komutlar ise
 [teknik kullanım rehberinde](README_TEKNIK.md) açıklanır.
 
-## Pilot durumu
+## Güncel depo durumu
 
 | Varlık | Mevcut durum |
 | --- | --- |
 | Canonical registry | 3 adet `demo` tool |
-| Proposal registry | 20 adet `candidate` tool |
-| Pilot blueprint | 15 genel Türkçe + 15 Türkiye-native |
-| Regresyon blueprint | 1 adet |
-| Aday tool execution dağılımı | 4 local, 14 mock, 2 fully simulated |
+| Proposal registry | Henüz etkin `candidate` tool yok |
+| Üretim blueprint'i | Henüz yok |
 | Accepted dataset | Henüz yok |
 | Onaylı canlı API tool'u | Henüz yok |
 
@@ -84,9 +83,9 @@ python -m venv .venv
 API anahtarı gerektirmeyen ilk kontrol:
 
 ```powershell
-.\.venv\Scripts\magibu-toolcall.exe registry validate registry\proposals\pilot_candidates.jsonl
-.\.venv\Scripts\magibu-toolcall.exe blueprint validate blueprints\pilot_general.jsonl --registry registry\proposals\pilot_candidates.jsonl
-.\.venv\Scripts\magibu-toolcall.exe tool run-fixture calculator.evaluate.basic --registry registry\proposals\pilot_candidates.jsonl
+.\.venv\Scripts\magibu-toolcall.exe registry validate registry\registry.jsonl
+.\.venv\Scripts\magibu-toolcall.exe blueprint validate tests\fixtures\blueprints\valid\single_tool.json --registry registry\registry.jsonl
+.\.venv\Scripts\magibu-toolcall.exe tool run-fixture utility.add.basic
 ```
 
 Kurulumdan tek kayıt üretimine ve kalite kontrolüne kadar bütün komutlar

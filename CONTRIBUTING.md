@@ -31,8 +31,9 @@ Katkı paketinin beklenen asgari içeriği:
 
 ## Tool katkısı
 
-Yeni bir tool önce `registry/proposals/pilot_candidates.jsonl` içinde `candidate`
-olarak tanımlanır. Kayıt şu sözleşmeleri birlikte taşır:
+Yeni tool kayıtları `registry/proposals/registry.jsonl` içinde `candidate` olarak
+tanımlanır. Dosya henüz yoksa katkı PR'ı içinde oluşturulur. Kayıt şu
+sözleşmeleri birlikte taşır:
 
 - kararlı `tool_id`, `tool_version`, domain ve function adı;
 - JSON Schema uyumlu input ve output şemaları;
@@ -53,7 +54,7 @@ Execution implementasyonu seçilen moda göre hazırlanır:
 
 | Mod | Katkıda bulunulacak yer | Kabul ölçütü |
 | --- | --- | --- |
-| `local_executable` | `src/tool_call_tr/execution/local_tools.py` ve adapter eşlemesi | Deterministik, ağsız, input/output şemalarıyla uyumlu ve testli |
+| `local_executable` | `src/tool_call_tr/execution/` altında odaklı implementasyon ve adapter eşlemesi | Deterministik, ağsız, input/output şemalarıyla uyumlu ve testli |
 | `mock` | `registry/proposals/fixtures/<fixture_id>.json` ve registry `fixture_ids` | Sabit, şema uyumlu, kaynak kökeni açık ve kişisel verisiz |
 | `fully_simulated` | Stateful adapter implementasyonu | Dış sisteme dokunmayan, resetlenebilir ve durum geçişleri testli |
 | `real_api` | Registry `execution.http`; gerekirse HTTP adapter geliştirmesi | Yalnız HTTPS GET, izinli host, açık auth, timeout ve şema doğrulaması |
@@ -112,14 +113,18 @@ Windows PowerShell:
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
 .\.venv\Scripts\magibu-toolcall.exe registry validate registry\registry.jsonl
-.\.venv\Scripts\magibu-toolcall.exe registry validate registry\proposals\pilot_candidates.jsonl
-.\.venv\Scripts\magibu-toolcall.exe blueprint validate blueprints\pilot_general.jsonl --registry registry\proposals\pilot_candidates.jsonl
 ```
 
-Değişen bir fixture’ı ayrıca çalıştırın:
+Bir proposal registry veya blueprint eklediyseniz kendi dosya yollarınızı
+değişkenlere vererek ayrıca doğrulayın:
 
 ```powershell
-.\.venv\Scripts\magibu-toolcall.exe tool run-fixture <fixture_id> --registry registry\proposals\pilot_candidates.jsonl
+$ProposalRegistry = "registry\proposals\registry.jsonl"
+$BlueprintFile = "blueprints\contribution.jsonl"
+$FixtureId = "your.fixture.id"
+.\.venv\Scripts\magibu-toolcall.exe registry validate $ProposalRegistry
+.\.venv\Scripts\magibu-toolcall.exe blueprint validate $BlueprintFile --registry $ProposalRegistry
+.\.venv\Scripts\magibu-toolcall.exe tool run-fixture $FixtureId --registry $ProposalRegistry
 ```
 
 ## Pull request ve otomatik yorum

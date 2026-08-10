@@ -33,6 +33,24 @@ def test_blueprint_store_loads_and_filters_all_categories() -> None:
         store.get("missing")
 
 
+def test_repository_blueprint_ids_are_unique() -> None:
+    blueprint_paths = sorted((ROOT / "blueprints").rglob("*.json"))
+    blueprint_paths.extend(sorted((ROOT / "blueprints").rglob("*.jsonl")))
+    seen: dict[str, Path] = {}
+    for path in blueprint_paths:
+        records = (
+            [json.loads(path.read_text(encoding="utf-8"))]
+            if path.suffix == ".json"
+            else [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        )
+        for record in records:
+            blueprint_id = record["id"]
+            assert blueprint_id not in seen, (
+                f"duplicate blueprint id {blueprint_id!r}: {seen[blueprint_id]} and {path}"
+            )
+            seen[blueprint_id] = path
+
+
 @pytest.mark.parametrize(
     ("user_turns", "calls", "decision", "expected"),
     [

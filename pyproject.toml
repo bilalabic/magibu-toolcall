@@ -9,7 +9,7 @@ description = "Quality-focused infrastructure for building a Turkish tool-callin
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{name = "magibu-toolcall contributors"}]
-dependencies = ["jsonschema>=4.21,<5", "tzdata>=2026.1"]
+dependencies = ["jsonschema>=4.21,<5"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<9", "pytest-cov>=5,<7"]

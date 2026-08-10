@@ -12,10 +12,7 @@ from tool_call_tr.text_quality import find_internal_operation_markers
 
 
 ROOT = Path(__file__).resolve().parents[2]
-PILOT_BLUEPRINTS = (
-    ROOT / "blueprints" / "pilot_general.jsonl",
-    ROOT / "blueprints" / "pilot_turkey_native.jsonl",
-)
+VALID_BLUEPRINTS = ROOT / "tests" / "fixtures" / "blueprints" / "valid"
 
 
 def load_blueprint(name: str) -> dict[str, Any]:
@@ -23,14 +20,12 @@ def load_blueprint(name: str) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def test_all_pilot_generation_briefs_exclude_internal_context() -> None:
+def test_valid_generation_briefs_exclude_internal_context() -> None:
     blueprints = [
-        json.loads(line)
-        for path in PILOT_BLUEPRINTS
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(VALID_BLUEPRINTS.glob("*.json"))
     ]
-    assert len(blueprints) == 30
+    assert blueprints
     for blueprint in blueprints:
         brief = build_generation_brief(blueprint)
         serialized = json.dumps(brief, ensure_ascii=False, sort_keys=True)

@@ -12,7 +12,7 @@ yerine her konu için tek bir ana kaynak kullanılır.
 | CLI'ı çalıştıracak geliştirici | [Teknik kullanım rehberi](../README_TEKNIK.md) | [Validation](validation.md) |
 | Katkı hazırlayacak geliştirici | [Katkı rehberi](../CONTRIBUTING.md) | Katkı türüne göre aşağıdaki ilgili belge |
 | Dataset küratörü/reviewer | [Dataset yaşam döngüsü](../data/dataset/README.md) | [Review alanı](../review/README.md) |
-| Tool/API araştırmacısı | [Pilot tool seçimi](pilot_tool_selection.md) | [Tool proposal şablonu](tool_proposal_template.md) |
+| Tool/API araştırmacısı | [Tool proposal şablonu](tool_proposal_template.md) | [Execution ortamları](execution_environments.md) |
 | Proje yöneticisi | [Bilinen sınırlamalar](known_limitations.md) | [Sonraki aşama kontrol listesi](next_stage_checklist.md) |
 
 ## Rehberler
@@ -59,7 +59,6 @@ Bugünkü kapasiteyi, riskleri ve ölçekleme kapılarını izlemek için kullan
 - [Next-stage checklist](next_stage_checklist.md)
 - [Risk register](risk_register.md)
 - [Dependency decisions](dependency_decisions.md)
-- [Pilot tool selection](pilot_tool_selection.md)
 
 ## Araştırma
 

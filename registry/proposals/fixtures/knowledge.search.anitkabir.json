@@ -1,7 +1,0 @@
-{
-  "fixture_id": "knowledge.search.anitkabir",
-  "function_name": "knowledge_search",
-  "arguments": {"query": "Anıtkabir", "language": "tr", "limit": 5},
-  "result": {"results": [{"source_id": "trwiki:37421203", "title": "Anıtkabir", "summary": "Anıtkabir, Ankara'nın Çankaya ilçesinde yer alan ve Mustafa Kemal Atatürk'ün anıt mezarını içeren komplekstir.", "url": "https://tr.wikipedia.org/w/index.php?title=An%C4%B1tkabir&oldid=37421203"}]},
-  "provenance": "Adapted from Turkish Wikipedia revision 37421203, checked 2026-08-07; CC BY-SA 4.0 attribution and share-alike apply."
-}

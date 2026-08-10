@@ -73,13 +73,13 @@ def test_mode_transition_is_explicit_and_recorded() -> None:
     history: list[dict] = []
     metadata = {"type": "real_api", "status": "failed"}
     request = ExecutionRequest("call_001", "utility_add", {"left": 5, "right": 7}, ExecutionType.REAL_API)
-    transitioned = transition_execution_mode(request, ExecutionType.MOCK, reason="API erişimi pilotta doğrulanmadı", transformation_history=history, execution_metadata=metadata)
+    transitioned = transition_execution_mode(request, ExecutionType.MOCK, reason="API erişimi doğrulanmadı", transformation_history=history, execution_metadata=metadata)
     assert transitioned.execution_type == ExecutionType.MOCK
     assert history == [{
         "action": "execution_mode_changed",
         "from_execution_type": "real_api",
         "to_execution_type": "mock",
-        "details": "API erişimi pilotta doğrulanmadı",
+        "details": "API erişimi doğrulanmadı",
     }]
     assert metadata == {"type": "mock", "status": "not_called"}
 
@@ -104,33 +104,3 @@ def test_stateful_simulation_can_be_reset() -> None:
 def test_fixture_execution_cli(capsys) -> None:
     assert main(["tool", "run-fixture", "utility.add.basic", "--mode", "mock"]) == 0
     assert '"status": "passed"' in capsys.readouterr().out
-
-
-def test_proposal_fixture_execution_cli_uses_declared_modes(capsys) -> None:
-    proposal_registry = ROOT / "registry" / "proposals" / "pilot_candidates.jsonl"
-    assert main([
-        "tool", "run-fixture", "calculator.evaluate.basic",
-        "--registry", str(proposal_registry),
-    ]) == 0
-    local_output = capsys.readouterr().out
-    assert '"execution_type": "local_executable"' in local_output
-    assert '"status": "passed"' in local_output
-
-    assert main([
-        "tool", "run-fixture", "calendar.create_event.confirmed",
-        "--registry", str(proposal_registry),
-    ]) == 0
-    simulated_output = capsys.readouterr().out
-    assert '"execution_type": "fully_simulated"' in simulated_output
-    assert '"status": "passed"' in simulated_output
-
-
-def test_blueprint_cli_can_validate_against_proposal_registry(capsys) -> None:
-    proposal_registry = ROOT / "registry" / "proposals" / "pilot_candidates.jsonl"
-    blueprints = ROOT / "blueprints" / "pilot_general.jsonl"
-    assert main([
-        "blueprint", "validate", str(blueprints),
-        "--registry", str(proposal_registry),
-        "--output", "json",
-    ]) == 0
-    assert '"records_checked": 15' in capsys.readouterr().out

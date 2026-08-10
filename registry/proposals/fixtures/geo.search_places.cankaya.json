@@ -1,7 +1,0 @@
-{
-  "fixture_id": "geo.search_places.cankaya",
-  "function_name": "geo_search_places",
-  "arguments": {"query": "Çankaya Belediyesi", "country_code": "TR", "limit": 5},
-  "result": {"results": [{"place_id": "GEO-TR-CANKAYA-BELEDIYESI-01", "display_name": "Çankaya Belediyesi, Kızılay, Çankaya, Ankara, Türkiye", "latitude": 39.9184, "longitude": 32.8547, "admin_area": "Ankara"}], "data_version": "pilot-snapshot-v1"},
-  "provenance": "Synthetic place-resolution fixture created to ground the downstream route fixture; not an OSM extract."
-}

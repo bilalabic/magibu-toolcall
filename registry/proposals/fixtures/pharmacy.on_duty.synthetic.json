@@ -1,7 +1,0 @@
-{
-  "fixture_id": "pharmacy.on_duty.synthetic",
-  "function_name": "pharmacy_find_on_duty",
-  "arguments": {"province": "İstanbul", "district": "Kadıköy", "date": "2026-08-08"},
-  "result": {"pharmacies": [{"name": "Merkez Nöbetçi Eczanesi", "address": "Bahçe Mahallesi, Çiçek Sokak No: 1", "phone": "+90 000 000 00 00", "duty_start": "2026-08-08T19:00:00+03:00", "duty_end": "2026-08-09T09:00:00+03:00", "observed_at": "2026-08-07T09:00:00+03:00"}]},
-  "provenance": "Fully synthetic pharmacy fixture; no real business, address, phone, or duty status."
-}

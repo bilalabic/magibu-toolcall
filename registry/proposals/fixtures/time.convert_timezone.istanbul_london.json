@@ -1,7 +1,0 @@
-{
-  "fixture_id": "time.convert_timezone.istanbul_london",
-  "function_name": "time_convert_timezone",
-  "arguments": {"local_datetime": "2026-08-07T15:00:00", "source_timezone": "Europe/Istanbul", "target_timezone": "Europe/London"},
-  "result": {"source_datetime": "2026-08-07T15:00:00+03:00", "target_datetime": "2026-08-07T13:00:00+01:00", "source_utc_offset": "+03:00", "target_utc_offset": "+01:00", "ambiguous": false},
-  "provenance": "Deterministic IANA timezone fixture checked for 2026-08-07."
-}
