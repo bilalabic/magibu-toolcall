@@ -1,11 +1,21 @@
 # magibu-toolcall — teknik kullanım rehberi
 
-[← Proje tanıtımına dön](README.md) · [Katkı rehberi](CONTRIBUTING.md)
+[← Proje tanıtımına dön](README.md) · [Dokümantasyon merkezi](docs/README.md) ·
+[Katkı rehberi](CONTRIBUTING.md)
 
-Bu belge geliştirici kurulumu, CLI kullanımı, tool/blueprint katkısı ve dataset
-üretim akışını açıklar. Aktif kapsam `original_turkish` ve `turkey_native`
-dataset kayıtlarıdır. Çeviri/lokalizasyon ve benchmark üretimi ayrı tutulur ve
-şu anda çalıştırılmaz.
+Bu belge kurulabilir ve çalıştırılabilir CLI akışının teknik başvuru kaynağıdır.
+Mimari kararlar, kavramsal açıklamalar ve proje durumu burada tekrarlanmaz;
+[dokümantasyon merkezindeki](docs/README.md) ilgili belgelere yönlendirilir. Aktif
+üretim kapsamı `original_turkish` ve `turkey_native` dataset kayıtlarıdır.
+
+Rehberi ilk kez kullanıyorsanız şu sırayı izleyin:
+
+1. Kurulumu tamamlayıp yerel testleri çalıştırın.
+2. Registry ve blueprint sözleşmelerini doğrulayın.
+3. Önce tek kayıtlık smoke testi yürütün.
+4. Üretim çıktısını otomatik kalite kontrolünden geçirin.
+5. Aday kayıt ve kalite raporunu GitHub PR üzerinden insan incelemesine sunun.
+6. Tek kayıt akışı doğrulandıktan sonra toplu üretime geçin.
 
 ## 1. Kurulum
 
@@ -44,10 +54,11 @@ Gerçek anahtarları tırnak, `< >` veya örnek placeholder ile sarmalamadan gir
 Anahtarları komut satırı argümanına, fixture’a, manifest’e, kalite raporuna veya
 PR açıklamasına yazmayın.
 
-Aktif üretim politikası:
+Varsayılan provider rolleri:
 
 - DeepSeek Flash: birincil doğal dil üretimi
-- DeepSeek Pro: retry’ler tükendiğinde fallback
+- DeepSeek Pro: Flash üretimi retry sonrasında veya retry edilmeyen bir
+  üretim/politika hatasıyla başarısız olduğunda fallback
 - OpenAI mini model: birincil yapılandırılmış kalite değerlendirmesi
 - OpenAI tam model: non-pass kayıtlar ve belirlenen pass örneklemi için escalation
 - OpenAI embedding modeli: semantic duplicate taraması
@@ -65,8 +76,9 @@ Provider erişimini yalnız açık canlı onayla sınayın:
 .\.venv\Scripts\magibu-toolcall.exe provider check --provider all --confirm-live --output json
 ```
 
-Bu komut model listeleme uçlarını kontrol eder; dataset üretmez. Provider kota ve
-maliyet bilgisinin doğruluk kaynağı provider dashboard’udur.
+Bu komut model listeleme uçlarını kontrol eder; dataset üretmez ve modelin belirli
+bir prompt'a kaliteli cevap vereceğini kanıtlamaz. Kota, ücret ve kullanım
+koşulları için doğruluk kaynağı provider dashboard'udur.
 
 ## 3. Repository sözleşmeleri
 
@@ -97,42 +109,17 @@ doğrulama ve smoke testi:
 ```
 
 Mevcut proposal dağılımı 4 `local_executable`, 14 `mock` ve 2
-`fully_simulated` tool’dur.
-
-### Execution kuralları
-
-- `local_executable`: ağsız ve deterministik fonksiyon; implementasyon
-  `execution/local_tools.py` ve adapter eşlemesinde bulunur.
-- `mock`: registry’de tanımlı, input/output şemalarından geçen fixture.
-- `fully_simulated`: dış sisteme dokunmayan ve `reset()` ile başlangıç durumuna
-  dönen stateful adapter.
-- `real_api`: yalnız onaylı, salt-okunur HTTPS GET JSON sözleşmesi.
-- `sandbox`: şemada tanımlıdır fakat repository’de çalışır adapter yoktur.
-
-Router istenen mod dışında başka moda sessizce düşmez. Mod değişimi açık neden ve
-transformation history olayı gerektirir. Normalize edilen execution durumları
-`not_called`, `passed`, `failed`, `timeout`, `rate_limited`, `empty_result` ve
-`invalid_result` değerleridir.
-
-Basit canlı GET kaynakları registry’deki `execution.http` alanıyla çalışır;
-tool’a özel wrapper zorunlu değildir. Özel response dönüşümü gerekiyorsa adapter
-geliştirmesi ve testleri eklenmeden tool çalışır kabul edilmez. `tool run-api`
-yalnız canonical registry’deki `approved` read-only tool için ve
-`--confirm-live` ile kullanılabilir; bugün böyle bir kayıt yoktur.
+`fully_simulated` tool’dur. Modların sözleşmeleri, status değerleri ve fallback
+kuralları [execution ortamları belgesinde](docs/execution_environments.md)
+tutulur. CLI hiçbir execution modunu sessizce başka moda düşürmez. `tool run-api`
+yalnız canonical registry'deki `approved` read-only tool için ve
+`--confirm-live` ile çalışır; bugün böyle bir kayıt yoktur.
 
 ## 5. Blueprint hazırlama
 
-Blueprint model çağrısından önce yazılır. Beş ana kategori vardır:
-
-1. `multi_tool`
-2. `multi_turn`
-3. `missing_parameter`
-4. `no_tool`
-5. `single_tool`
-
-Bu sıra kategori önceliğidir. İki veya daha fazla çağrı `multi_tool` sayılır;
-parallel/sequential davranış secondary tag ve execution order ile tutarlı
-olmalıdır.
+Blueprint model çağrısından önce yazılır. Alanların anlamı, beş kategori ve
+öncelik kuralları [scenario blueprint rehberinde](docs/scenario_blueprints.md)
+tutulur. Bu bölüm yalnız doğrulama komutlarını gösterir.
 
 ```powershell
 .\.venv\Scripts\magibu-toolcall.exe blueprint validate blueprints\pilot_general.jsonl --registry registry\proposals\pilot_candidates.jsonl
@@ -178,12 +165,23 @@ Tek kayıtlık regresyon blueprint’i güvenli bir smoke test sağlar.
 
 Komut blueprint ve registry checksum’larını sabitler; manifest, checkpoint ve
 çalışma kanıtlarını `runs/dataset/dataset-smoke-001/` altında tutar. Üretilen
-kayıt otomatik olarak insan onaylı sayılmaz.
+kayıt otomatik olarak insan onaylı sayılmaz. Aynı tamamlanmış job yerinde yeniden
+çalıştırılmaz; yeni denemede benzersiz bir `--job-id` ve output yolu kullanın.
 
-### 6.3 Dataset doğrulaması
+### 6.3 Üretim sonrası doğrulama sınırı
+
+`dataset generate`, yazmadan önce blueprint'i ve üretilen kaydı komutta verilen
+registry ile doğrular. Bağımsız `dataset validate` komutu ise varsayılan canonical
+registry'yi kullanır ve `--registry` seçeneği sunmaz. Bu nedenle proposal
+registry'deki tool'larla üretilen staging kaydını bu komutla tekrar doğrulamayın;
+bir sonraki `dataset quality --registry ...` adımı aynı kaydı proposal registry
+ile yeniden doğrular ve execution kanıtını hesaplar.
+
+Canonical registry tool'larını kullanan kayıtlar ayrıca şu şekilde
+doğrulanabilir:
 
 ```powershell
-.\.venv\Scripts\magibu-toolcall.exe dataset validate data\dataset\staging\dataset-smoke-001.jsonl --output json
+.\.venv\Scripts\magibu-toolcall.exe dataset validate tests\fixtures\dataset\valid_single_tool.json --output json
 ```
 
 ### 6.4 Execution, duplicate ve OpenAI kalite kontrolü
@@ -213,10 +211,12 @@ Accepted dataset oluştuğunda komuta şu seçenek eklenir:
 ```
 
 Kalite komutu execution ve otomatik değerlendirme kanıtını yeniden hesaplar;
-insan onayı vermez. `.pr.review.jsonl` adayını ve eşleşen `.pr.quality.json` raporunu
-GitHub PR’a ekleyin. Bütün otomatik kapılar geçtiğinde kaydın önerilen yaşam
-döngüsü durumu `accepted` yapılabilir; karar ancak branch protection altındaki
-PR onayı ve merge ile repository açısından geçerli olur.
+`metadata.review.status` değerini `accepted` yapmaz ve insan dili kapısını bilinçli
+olarak `not_run` bırakır. `.pr.review.jsonl` adayını ve eşleşen
+`.pr.quality.json` raporunu GitHub PR'a ekleyin. Reviewer doğal Türkçe ile teknik
+kanıtları onayladıktan sonra language/review yaşam döngüsü alanları aynı PR'da
+güncellenir ve son CI yeniden çalıştırılır. Kabul, ancak korumalı PR'ın güncel
+hâli onaylanıp merge edildiğinde repository açısından geçerli olur.
 
 ## 7. Toplu üretim
 
@@ -245,37 +245,20 @@ Durum ve dağılım raporu:
 .\.venv\Scripts\magibu-toolcall.exe dataset batch report runs\dataset\general-pilot-v1\manifest.json --output json
 ```
 
-1.000 kayıt tek kontrolsüz çağrı olarak üretilmemelidir. Önerilen kapılar 30, 100
-ve 250 kayıttır; her kapıda hata türleri, tool/kategori/kaynak dağılımı, duplicate
-oranı, insan inceleme uyumu, token kullanımı ve provider maliyeti değerlendirilir.
+1.000 kayıt tek kontrolsüz çağrı olarak üretilmemelidir. Önerilen hazırlık
+kapıları 30, 100 ve 250 kayıttır; bunlar ölçek kararını doğrulayan pilotlardır ve
+nihai release sayımına otomatik olarak eklenmez. Her kapıda hata türleri,
+tool/kategori/kaynak dağılımı, duplicate oranı, insan inceleme uyumu, token
+kullanımı ve provider maliyeti değerlendirilir. Onaydan sonra 1.000 kayıtlık hedef
+dört ayrı 250 kayıtlık üretim işiyle oluşturulabilir.
 
 ## 8. GitHub katkı kontrolü
 
-İki farklı workflow farklı güvenlik görevleri taşır:
-
-- `Pull request validation`, PR branch’ini checkout eder ve testleri çalıştırır;
-  token yetkisi salt okunurdur.
-- `Contribution guidance`, base branch’te tanımlı tek bir GitHub API adımıdır.
-  Yalnız PR açıklamasını ve değişen dosya adlarını okur; checkout, kurulum veya
-  katkı kodu çalıştırmadan tek bir güncellenebilir yorum bırakır.
-
-Katkı botu yalnız şablon ve katkı paketi rehberliği yapar. Teknik doğrulamalar
-normal CI’da, nihai değerlendirme insan incelemesinde kalır. Reviewer kimliği,
-yorumlar, onay ve change-request geçmişi GitHub’da tutulur.
-
-`pull_request_target` workflow’u yalnız default branch’teki workflow tanımıyla
-çalışır. Bu nedenle workflow’u ilk kez ekleyen PR’da yalnız normal `validate`
-kontrolü görülür; otomatik PR yorumu değişiklik `main` ile birleştirildikten sonra
-açılan veya güncellenen sonraki PR’larda devreye girer.
-
-Önerilen `main` ruleset ayarları:
-
-- pull request zorunluluğu;
-- en az bir bağımsız onay;
-- yeni commit’te eski onayların düşürülmesi;
-- konuşmaların çözülmesi;
-- `validate` durum kontrolünün zorunlu olması;
-- doğrudan push ve force-push’ın kapatılması.
+Katkı botu PR açıklamasını ve dosya paketini yorumlar; teknik `validate` kontrolü
+testleri çalıştırır; nihai kararı insan reviewer verir. Workflow güvenlik sınırı,
+ilk kurulum davranışı ve önerilen branch kuralları
+[review alanı belgesinde](review/README.md) tutulur. Katkı paketinin zorunlu
+içeriği için [CONTRIBUTING.md](CONTRIBUTING.md) kullanılmalıdır.
 
 ## 9. Gerçek API’ye geçiş
 
@@ -296,27 +279,36 @@ olarak kullanılmaz. Dataset için dondurulmuş kanıt tercih edilir.
 
 ## 10. Export
 
-Canonical accepted kayıtlar:
+PR incelemesinde `accepted` yaşam döngüsü alanları verilmiş girişten canonical
+accepted dosyasını üretme:
 
 ```powershell
-.\.venv\Scripts\magibu-toolcall.exe dataset export approved-records.jsonl data\dataset\accepted\dataset.jsonl
+.\.venv\Scripts\magibu-toolcall.exe dataset export data\dataset\needs_revision\dataset-release-v1.pr.review.jsonl data\dataset\accepted\dataset.jsonl
 ```
+
+CLI GitHub approval durumunu API üzerinden sorgulamaz. Girişteki `accepted`
+alanlarının korumalı PR süreciyle verildiği repository yönetimi tarafından
+garanti edilmelidir; export komutu kayıtları yeniden doğrular ve diğer yaşam
+döngüsü durumlarını dışarıda bırakır.
 
 Eğitim sistemine verilecek metadata’sız görünüm:
 
 ```powershell
-.\.venv\Scripts\magibu-toolcall.exe dataset export data\dataset\accepted\dataset.jsonl data\dataset\training\dataset.jsonl --projection training
+.\.venv\Scripts\magibu-toolcall.exe dataset export data\dataset\accepted\dataset.jsonl .cache\exports\dataset-training.jsonl --projection training
 ```
 
 Training projection yalnız `id`, `messages` ve `tools` alanlarını içerir.
-Canonical dosya provenance, execution ve kalite kanıtlarını korur.
+Canonical dosya provenance, execution ve kalite kanıtlarını korur. `.cache`
+altındaki projection yerel çalışma çıktısıdır ve Git tarafından yok sayılır.
 
 ## 11. Askıdaki alanlar
 
-xLAM/When2Call import-lokalizasyon komutları ve benchmark namespace’i kodda
-mevcuttur; aktif dataset üretim prosedürüne dahil değildir. Yeniden açıldıklarında
-kaynak kullanım koşulları, ayrı review planı ve benchmark kontaminasyon/freeze
-kapıları onaylanmadan çalıştırılmamalıdır.
+xLAM/When2Call import-lokalizasyon komutları kodda bulunur ancak aktif dataset
+üretim prosedürüne dahil değildir. Benchmark doğrulama, kontaminasyon, freeze,
+run ve report araçları da ayrı namespace altında mevcuttur; benchmark aday
+üretimi ise çalışma zamanında açıkça engellenir. Bu alanlar yeniden açıldığında
+kaynak kullanım koşulları, ayrı review planı ve benchmark
+kontaminasyon/freeze kapıları onaylanmadan üretim yapılmamalıdır.
 
 Benchmark yaşam döngüsü için [ayrı belgeye](data/benchmark/README.md) bakın.
 

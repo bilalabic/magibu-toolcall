@@ -72,10 +72,11 @@ the same proposal review.
   licensing, snapshot, or live-contract work
 
 All 20 candidate fixtures pass schema validation. Representative CLI execution
-has passed in all three active modes. Candidate lifecycle remains unchanged;
-blueprint authoring may proceed against the proposal registry, but live dataset
-generation requires a separate approval decision and canonical-registry
-promotion.
+has passed in all three active modes. Candidate lifecycle remains unchanged.
+Blueprint authoring and technical pilot generation can use the proposal registry;
+that capability is not source approval. Moving a tool or records into a
+canonical release requires a separate source/license decision and reviewed
+lifecycle change.
 
 This balance is evaluated at blueprint freeze. Tool count is capped at 20 for
 the 30-record technical pilot; expanding the domain catalog does not expand the

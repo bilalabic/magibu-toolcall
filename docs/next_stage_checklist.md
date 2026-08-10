@@ -20,7 +20,9 @@ Complete these gates before scaling beyond the current pilot:
    language/technical review.
 8. Compare provider usage with provider dashboards and review failure patterns,
    source balance, tool balance, and category coverage.
-9. Scale through separate 100- and 250-record gates. Start the 1,000-record plan
-   only after the smaller gates meet the agreed acceptance thresholds.
+9. Scale through separate 100- and 250-record readiness gates. Treat these as
+   production-decision pilots rather than automatically counting them toward the
+   final release. Start four bounded 250-record release jobs only after the
+   smaller gates meet the agreed acceptance thresholds.
 
 Translation/import and benchmark production remain separate from this checklist.

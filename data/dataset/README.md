@@ -1,61 +1,97 @@
 # Dataset yaşam döngüsü
 
-Bu alan yalnızca eğitim veri kümesi kayıtlarını içerir. Dataset kimlikleri kaynak
-türüne göre `tctr_tr_*`, `tctr_ot_*` veya `tctr_tn_*` biçimindedir.
+[← Veri alanları](../README.md) · [Dokümantasyon merkezi](../../docs/README.md)
 
-- `raw/`: Değiştirilmemiş kaynak kayıtları.
-- `staging/`: Doğrulama ve inceleme bekleyen adaylar.
-- `needs_revision/`: Düzeltilmesi gereken kayıtlar.
-- `rejected/`: Kabul edilmeyen kayıtlar.
-- `accepted/`: Yalnızca doğrulanmış ve insan incelemesinden geçmiş dışa aktarımlar.
+Bu klasör yalnız eğitim veya ince ayar amacıyla hazırlanacak dataset kayıtlarını
+içerir. Kimlikler kaynak türüne göre üretilir:
+
+| Kaynak türü | Kimlik örneği | Durum |
+| --- | --- | --- |
+| `translated` | `tctr_tr_000001` | Askıda |
+| `original_turkish` | `tctr_ot_000001` | Aktif |
+| `turkey_native` | `tctr_tn_000001` | Aktif |
+
+## Klasörlerin anlamı
+
+- `raw/`: Değiştirilmemiş kaynak kayıtları; Git'e eklenmez.
+- `staging/`: Üretimden çıkan ve otomatik kontrol bekleyen adaylar; Git'e eklenmez.
+- `needs_revision/`: İnsan incelemesine sunulan veya düzeltme bekleyen kayıtlar.
+- `rejected/`: Kabul edilmeyen kayıtlar; varsayılan olarak yerel kalır.
+- `accepted/`: Doğrulama ve insan incelemesi tamamlanan canonical dataset.
 
 Dataset kayıtları benchmark gold alanına kopyalanmaz.
 
-xLAM/When2Call çeviri-lokalizasyon hattı şimdilik askıdadır. Aktif üretim hattı
-`original_turkish` ve `turkey_native` blueprint’lerinden review bekleyen dataset
-adayları üretir.
+## Normal üretim akışı
 
-Normal `dataset generate` komutu adayları `staging/<job_id>.jsonl`, manifest ve
-checkpoint kanıtlarını ise `runs/dataset/<job_id>/` altında oluşturur. Model
-çıktısı doğrudan kabul edilmez; tamamlanmamış kalite kontrolleri `not_run` ve
-review durumu `needs_revision` olarak tutulur. Boş job klasörleri depoda tutulmaz.
+```text
+blueprint
+  -> dataset generate
+  -> staging/<job_id>.jsonl
+  -> dataset quality
+  -> needs_revision/<job_id>.pr.review.jsonl + kalite raporu
+  -> GitHub PR insan incelemesi
+  -> accepted/dataset.jsonl
+  -> training projection
+```
 
-`dataset quality`, otomatik execution, toplu embedding tabanlı duplicate ve
-OpenAI structured-output kalite judge kanıtlarını yeniden hesaplayıp kayıtları
-`needs_revision/` altında yazar; ayrıntılı rapor `review/` alanında tutulur.
-GitHub incelemesine seçilen dosyalar `<job_id>.pr.review.jsonl` ve
-`review/dataset/<job_id>.pr.quality.json` adlarını kullanır. Diğer üretilmiş
-çıktılar yerel kalır.
-Birincil judge bütün kayıtları, escalation judge ise başarısız/belirsiz kayıtlar
-ile geçenlerin belirlenmiş örneklemini denetler. İnsan dil ve teknik incelemesi
-GitHub pull request üzerinde tamamlanmadan kayıt `accepted/` alanına geçirilemez.
-Reviewer kimliği ve karar geçmişi GitHub'da tutulur; CLI giriş veya rol bilgisi
-istemez.
+`dataset generate`, blueprint ve registry checksum'larını manifeste bağlar;
+checkpoint ve hata kayıtlarını `runs/dataset/<job_id>/` altında tutar. Model
+çıktısı doğrudan kabul edilmez. Yeni kayıtların review durumu `needs_revision`,
+henüz çalışmayan kalite kapıları ise `not_run` olur.
 
-Dataset'teki `mock` yürütme türü fixture'ın mutlaka tamamen sentetik olduğu
-anlamına gelmez. Gerçek API veya resmî snapshot'tan alınan sonuçlar normalize
-edilip kişisel veriden arındırıldıktan sonra kaynak, alınma zamanı, lisans, sürüm
-ve checksum bilgileriyle dondurulabilir. Üretimde bu fixture deterministik olarak
-mock çalıştırılır; veri kökeni fixture provenance açıklamasında `api_snapshot`,
-`official_snapshot` veya `synthetic` olarak ayrıca belirtilir. Yapılandırılmış
-fixture-origin alanı otomatik yakalama hattıyla birlikte eklenebilir. Canlı ve
-zamanla değişen API yanıtları geçmiş dataset kaydını yeniden doğrulamak için
-kullanılmaz.
+`dataset quality`; execution, duplicate ve yapılandırılan model kalite
+kanıtlarını yeniden hesaplar. Üretim akışında semantic duplicate ve judge
+provider'ları OpenAI olarak seçilir. Komutun output yolu kullanıcı tarafından
+verilir. GitHub incelemesine seçilen paket için önerilen yollar şunlardır:
 
-Bu köken bilgisi kullanıcı ve asistan mesajlarına otomatik olarak yazılmaz.
-Yürütme türleri ile `sentetik`, `mock` ve `fixture` gibi operasyon etiketleri
-yapılandırılmış metadata/provenance alanlarında tutulur. Blueprint ve üretilmiş
-kayıt doğrulayıcıları bu etiketlerin doğal metne sızmasını reddeder. Yalnızca
-kavramın kendisini konu alan senaryolar `internal_marker_topic` etiketiyle bilinçli
-olarak bu kuraldan muaf tutulabilir.
+```text
+data/dataset/needs_revision/<job_id>.pr.review.jsonl
+review/dataset/<job_id>.pr.quality.json
+```
 
-Üretim sağlayıcısı canonical blueprint'in tamamını görmez. CLI önce yalnız doğal
-dil için gerekli ve kullanıcıya açıklanabilir alanlardan güvenli bir üretim brief’i
-kurar. `dataset export` canonical audit kaydını korur; modele verilecek metadata
-içermeyen `id`, `messages` ve `tools` dosyası `--projection training` ile ayrı
-üretilir.
+Üretim kalite politikası etkin olduğunda birincil judge bütün kayıtları inceler.
+Escalation açıksa birincil non-pass kayıtları ve geçen kayıtların ayarlanmış
+örneklemi ikinci model tarafından da incelenir. Bu kontroller insan onayı
+değildir: dil kapısı ve review durumu GitHub PR incelemesi tamamlanana kadar
+beklemede kalır. Reviewer kimliği, yorumlar ve karar geçmişi GitHub'da tutulur;
+CLI giriş veya rol bilgisi istemez.
 
-1000 kayıt tek kontrolsüz çağrı olarak çalıştırılmaz. Önce 30, sonra 100 ve 250
-kayıtlık kapılar geçilir; tam üretim dört adet 250 kayıtlık run olarak yürütülür.
-Her run ayrı manifest, checkpoint, hata dosyası, token bütçesi ve kalite raporu
-taşır.
+## Fixture ile veri kökeni aynı şey değildir
+
+`mock`, execution biçimidir; fixture'ın mutlaka tamamen sentetik olduğunu
+göstermez. İzin veriliyorsa gerçek API veya resmî kaynaktan alınmış bir snapshot:
+
+- kişisel veriden arındırılarak;
+- kaynak, alınma zamanı, lisans ve sürüm bilgisi eklenerek;
+- checksum ile dondurularak
+
+fixture hâline getirilebilir. Tamamen sentetik fixture da kullanılabilir. Köken
+bilgisi provenance içinde `api_snapshot`, `official_snapshot` veya `synthetic`
+olarak belirtilir. Yapılandırılmış fixture-origin alanının daha ayrıntılı hâli
+henüz gelecek geliştirme konusudur.
+
+`sentetik`, `mock` ve `fixture` gibi operasyon etiketleri kullanıcı/asistan
+metnine yazılmaz. Doğal metin doğrulayıcıları bu sızıntıları reddeder. Yalnızca
+kavramın kendisini konu alan senaryolar `internal_marker_topic` etiketiyle açıkça
+muaf tutulabilir.
+
+## Modelin gördüğü ve görmediği alanlar
+
+Üretim provider'ı canonical blueprint'in tamamını görmez. CLI yalnız doğal dil
+üretimi için gerekli, kullanıcıya açıklanabilir alanlardan güvenli bir brief
+oluşturur. Tool sözleşmesi, argüman, sonuç, provenance ve kalite alanları kodun
+kontrolündedir.
+
+`dataset export` canonical audit kaydını korur. Eğitim sistemine verilecek
+`id`, `messages` ve `tools` alanlarından oluşan ayrı görünüm `--projection
+training` ile kullanıcı tarafından seçilen yerel bir output yoluna üretilir.
+
+## 1.000 kayda ölçekleme
+
+1.000 kayıt tek kontrolsüz çağrıyla üretilmez. Önce 30, 100 ve 250 kayıtlık
+hazırlık kapıları değerlendirilir. Bu pilotlar ölçek kararına kanıt sağlar ve
+nihai release sayımına otomatik olarak eklenmez. Sistem hazır olduğunda hedef
+dataset dört ayrı 250 kayıtlık job ile üretilebilir. Her job kendi manifestini,
+checkpoint'ini, hata dosyasını, token bütçesini ve kalite raporunu taşır.
+
+Adım adım komutlar için [teknik kullanım rehberine](../../README_TEKNIK.md) bakın.

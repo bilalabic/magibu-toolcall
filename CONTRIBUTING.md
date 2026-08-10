@@ -1,9 +1,12 @@
 # Katkı rehberi
 
+[← Proje tanıtımı](README.md) · [Dokümantasyon merkezi](docs/README.md)
+
 Bu depo tool sözleşmesi, execution implementasyonu, scenario blueprint, dataset
-kaydı, kalite kuralı ve dokümantasyon katkılarını kabul eder. Her katkı ayrı bir
-branch ve GitHub pull request üzerinden ilerler. CLI içinde kullanıcı hesabı,
-reviewer rolü veya onay sistemi yoktur.
+kaydı, kalite kuralı, test ve dokümantasyon katkılarını kabul eder. Her katkı
+ayrı bir branch ve GitHub pull request üzerinden ilerler. CLI içinde kullanıcı
+hesabı, reviewer rolü veya onay sistemi yoktur; kimlik ve karar geçmişinin kaynağı
+GitHub'dır.
 
 ## Başlamadan önce
 
@@ -14,7 +17,17 @@ reviewer rolü veya onay sistemi yoktur.
    İngilizce kalır. Kullanıcı/asistan metinleri ile tool ve parametre açıklamaları
    doğal Türkiye Türkçesiyle yazılır.
 4. Secret, gerçek kullanıcı verisi ve yeniden dağıtım izni belirsiz içerik
-   repository’ye eklenmez.
+   repository'ye eklenmez.
+
+Katkı paketinin beklenen asgari içeriği:
+
+| Katkı türü | Aynı PR'da beklenenler |
+| --- | --- |
+| Tool | Registry kaydı, seçilen moda uygun execution/fixture, kaynak kanıtı ve test |
+| Blueprint | Geçerli blueprint, registry bağlantısı ve gerekiyorsa regresyon testi |
+| Dataset | İnceleme adayı, aynı `job_id` değerli kalite raporu ve provenance |
+| Kod/kalite kuralı | Uygulama değişikliği, olumlu/olumsuz testler ve güncel belge |
+| Dokümantasyon | Gerçek komut ve davranışla uyumlu açıklama; kaynak varsa bağlantı |
 
 ## Tool katkısı
 
@@ -27,6 +40,9 @@ olarak tanımlanır. Kayıt şu sözleşmeleri birlikte taşır:
 - erişim, kimlik doğrulama ve credential environment variable adları;
 - kaynak, lisans, kullanım koşulu kontrol tarihi ve riskler;
 - gerekiyorsa fixture kimlikleri veya salt-okunur HTTP sözleşmesi.
+
+Şema doğrulamasının geçmesi kaynak, lisans veya canlı kullanım onayı değildir.
+Bu kararlar PR'daki kaynak kanıtı ve insan incelemesiyle verilir.
 
 Başlangıç formu için [tool proposal şablonunu](docs/tool_proposal_template.md),
 kesin alanlar için
@@ -79,7 +95,8 @@ Kategori önceliği ve multi-tool kuralları için
 
 Model çıktısı doğrudan `accepted` olmaz. Aday sırasıyla şema, registry,
 execution, duplicate, Türkçe/grounding kalite kontrolleri ve insan incelemesinden
-geçer. İncelenecek aday dosyası
+geçer. Otomatik kalite komutu language ve review alanlarına insan onayı yazmaz.
+İncelenecek aday dosyası
 `data/dataset/needs_revision/<job_id>.pr.review.jsonl`, eşleşen kalite raporu
 `review/dataset/<job_id>.pr.quality.json` adıyla PR’a eklenebilir. Nihai birleşik
 dataset yalnız `data/dataset/accepted/dataset.jsonl` yolunda tutulur.
@@ -107,14 +124,16 @@ Değişen bir fixture’ı ayrıca çalıştırın:
 
 ## Pull request ve otomatik yorum
 
-PR şablonundaki katkı türü, değişiklik, kaynak/lisans, otomatik kontrol ve insan
-incelemesi bölümlerini doldurun. `Contribution guidance` workflow’u:
+PR şablonundaki katkı türü, değişiklik, kaynak/lisans ve otomatik kontrol
+bölümlerini doldurun. `İnsan incelemesi` kontrol listesini reviewer değerlendirir.
+`Contribution guidance` workflow'u:
 
 - PR şablonundaki zorunlu bölümleri ve seçilen katkı türünü;
 - execution/registry değişikliğiyle test ve dataset değişikliğiyle kalite raporu
   ilişkisini kontrol eder.
 
 Bot yalnız PR açıklamasını ve değişen dosya adlarını okur; tek bir güncellenebilir
-yorum üretir. Katkı dalındaki kodu çalıştırmaz, otomatik düzeltme veya onay vermez.
-Registry, fixture, blueprint, dataset ve test doğrulamaları ayrı `validate`
-workflow’unda; nihai karar insan incelemesindedir.
+yorum üretir. Bulgu varsa PR durumunu tek başına başarısız yapmaz; düzeltilecek
+noktaları görünür kılar. Katkı dalındaki kodu çalıştırmaz, otomatik düzeltme veya
+onay vermez. Registry, fixture, blueprint, dataset ve test doğrulamaları ayrı
+`validate` workflow'unda; nihai karar insan incelemesindedir.

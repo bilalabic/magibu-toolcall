@@ -22,6 +22,8 @@
 
 ## İnsan incelemesi
 
+<!-- Bu bölüm reviewer tarafından değerlendirilir. Katkı sahibi önceden işaretlememelidir. -->
+
 - [ ] Türkçe doğal, yerel ve tutarlı.
 - [ ] Tool seçimi, parametreler ve çağrı sırası doğru.
 - [ ] Tool sonucu ile son cevap uyumlu; desteklenmeyen iddia yok.
