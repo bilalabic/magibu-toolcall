@@ -261,6 +261,11 @@ Katkı botu danışman niteliğindedir. Şema değişiklikleri base şemayla gü
 biçimde değerlendirilemeyeceği için ayrıca normal CI ve insan incelemesi ister.
 Reviewer kimliği, yorumlar, onay ve change-request geçmişi GitHub’da tutulur.
 
+`pull_request_target` workflow’u yalnız default branch’teki workflow tanımıyla
+çalışır. Bu nedenle workflow’u ilk kez ekleyen PR’da yalnız normal `validate`
+kontrolü görülür; otomatik PR yorumu değişiklik `main` ile birleştirildikten sonra
+açılan veya güncellenen sonraki PR’larda devreye girer.
+
 Önerilen `main` ruleset ayarları:
 
 - pull request zorunluluğu;

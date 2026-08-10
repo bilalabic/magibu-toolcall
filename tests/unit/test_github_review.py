@@ -100,7 +100,7 @@ def test_workflow_property_escape_handles_command_delimiters() -> None:
     assert _workflow_property_escape("a:b,c%\n") == "a%3Ab%2Cc%25%0A"
 
 
-def test_run_review_posts_a_clean_advisory_comment(tmp_path: Path) -> None:
+def test_run_review_posts_a_clean_advisory_comment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     event = {
         "repository": {"full_name": "owner/repo"},
         "pull_request": {
@@ -122,9 +122,12 @@ Uygulanamaz.
     }
     event_path = tmp_path / "event.json"
     event_path.write_text(json.dumps(event), encoding="utf-8")
+    summary_path = tmp_path / "job-summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary_path))
     api = FakeApi()
 
     report = run_review(ROOT, event_path, api)
 
     assert report.errors == []
     assert api.requests[-1][0:2] == ("POST", "/repos/owner/repo/issues/7/comments")
+    assert "Magibu katkı kontrolü" in summary_path.read_text(encoding="utf-8")
