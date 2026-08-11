@@ -20,9 +20,9 @@ from tool_call_tr.validation import RuleBasedValidator
 
 ROOT = Path(__file__).resolve().parents[2]
 PROPOSAL_REGISTRY = (
-    ROOT / "registry" / "proposals" / "pilot_paket_1_afad.jsonl"
+    ROOT / "registry" / "proposals" / "earthquake_afad.jsonl"
 )
-BLUEPRINT_FILE = ROOT / "blueprints" / "pilot_paket_1_afad.jsonl"
+BLUEPRINT_FILE = ROOT / "blueprints" / "earthquake_afad.jsonl"
 
 FIXTURE_IDS = (
     "earthquake.afad.list_recent.v1",
