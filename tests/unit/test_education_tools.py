@@ -24,8 +24,8 @@ from tool_call_tr.validation import RuleBasedValidator
 # Resolve all contribution paths from the repository root so the tests work
 # regardless of the directory from which pytest is started.
 ROOT = Path(__file__).resolve().parents[2]
-PROPOSAL_REGISTRY = ROOT / "registry" / "proposals" / "registry.jsonl"
-BLUEPRINT_PATH = ROOT / "blueprints" / "education_umay.jsonl"
+PROPOSAL_REGISTRY = ROOT / "registry" / "proposals" / "education_university.jsonl"
+BLUEPRINT_PATH = ROOT / "blueprints" / "education_university.jsonl"
 
 # Every fixture declared by the two education proposal records is exercised by
 # the execution smoke test below. Keeping the IDs together also makes additions
