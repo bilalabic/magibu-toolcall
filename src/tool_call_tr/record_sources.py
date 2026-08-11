@@ -40,6 +40,13 @@ def discover_jsonl_record_files(path: Path) -> list[Path]:
     if unsupported:
         names = ", ".join(file_path.name for file_path in unsupported)
         raise UnsupportedRecordFormatError(f"only JSONL record files are allowed: {names}")
+    if path.is_dir():
+        shared_names = [file_path.name for file_path in files if file_path.name.casefold() == "registry.jsonl"]
+        if shared_names:
+            raise UnsupportedRecordFormatError(
+                "shared registry.jsonl is not allowed in a fragment directory; "
+                "use a descriptive <domain>_<source>.jsonl name"
+            )
     return files
 
 

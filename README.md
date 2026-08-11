@@ -62,8 +62,8 @@ modüller [mimari belgesinde](docs/architecture.md), uygulanabilir komutlar ise
 | Varlık | Mevcut durum |
 | --- | --- |
 | Canonical registry | 3 adet `demo` tool |
-| Proposal registry | `registry/proposals/` altında katkıya özel JSONL parçaları |
-| Blueprint katkıları | `blueprints/` altında satır başına bir kayıt içeren JSONL dosyaları |
+| Proposal registry | `registry/proposals/<domain>_<source>.jsonl` katkı parçaları |
+| Blueprint katkıları | `blueprints/<domain>_<source>.jsonl`, satır başına bir kayıt |
 | Accepted dataset | Henüz yok |
 | Onaylı canlı API tool'u | Henüz yok |
 

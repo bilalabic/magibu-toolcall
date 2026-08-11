@@ -88,8 +88,9 @@ $BlueprintFile = "blueprints\contribution.jsonl"
 ```
 
 Repository'ye eklenen blueprint katkıları yalnız `.jsonl` biçimindedir ve her
-satırda bir blueprint kaydı bulunur. `tests/fixtures/` altındaki `.json` dosyaları
-yalnız test amaçlıdır.
+satırda bir blueprint kaydı bulunur. Dosya yolu
+`blueprints/<domain>_<source>.jsonl` düzenini izler. `tests/fixtures/` altındaki
+`.json` dosyaları yalnız test amaçlıdır.
 
 The test suite also checks repository-wide blueprint ID uniqueness. Files under
 `tests/fixtures/blueprints/` demonstrate validator cases; they are not production

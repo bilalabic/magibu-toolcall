@@ -90,6 +90,19 @@ def test_registry_reports_malformed_jsonl_fragment(tmp_path: Path) -> None:
     assert "broken.jsonl" in exc_info.value.issues[0].message
 
 
+def test_registry_rejects_shared_registry_name_in_fragment_directory(tmp_path: Path) -> None:
+    canonical = ROOT / "registry" / "registry.jsonl"
+    (tmp_path / "registry.jsonl").write_text(
+        canonical.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RegistryValidationError) as exc_info:
+        ToolRegistry.load(tmp_path)
+
+    assert "shared registry.jsonl is not allowed" in str(exc_info.value)
+
+
 @pytest.mark.parametrize(
     ("mutation", "code"),
     [

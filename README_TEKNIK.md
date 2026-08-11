@@ -333,7 +333,7 @@ Benchmark yaşam döngüsü için [ayrı belgeye](data/benchmark/README.md) bak�
 ```text
 blueprints/                         İzlenen blueprint ve regresyonlar
 registry/                           Canonical registry ve fixture’lar
-registry/proposals/<katkı>.jsonl    Çok kayıtlı candidate tool parçası
+registry/proposals/<domain>_<source>.jsonl  Candidate tool parçası
 registry/proposals/fixtures/        Proposal fixture’ları
 data/dataset/staging/               Yerel üretilmiş adaylar
 data/dataset/needs_revision/        PR’a seçilerek eklenen review adayları
