@@ -1,0 +1,36 @@
+{
+  "fixture_id": "education.announcements.date.2026-08",
+  "function_name": "education_list_announcements",
+  "arguments": {
+    "start_date": "2026-08-01",
+    "end_date": "2026-08-31",
+    "limit": 10
+  },
+  "result": {
+    "announcements": [
+      {
+        "announcement_id": "ann_academic_001",
+        "title": "2026-2027 Güz Dönemi Ders Kayıtları",
+        "category": "academic",
+        "published_at": "2026-08-04T09:00:00+03:00",
+        "summary": "Güz dönemi ders kayıtları 7-11 Eylül 2026 tarihleri arasında öğrenci bilgi sistemi üzerinden yapılacaktır."
+      },
+      {
+        "announcement_id": "ann_event_001",
+        "title": "Kampüs Tanıtım Günleri",
+        "category": "event",
+        "published_at": "2026-08-12T11:15:00+03:00",
+        "summary": "Kampüs tanıtım günleri 26-27 Ağustos 2026 tarihlerinde merkez yerleşkede gerçekleştirilecektir."
+      },
+      {
+        "announcement_id": "ann_scholarship_001",
+        "title": "Başarı Bursu Başvuru Takvimi",
+        "category": "scholarship",
+        "published_at": "2026-08-21T10:00:00+03:00",
+        "summary": "Başarı bursu başvuruları 1-15 Eylül 2026 tarihleri arasında çevrim içi başvuru formuyla alınacaktır."
+      }
+    ],
+    "count": 3
+  },
+  "provenance": "Tamamen sentetik, sürümlenmiş ve kişisel veri içermeyen üniversite simülatörü fixture'ı."
+}

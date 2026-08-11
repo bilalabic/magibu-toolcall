@@ -1,0 +1,36 @@
+{
+  "fixture_id": "education.exam_schedule.course.ceng101",
+  "function_name": "education_get_exam_schedule",
+  "arguments": {
+    "filter_type": "course",
+    "filter_value": "CENG101"
+  },
+  "result": {
+    "exams": [
+      {
+        "exam_id": "exam_ceng101_midterm_2026_fall",
+        "course_code": "CENG101",
+        "course_name": "Bilgisayar Programlamaya Giriş",
+        "program": "Bilgisayar Mühendisliği",
+        "exam_type": "midterm",
+        "exam_date": "2026-11-12",
+        "start_time": "10:00",
+        "end_time": "11:30",
+        "location": "Mühendislik Binası B-201"
+      },
+      {
+        "exam_id": "exam_ceng101_final_2026_fall",
+        "course_code": "CENG101",
+        "course_name": "Bilgisayar Programlamaya Giriş",
+        "program": "Bilgisayar Mühendisliği",
+        "exam_type": "final",
+        "exam_date": "2027-01-14",
+        "start_time": "09:00",
+        "end_time": "11:00",
+        "location": "Mühendislik Binası B-201"
+      }
+    ],
+    "count": 2
+  },
+  "provenance": "Tamamen sentetik, sürümlenmiş ve kişisel veri içermeyen üniversite simülatörü fixture'ı."
+}

@@ -1,0 +1,58 @@
+{
+  "fixture_id": "education.exam_schedule.program.computer_engineering",
+  "function_name": "education_get_exam_schedule",
+  "arguments": {
+    "filter_type": "program",
+    "filter_value": "Bilgisayar Mühendisliği"
+  },
+  "result": {
+    "exams": [
+      {
+        "exam_id": "exam_ceng101_midterm_2026_fall",
+        "course_code": "CENG101",
+        "course_name": "Bilgisayar Programlamaya Giriş",
+        "program": "Bilgisayar Mühendisliği",
+        "exam_type": "midterm",
+        "exam_date": "2026-11-12",
+        "start_time": "10:00",
+        "end_time": "11:30",
+        "location": "Mühendislik Binası B-201"
+      },
+      {
+        "exam_id": "exam_ceng203_midterm_2026_fall",
+        "course_code": "CENG203",
+        "course_name": "Veri Yapıları",
+        "program": "Bilgisayar Mühendisliği",
+        "exam_type": "midterm",
+        "exam_date": "2026-11-16",
+        "start_time": "13:30",
+        "end_time": "15:00",
+        "location": "Mühendislik Binası B-204"
+      },
+      {
+        "exam_id": "exam_math201_final_2026_fall",
+        "course_code": "MATH201",
+        "course_name": "Diferansiyel Denklemler",
+        "program": "Bilgisayar Mühendisliği",
+        "exam_type": "final",
+        "exam_date": "2027-01-11",
+        "start_time": "14:00",
+        "end_time": "16:00",
+        "location": "Fen Fakültesi F-103"
+      },
+      {
+        "exam_id": "exam_ceng101_final_2026_fall",
+        "course_code": "CENG101",
+        "course_name": "Bilgisayar Programlamaya Giriş",
+        "program": "Bilgisayar Mühendisliği",
+        "exam_type": "final",
+        "exam_date": "2027-01-14",
+        "start_time": "09:00",
+        "end_time": "11:00",
+        "location": "Mühendislik Binası B-201"
+      }
+    ],
+    "count": 4
+  },
+  "provenance": "Tamamen sentetik, sürümlenmiş ve kişisel veri içermeyen üniversite simülatörü fixture'ı."
+}
