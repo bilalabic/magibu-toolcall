@@ -6,8 +6,9 @@
 Bu belge kurulabilir ve çalıştırılabilir CLI akışının teknik başvuru kaynağıdır.
 Mimari kararlar, kavramsal açıklamalar ve proje durumu burada tekrarlanmaz;
 [dokümantasyon merkezindeki](docs/README.md) ilgili belgelere yönlendirilir.
-`original_turkish` ve `turkey_native` akışları desteklenir; etkin proposal ve
-üretim blueprint katalogları henüz oluşturulmamıştır.
+`original_turkish` ve `turkey_native` akışları desteklenir. Proposal registry ve
+blueprint girdileri tek `.json`, çok kayıtlı `.jsonl` veya bu formatları birlikte
+içeren bir klasör olabilir.
 
 Rehberi ilk kez kullanıyorsanız şu sırayı izleyin:
 
@@ -332,7 +333,9 @@ Benchmark yaşam döngüsü için [ayrı belgeye](data/benchmark/README.md) bak�
 ```text
 blueprints/                         İzlenen blueprint ve regresyonlar
 registry/                           Canonical registry ve fixture’lar
-registry/proposals/                 Candidate tool paketleri
+registry/proposals/<katkı>.json     Tek kayıtlı candidate tool parçası
+registry/proposals/<katkı>.jsonl    Çok kayıtlı candidate tool parçası
+registry/proposals/fixtures/        Proposal fixture’ları
 data/dataset/staging/               Yerel üretilmiş adaylar
 data/dataset/needs_revision/        PR’a seçilerek eklenen review adayları
 data/dataset/accepted/dataset.jsonl Canonical accepted dataset

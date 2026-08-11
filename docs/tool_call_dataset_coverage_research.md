@@ -39,10 +39,11 @@ The current repository already provides:
 - strict tool input/output schemas, registry versions, lifecycle, fixture, and risk fields;
 - GitHub PR review history, language/semantic/execution validation, duplicate checks, and benchmark-isolation metadata.
 
-The current infrastructure provides the required core contracts, but the active
-proposal and blueprint catalogs are intentionally empty. Some concepts are still
-represented at record level when they need to be represented per call, per state
-transition, or per source snapshot.
+The current infrastructure provides the required core contracts and supports
+contributor-owned JSON/JSONL proposal fragments and blueprint sources. Production
+catalog breadth is still pending. Some concepts are represented at record level
+when they need to be represented per call, per state transition, or per source
+snapshot.
 
 ## Main gaps before broad dataset production
 

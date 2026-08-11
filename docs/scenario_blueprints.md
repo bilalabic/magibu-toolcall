@@ -76,10 +76,9 @@ Before submitting a blueprint, confirm that:
 
 ## Validation
 
-Use the registry that owns the referenced functions. The repository currently
-ships only test blueprints; the first command below is an immediately runnable
-infrastructure check. The second pattern applies after a proposal registry and
-production blueprint are added:
+Use the registry that owns the referenced functions. The first command below is
+an immediately runnable infrastructure check. The second pattern validates a
+proposal-backed blueprint against all contributor-owned registry fragments:
 
 ```powershell
 .\.venv\Scripts\magibu-toolcall.exe blueprint validate tests\fixtures\blueprints\valid\single_tool.json --registry registry\registry.jsonl

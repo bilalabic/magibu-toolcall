@@ -1,16 +1,16 @@
 # Current limitations
 
 - The repository contains production-shaped infrastructure, not a completed or
-  published 1,000-record dataset. No active proposal tool or production
-  blueprint is currently committed.
-- A future `candidate` proposal will not by itself prove that a live API,
+  published 1,000-record dataset. Proposal tools and blueprints remain subject
+  to per-PR validation and review.
+- A `candidate` proposal does not by itself prove that a live API,
   license, quota, or long-term access has been approved.
 - Standalone `dataset validate` and `benchmark validate` use the canonical
   registry and do not accept a registry override. Proposal-backed drafts are
   validated inside `dataset generate` and `dataset quality --registry ...`;
   accepted records must resolve against the canonical registry used by CI.
 - The canonical registry has three `demo` tools for infrastructure tests. It is
-  not a production tool catalog. A future fixture may be simulated data or an
+  not a production tool catalog. A fixture may be simulated data or an
   approved frozen snapshot; its provenance must say which.
 - `sandbox` exists in the execution contract but has no runnable adapter.
 - The generic live adapter supports only approved, read-only HTTPS GET JSON

@@ -37,6 +37,15 @@ Yeni tool kayıtları `registry/proposals/` altında katkıya özel bir `.json` 
 `registry.jsonl` proposal dosyasını düzenlemeyin; bu kural paralel PR'larda
 çakışmayı önler. Kayıt şu sözleşmeleri birlikte taşır:
 
+- Her katkı veya paket, üst dizinde kendine ait ve açıklayıcı adlı tek bir
+  registry parçasını düzenler.
+- `.json` dosyası tam olarak bir registry kaydı içerir.
+- `.jsonl` dosyası satır başına bir kayıt içerir ve birden fazla tool için
+  kullanılabilir; JSON dizi biçimi kullanılmaz.
+- Birleştirilmiş proposal registry dosyası üretilse bile Git'e eklenmez.
+- `registry validate registry/proposals` komutu bütün parçaları birlikte kontrol
+  eder ve dosyalar arasındaki tekrarları reddeder.
+
 - kararlı `tool_id`, `tool_version`, domain ve function adı;
 - JSON Schema uyumlu input ve output şemaları;
 - varsayılan ve desteklenen execution türleri;
@@ -117,8 +126,8 @@ Windows PowerShell:
 .\.venv\Scripts\magibu-toolcall.exe registry validate registry\registry.jsonl
 ```
 
-Bir proposal registry veya blueprint eklediyseniz kendi dosya yollarınızı
-değişkenlere vererek ayrıca doğrulayın:
+Bir proposal registry parçası veya blueprint eklediyseniz proposal klasörünü ve
+kendi blueprint yolunuzu vererek ayrıca doğrulayın:
 
 ```powershell
 $ProposalRegistry = "registry\proposals"
