@@ -1,7 +1,9 @@
 # Tool proposal template
 
-Use this worksheet before adding a new entry to
-`registry/proposals/registry.jsonl`. It gathers the human research needed
+Use this worksheet before adding a new contributor-owned `.jsonl` fragment under
+`registry/proposals/`. JSON proposal files are not accepted. Do not edit a shared
+proposal aggregate.
+The worksheet gathers the human research needed
 to write a machine-valid registry record; it does not replace
 `schemas/tool_registry.schema.json`.
 
@@ -35,6 +37,9 @@ Proposer and review notes:
 The registry loader meta-validates input/output schemas, checks tool/function
 names, domain and major-version agreement, supported default execution, and
 duplicate tool IDs/function names.
+
+Write one registry record per JSONL line. A package may contain multiple lines;
+do not wrap the records in a JSON array.
 
 Submit the registry record together with the implementation appropriate to its
 declared mode:

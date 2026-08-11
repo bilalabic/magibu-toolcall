@@ -84,6 +84,37 @@ def test_manifest_rejects_changed_checksum_bound_registry(tmp_path: Path) -> Non
         load_manifest(manifest_path)
 
 
+def test_manifest_binds_a_registry_fragment_directory(tmp_path: Path) -> None:
+    source = tmp_path / "input.jsonl"
+    write_rows(source, 1)
+    registry = tmp_path / "registry"
+    registry.mkdir()
+    (registry / "one.jsonl").write_text('{"record":1}\n', encoding="utf-8")
+    (registry / "two.jsonl").write_text('{"record":2}\n', encoding="utf-8")
+    manifest_path = tmp_path / "job.json"
+    manifest = create_job_manifest(
+        job_id="dataset-generation-registry-directory-001",
+        lifecycle="dataset",
+        operation="scenario_generation",
+        input_path=source,
+        output_path=tmp_path / "output.jsonl",
+        checkpoint_path=tmp_path / "checkpoint.json",
+        error_path=tmp_path / "errors.jsonl",
+        shard_size=1,
+        targets={"main_category": {"single_tool": 1}},
+        source_type="original_turkish",
+        start_number=1,
+        registry_path=registry,
+        timestamp="2026-08-07T00:00:00+00:00",
+    )
+    write_manifest(manifest_path, manifest)
+
+    assert load_manifest(manifest_path)["registry_binding"]["path"] == str(registry.resolve())
+    (registry / "two.jsonl").write_text('{"record":3}\n', encoding="utf-8")
+    with pytest.raises(BatchError, match="registry.*checksum"):
+        load_manifest(manifest_path)
+
+
 def test_manifest_rejects_distribution_and_id_collisions(tmp_path: Path) -> None:
     source = tmp_path / "input.jsonl"
     write_rows(source, 2)

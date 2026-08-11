@@ -38,15 +38,24 @@ available where documented by `--help`.
 magibu-toolcall dataset validate <file.json-or-jsonl>
 magibu-toolcall benchmark validate <file.json-or-jsonl> --output json
 magibu-toolcall registry validate registry/registry.jsonl
-magibu-toolcall registry validate registry/proposals/registry.jsonl
-magibu-toolcall blueprint validate <file.json-or-jsonl> --registry registry/proposals/registry.jsonl
+magibu-toolcall registry validate registry/proposals
+magibu-toolcall blueprint validate <file-or-directory> --registry registry/proposals
 ```
 
-The proposal commands apply after `registry/proposals/registry.jsonl` has been
-created; the repository currently has no active proposal registry. `dataset
-validate` and `benchmark validate` use the canonical registry and do
-not currently expose a `--registry` option. Proposal-registry blueprints use the
-explicit `blueprint validate --registry ...` path. Generated dataset drafts are
+Each top-level file under `registry/proposals/` is an independently owned JSONL
+fragment. Every non-empty line contains one registry record. JSON files and JSON
+arrays are not accepted for proposal contributions. The loader combines JSONL
+fragments in deterministic file-name order and rejects duplicate tool IDs or
+function names across files. Subdirectories such as `fixtures/` are not treated
+as registry records.
+
+Committed files under `blueprints/` follow the same JSONL-only rule, with one
+blueprint per line. Standalone JSON under `tests/fixtures/` remains test data and
+is not a contribution-format example.
+
+`dataset validate` and `benchmark validate` use the canonical registry and do
+not expose a `--registry` option. Proposal-registry blueprints use the explicit
+`blueprint validate --registry ...` path. Generated dataset drafts are
 validated against their manifest-bound proposal registry during `dataset
 generate` and again by `dataset quality --registry ...`. Committed accepted
 records must resolve against the canonical registry used by CI.

@@ -11,6 +11,7 @@ from tool_call_tr.blueprints import (
     BlueprintStore,
     infer_main_category,
 )
+from tool_call_tr.cli import main
 from tool_call_tr.registry import ToolRegistry
 from tool_call_tr.validation import RuleBasedValidator
 
@@ -72,6 +73,71 @@ def test_invalid_blueprint_directory_stops_loading(tmp_path: Path) -> None:
     with pytest.raises(BlueprintError) as exc_info:
         BlueprintStore.load_directory(tmp_path, validator)
     assert exc_info.value.issues
+
+
+def test_blueprint_store_loads_multiple_jsonl_files(tmp_path: Path) -> None:
+    _, validator = setup()
+    single_tool = json.loads((VALID / "single_tool.json").read_text(encoding="utf-8"))
+    no_tool = json.loads((VALID / "no_tool.json").read_text(encoding="utf-8"))
+    (tmp_path / "single.jsonl").write_text(
+        json.dumps(single_tool, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "other.jsonl").write_text(
+        json.dumps(no_tool, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+    store = BlueprintStore.load_directory(tmp_path, validator)
+
+    assert store.get("bp_single_tool_001")["expected_behavior"] == "tool_call"
+    assert store.get("bp_no_tool_001")["expected_behavior"] == "direct_answer"
+
+
+def test_blueprint_store_rejects_duplicate_ids_across_jsonl_files(tmp_path: Path) -> None:
+    _, validator = setup()
+    blueprint = (VALID / "single_tool.json").read_text(encoding="utf-8")
+    (tmp_path / "first.jsonl").write_text(
+        json.dumps(json.loads(blueprint), ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "second.jsonl").write_text(
+        json.dumps(json.loads(blueprint), ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(BlueprintError, match="duplicate blueprint ID") as exc_info:
+        BlueprintStore.load_directory(tmp_path, validator)
+
+    assert "first.jsonl:1" in str(exc_info.value)
+    assert "second.jsonl:1" in str(exc_info.value)
+
+
+def test_blueprint_cli_validates_a_mixed_directory_and_rejects_duplicate_ids(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    registry_path = ROOT / "registry" / "registry.jsonl"
+    single_tool = json.loads((VALID / "single_tool.json").read_text(encoding="utf-8"))
+    no_tool = (VALID / "no_tool.json").read_text(encoding="utf-8")
+    (tmp_path / "first.jsonl").write_text(
+        json.dumps(json.loads(no_tool), ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "second.jsonl").write_text(
+        json.dumps(single_tool, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+    assert main(["blueprint", "validate", str(tmp_path), "--registry", str(registry_path)]) == 0
+    assert "OK: 2 record(s) validated" in capsys.readouterr().out
+
+    (tmp_path / "duplicate.jsonl").write_text(
+        json.dumps(single_tool, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    assert main(["blueprint", "validate", str(tmp_path), "--registry", str(registry_path)]) == 1
+    assert "DUPLICATE_BLUEPRINT_ID" in capsys.readouterr().out
 
 
 def test_benchmark_candidate_conversion_remains_review_required() -> None:

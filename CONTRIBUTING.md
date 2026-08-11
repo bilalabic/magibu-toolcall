@@ -31,9 +31,20 @@ Katkı paketinin beklenen asgari içeriği:
 
 ## Tool katkısı
 
-Yeni tool kayıtları `registry/proposals/registry.jsonl` içinde `candidate` olarak
-tanımlanır. Dosya henüz yoksa katkı PR'ı içinde oluşturulur. Kayıt şu
-sözleşmeleri birlikte taşır:
+Yeni tool kayıtları `registry/proposals/` altında katkıya özel bir `.jsonl`
+dosyasında `candidate` olarak tanımlanır. Örneğin Paket 1,
+`registry/proposals/pilot_paket_1_afad.jsonl` yolunu kullanabilir. Ortak bir
+`registry.jsonl` proposal dosyasını düzenlemeyin; bu kural paralel PR'larda
+çakışmayı önler. Kayıt şu sözleşmeleri birlikte taşır:
+
+- Her katkı veya paket, üst dizinde kendine ait ve açıklayıcı adlı tek bir
+  registry parçasını düzenler.
+- Yalnız `.jsonl` kullanılır; `.json` proposal dosyası kabul edilmez.
+- Her satır tam olarak bir registry kaydı içerir. Bir paket aynı dosyada birden
+  fazla tool bulundurabilir; JSON dizi biçimi kullanılmaz.
+- Birleştirilmiş proposal registry dosyası üretilse bile Git'e eklenmez.
+- `registry validate registry/proposals` komutu bütün parçaları birlikte kontrol
+  eder ve dosyalar arasındaki tekrarları reddeder.
 
 - kararlı `tool_id`, `tool_version`, domain ve function adı;
 - JSON Schema uyumlu input ve output şemaları;
@@ -89,6 +100,10 @@ ile doğrulanır. Yeni kayıt:
   ortamını içermeli;
 - iç operasyon etiketlerini doğal kullanıcı/asistan metnine taşımamalıdır.
 
+Repository'ye eklenen blueprint katkıları da yalnız `.jsonl` kullanır ve her
+satırda bir blueprint kaydı taşır. `tests/fixtures/` altındaki tekil `.json`
+dosyaları yalnız test verisidir; katkı formatına örnek değildir.
+
 Kategori önceliği ve multi-tool kuralları için
 [scenario blueprint rehberini](docs/scenario_blueprints.md) izleyin.
 
@@ -115,11 +130,11 @@ Windows PowerShell:
 .\.venv\Scripts\magibu-toolcall.exe registry validate registry\registry.jsonl
 ```
 
-Bir proposal registry veya blueprint eklediyseniz kendi dosya yollarınızı
-değişkenlere vererek ayrıca doğrulayın:
+Bir proposal registry parçası veya blueprint eklediyseniz proposal klasörünü ve
+kendi blueprint yolunuzu vererek ayrıca doğrulayın:
 
 ```powershell
-$ProposalRegistry = "registry\proposals\registry.jsonl"
+$ProposalRegistry = "registry\proposals"
 $BlueprintFile = "blueprints\contribution.jsonl"
 $FixtureId = "your.fixture.id"
 .\.venv\Scripts\magibu-toolcall.exe registry validate $ProposalRegistry

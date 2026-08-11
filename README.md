@@ -10,10 +10,10 @@ akışta birleştirir. Amaç; doğal Türkiye Türkçesi kullanan, doğru tool'u
 argümanlarla çağıran ve cevabını gerçek tool sonucuna dayandıran eğitim kayıtları
 oluşturmaktır.
 
-> **Proje durumu:** Altyapı çalışır durumdadır. Depoda şu anda etkin aday tool
-> kataloğu, üretim blueprint'i, kabul edilmiş dataset kaydı veya onaylı canlı API
-> tool'u yoktur. `registry/registry.jsonl` içindeki üç `demo` tool yalnız altyapı
-> testleri içindir.
+> **Proje durumu:** Altyapı çalışır durumdadır. `registry/registry.jsonl`
+> içindeki üç `demo` tool yalnız altyapı testleri içindir. Proposal kayıtları
+> katkıya özel JSONL parçalarında `candidate` olarak incelenir; bu durum
+> kaynak, lisans veya canlı API onayı anlamına gelmez.
 
 ## Temel yetenekler
 
@@ -62,8 +62,8 @@ modüller [mimari belgesinde](docs/architecture.md), uygulanabilir komutlar ise
 | Varlık | Mevcut durum |
 | --- | --- |
 | Canonical registry | 3 adet `demo` tool |
-| Proposal registry | Henüz etkin `candidate` tool yok |
-| Üretim blueprint'i | Henüz yok |
+| Proposal registry | `registry/proposals/` altında katkıya özel JSONL parçaları |
+| Blueprint katkıları | `blueprints/` altında satır başına bir kayıt içeren JSONL dosyaları |
 | Accepted dataset | Henüz yok |
 | Onaylı canlı API tool'u | Henüz yok |
 
