@@ -89,7 +89,7 @@ def test_manifest_binds_a_registry_fragment_directory(tmp_path: Path) -> None:
     write_rows(source, 1)
     registry = tmp_path / "registry"
     registry.mkdir()
-    (registry / "one.json").write_text('{"record":1}\n', encoding="utf-8")
+    (registry / "one.jsonl").write_text('{"record":1}\n', encoding="utf-8")
     (registry / "two.jsonl").write_text('{"record":2}\n', encoding="utf-8")
     manifest_path = tmp_path / "job.json"
     manifest = create_job_manifest(

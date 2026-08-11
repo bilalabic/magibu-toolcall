@@ -9,6 +9,10 @@ from pathlib import Path
 RECORD_SUFFIXES = frozenset({".json", ".jsonl"})
 
 
+class UnsupportedRecordFormatError(ValueError):
+    pass
+
+
 def discover_record_files(path: Path) -> list[Path]:
     """Return one file or the supported top-level files in a directory."""
 
@@ -28,6 +32,17 @@ def discover_record_files(path: Path) -> list[Path]:
     )
 
 
+def discover_jsonl_record_files(path: Path) -> list[Path]:
+    """Return JSONL sources and reject JSON where a catalog requires JSONL."""
+
+    files = discover_record_files(path)
+    unsupported = [file_path for file_path in files if file_path.suffix.lower() != ".jsonl"]
+    if unsupported:
+        names = ", ".join(file_path.name for file_path in unsupported)
+        raise UnsupportedRecordFormatError(f"only JSONL record files are allowed: {names}")
+    return files
+
+
 def file_sha256(path: Path) -> str:
     """Hash one file without loading it completely into memory."""
 
@@ -41,9 +56,9 @@ def file_sha256(path: Path) -> str:
 def record_source_sha256(path: Path) -> str:
     """Hash a record file or a directory's ordered file names and contents."""
 
-    files = discover_record_files(path)
+    files = discover_jsonl_record_files(path)
     if not files:
-        raise ValueError(f"record source directory contains no JSON/JSONL files: {path}")
+        raise ValueError(f"record source directory contains no JSONL files: {path}")
     if path.is_file():
         return file_sha256(path)
 

@@ -87,8 +87,9 @@ $BlueprintFile = "blueprints\contribution.jsonl"
 .\.venv\Scripts\magibu-toolcall.exe blueprint validate $BlueprintFile --registry $ProposalRegistry
 ```
 
-Blueprint girdisi de tek bir `.json`, çok kayıtlı `.jsonl` veya bu iki formatı
-birlikte içeren bir klasör olabilir.
+Repository'ye eklenen blueprint katkıları yalnız `.jsonl` biçimindedir ve her
+satırda bir blueprint kaydı bulunur. `tests/fixtures/` altındaki `.json` dosyaları
+yalnız test amaçlıdır.
 
 The test suite also checks repository-wide blueprint ID uniqueness. Files under
 `tests/fixtures/blueprints/` demonstrate validator cases; they are not production

@@ -28,24 +28,24 @@ def test_registry_fixed_fixture_is_declared_and_schema_valid() -> None:
     assert fixture["result"] == {"result": 12}
 
 
-def test_registry_loads_a_single_json_record(tmp_path: Path) -> None:
+def test_registry_rejects_a_json_record_file(tmp_path: Path) -> None:
     first_record = json.loads(
         (ROOT / "registry" / "registry.jsonl").read_text(encoding="utf-8").splitlines()[0]
     )
     path = tmp_path / "utility.json"
     path.write_text(json.dumps(first_record, ensure_ascii=False), encoding="utf-8")
 
-    registry = ToolRegistry.load(path)
+    with pytest.raises(RegistryValidationError) as exc_info:
+        ToolRegistry.load(path)
 
-    assert [record["tool_id"] for record in registry.records] == [first_record["tool_id"]]
-    assert registry.fixtures_dir == tmp_path / "fixtures"
+    assert "only JSONL record files are allowed" in str(exc_info.value)
 
 
-def test_registry_loads_mixed_json_and_jsonl_fragments(tmp_path: Path, capsys) -> None:
+def test_registry_loads_multiple_jsonl_fragments(tmp_path: Path, capsys) -> None:
     canonical = ROOT / "registry" / "registry.jsonl"
     records = [json.loads(line) for line in canonical.read_text(encoding="utf-8").splitlines() if line]
-    (tmp_path / "a-utility.json").write_text(
-        json.dumps(records[0], ensure_ascii=False),
+    (tmp_path / "a-utility.jsonl").write_text(
+        json.dumps(records[0], ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
     (tmp_path / "b-other-tools.jsonl").write_text(
@@ -68,7 +68,7 @@ def test_registry_rejects_duplicates_across_fragment_files(tmp_path: Path) -> No
     first_record = json.loads(
         (ROOT / "registry" / "registry.jsonl").read_text(encoding="utf-8").splitlines()[0]
     )
-    (tmp_path / "first.json").write_text(json.dumps(first_record), encoding="utf-8")
+    (tmp_path / "first.jsonl").write_text(json.dumps(first_record) + "\n", encoding="utf-8")
     (tmp_path / "second.jsonl").write_text(json.dumps(first_record) + "\n", encoding="utf-8")
 
     with pytest.raises(RegistryValidationError) as exc_info:
@@ -76,7 +76,7 @@ def test_registry_rejects_duplicates_across_fragment_files(tmp_path: Path) -> No
 
     codes = {issue.code for issue in exc_info.value.issues}
     assert {"DUPLICATE_TOOL_ID", "DUPLICATE_FUNCTION_NAME"} <= codes
-    assert "first.json" in str(exc_info.value)
+    assert "first.jsonl:1" in str(exc_info.value)
     assert "second.jsonl:1" in str(exc_info.value)
 
 

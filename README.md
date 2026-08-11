@@ -12,7 +12,7 @@ oluşturmaktır.
 
 > **Proje durumu:** Altyapı çalışır durumdadır. `registry/registry.jsonl`
 > içindeki üç `demo` tool yalnız altyapı testleri içindir. Proposal kayıtları
-> katkıya özel JSON/JSONL parçalarında `candidate` olarak incelenir; bu durum
+> katkıya özel JSONL parçalarında `candidate` olarak incelenir; bu durum
 > kaynak, lisans veya canlı API onayı anlamına gelmez.
 
 ## Temel yetenekler
@@ -62,8 +62,8 @@ modüller [mimari belgesinde](docs/architecture.md), uygulanabilir komutlar ise
 | Varlık | Mevcut durum |
 | --- | --- |
 | Canonical registry | 3 adet `demo` tool |
-| Proposal registry | `registry/proposals/` altında katkıya özel JSON/JSONL parçaları |
-| Blueprint | Tek JSON, çok kayıtlı JSONL veya karma dosya klasörü |
+| Proposal registry | `registry/proposals/` altında katkıya özel JSONL parçaları |
+| Blueprint katkıları | `blueprints/` altında satır başına bir kayıt içeren JSONL dosyaları |
 | Accepted dataset | Henüz yok |
 | Onaylı canlı API tool'u | Henüz yok |
 

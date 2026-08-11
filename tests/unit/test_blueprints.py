@@ -75,11 +75,14 @@ def test_invalid_blueprint_directory_stops_loading(tmp_path: Path) -> None:
     assert exc_info.value.issues
 
 
-def test_blueprint_store_loads_mixed_json_and_jsonl_files(tmp_path: Path) -> None:
+def test_blueprint_store_loads_multiple_jsonl_files(tmp_path: Path) -> None:
     _, validator = setup()
-    single_tool = (VALID / "single_tool.json").read_text(encoding="utf-8")
+    single_tool = json.loads((VALID / "single_tool.json").read_text(encoding="utf-8"))
     no_tool = json.loads((VALID / "no_tool.json").read_text(encoding="utf-8"))
-    (tmp_path / "single.json").write_text(single_tool, encoding="utf-8")
+    (tmp_path / "single.jsonl").write_text(
+        json.dumps(single_tool, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
     (tmp_path / "other.jsonl").write_text(
         json.dumps(no_tool, ensure_ascii=False) + "\n",
         encoding="utf-8",
@@ -91,10 +94,13 @@ def test_blueprint_store_loads_mixed_json_and_jsonl_files(tmp_path: Path) -> Non
     assert store.get("bp_no_tool_001")["expected_behavior"] == "direct_answer"
 
 
-def test_blueprint_store_rejects_duplicate_ids_across_formats(tmp_path: Path) -> None:
+def test_blueprint_store_rejects_duplicate_ids_across_jsonl_files(tmp_path: Path) -> None:
     _, validator = setup()
     blueprint = (VALID / "single_tool.json").read_text(encoding="utf-8")
-    (tmp_path / "first.json").write_text(blueprint, encoding="utf-8")
+    (tmp_path / "first.jsonl").write_text(
+        json.dumps(json.loads(blueprint), ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
     (tmp_path / "second.jsonl").write_text(
         json.dumps(json.loads(blueprint), ensure_ascii=False) + "\n",
         encoding="utf-8",
@@ -103,7 +109,7 @@ def test_blueprint_store_rejects_duplicate_ids_across_formats(tmp_path: Path) ->
     with pytest.raises(BlueprintError, match="duplicate blueprint ID") as exc_info:
         BlueprintStore.load_directory(tmp_path, validator)
 
-    assert "first.json" in str(exc_info.value)
+    assert "first.jsonl:1" in str(exc_info.value)
     assert "second.jsonl:1" in str(exc_info.value)
 
 
@@ -114,7 +120,10 @@ def test_blueprint_cli_validates_a_mixed_directory_and_rejects_duplicate_ids(
     registry_path = ROOT / "registry" / "registry.jsonl"
     single_tool = json.loads((VALID / "single_tool.json").read_text(encoding="utf-8"))
     no_tool = (VALID / "no_tool.json").read_text(encoding="utf-8")
-    (tmp_path / "first.json").write_text(no_tool, encoding="utf-8")
+    (tmp_path / "first.jsonl").write_text(
+        json.dumps(json.loads(no_tool), ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
     (tmp_path / "second.jsonl").write_text(
         json.dumps(single_tool, ensure_ascii=False) + "\n",
         encoding="utf-8",

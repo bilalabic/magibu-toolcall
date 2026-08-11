@@ -413,7 +413,7 @@ def _add_support_commands(subparsers: argparse._SubParsersAction) -> None:
     registry_commands = registry.add_subparsers(dest="registry_command", metavar="COMMAND", required=True)
     registry_validate = registry_commands.add_parser(
         "validate",
-        help="Validate a registry JSON/JSONL file or a directory of registry fragments.",
+        help="Validate a registry JSONL file or a directory of JSONL fragments.",
     )
     registry_validate.add_argument("path", type=Path)
     registry_validate.add_argument("--output", choices=OUTPUT_FORMATS, default="text")
@@ -423,13 +423,13 @@ def _add_support_commands(subparsers: argparse._SubParsersAction) -> None:
     blueprint_commands = blueprint.add_subparsers(dest="blueprint_command", metavar="COMMAND", required=True)
     blueprint_validate = blueprint_commands.add_parser(
         "validate",
-        help="Validate a scenario-blueprint JSON/JSONL file or directory.",
+        help="Validate blueprint input; committed contributions use JSONL.",
     )
     blueprint_validate.add_argument("path", type=Path)
     blueprint_validate.add_argument(
         "--registry",
         type=Path,
-        help="Registry JSON/JSONL file or fragment directory used for tool-contract validation.",
+        help="Registry JSONL file or fragment directory used for tool-contract validation.",
     )
     blueprint_validate.add_argument("--output", choices=OUTPUT_FORMATS, default="text")
     blueprint_validate.set_defaults(handler=_cmd_validate, record_kind="blueprint")
@@ -441,7 +441,7 @@ def _add_support_commands(subparsers: argparse._SubParsersAction) -> None:
     execute.add_argument(
         "--registry",
         type=Path,
-        help="Registry JSON/JSONL file or fragment directory; defaults to the canonical registry.",
+        help="Registry JSONL file or fragment directory; defaults to the canonical registry.",
     )
     execute.add_argument("--mode", choices=("mock", "local_executable", "fully_simulated"), help="Execution mode; defaults to the tool contract.")
     execute.set_defaults(handler=_cmd_run_fixture)

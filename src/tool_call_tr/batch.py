@@ -134,7 +134,14 @@ def load_manifest(path: Path, *, verify_input: bool = True) -> dict[str, Any]:
         registry_binding = manifest["registry_binding"]
         if registry_binding is not None:
             registry_path = Path(registry_binding["path"])
-            if not registry_path.exists() or record_source_sha256(registry_path) != registry_binding["sha256"]:
+            try:
+                registry_matches = (
+                    registry_path.exists()
+                    and record_source_sha256(registry_path) == registry_binding["sha256"]
+                )
+            except (OSError, ValueError):
+                registry_matches = False
+            if not registry_matches:
                 raise BatchError("job registry is missing or its checksum changed")
     _validate_shards(manifest)
     return manifest

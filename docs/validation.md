@@ -42,11 +42,16 @@ magibu-toolcall registry validate registry/proposals
 magibu-toolcall blueprint validate <file-or-directory> --registry registry/proposals
 ```
 
-Each top-level file under `registry/proposals/` is an independently owned
-fragment: `.json` contains one record and `.jsonl` may contain multiple records.
-The loader combines both formats in deterministic file-name order and rejects
-duplicate tool IDs or function names across fragments. Subdirectories such as
-`fixtures/` are not treated as registry records.
+Each top-level file under `registry/proposals/` is an independently owned JSONL
+fragment. Every non-empty line contains one registry record. JSON files and JSON
+arrays are not accepted for proposal contributions. The loader combines JSONL
+fragments in deterministic file-name order and rejects duplicate tool IDs or
+function names across files. Subdirectories such as `fixtures/` are not treated
+as registry records.
+
+Committed files under `blueprints/` follow the same JSONL-only rule, with one
+blueprint per line. Standalone JSON under `tests/fixtures/` remains test data and
+is not a contribution-format example.
 
 `dataset validate` and `benchmark validate` use the canonical registry and do
 not expose a `--registry` option. Proposal-registry blueprints use the explicit

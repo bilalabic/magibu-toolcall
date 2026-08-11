@@ -43,8 +43,16 @@ jobs:
           magibu-toolcall registry validate registry/registry.jsonl
           proposal_registry_files=()
           if [[ -d registry/proposals ]]; then
+            mapfile -d '' invalid_proposal_files < <(
+              find registry/proposals -maxdepth 1 -type f -name '*.json' -print0
+            )
+            if (( ${#invalid_proposal_files[@]} > 0 )); then
+              echo "Registry proposal contributions must use .jsonl files." >&2
+              printf 'Unsupported file: %s\n' "${invalid_proposal_files[@]}" >&2
+              exit 1
+            fi
             mapfile -d '' proposal_registry_files < <(
-              find registry/proposals -maxdepth 1 -type f \( -name '*.json' -o -name '*.jsonl' \) -print0
+              find registry/proposals -maxdepth 1 -type f -name '*.jsonl' -print0
             )
           fi
           if (( ${#proposal_registry_files[@]} > 0 )); then
@@ -54,12 +62,20 @@ jobs:
       - name: Validate blueprints
         shell: bash
         run: |
+          mapfile -d '' invalid_blueprint_files < <(
+            find blueprints -type f -name '*.json' -print0
+          )
+          if (( ${#invalid_blueprint_files[@]} > 0 )); then
+            echo "Blueprint contributions must use .jsonl files." >&2
+            printf 'Unsupported file: %s\n' "${invalid_blueprint_files[@]}" >&2
+            exit 1
+          fi
           mapfile -d '' blueprint_files < <(
-            find blueprints -type f \( -name '*.json' -o -name '*.jsonl' \) -print0
+            find blueprints -type f -name '*.jsonl' -print0
           )
           if (( ${#blueprint_files[@]} > 0 )); then
             mapfile -d '' proposal_registry_files < <(
-              find registry/proposals -maxdepth 1 -type f \( -name '*.json' -o -name '*.jsonl' \) -print0
+              find registry/proposals -maxdepth 1 -type f -name '*.jsonl' -print0
             )
             if (( ${#proposal_registry_files[@]} == 0 )); then
               echo "Blueprint validation requires registry proposal fragments." >&2

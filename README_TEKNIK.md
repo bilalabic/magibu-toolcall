@@ -6,9 +6,9 @@
 Bu belge kurulabilir ve çalıştırılabilir CLI akışının teknik başvuru kaynağıdır.
 Mimari kararlar, kavramsal açıklamalar ve proje durumu burada tekrarlanmaz;
 [dokümantasyon merkezindeki](docs/README.md) ilgili belgelere yönlendirilir.
-`original_turkish` ve `turkey_native` akışları desteklenir. Proposal registry ve
-blueprint girdileri tek `.json`, çok kayıtlı `.jsonl` veya bu formatları birlikte
-içeren bir klasör olabilir.
+`original_turkish` ve `turkey_native` akışları desteklenir. Repository'ye eklenen
+proposal registry ve blueprint katkıları yalnız `.jsonl` kullanır; her satır bir
+kayıttır. Tekil `.json` dosyaları yalnız test fixture'larında kullanılabilir.
 
 Rehberi ilk kez kullanıyorsanız şu sırayı izleyin:
 
@@ -96,8 +96,8 @@ Machine alanları İngilizce ve kararlı kalır. Kullanıcı/asistan metinleri i
 ve parametre açıklamaları Türkiye Türkçesiyle yazılır.
 
 Kanonik registry yalnız altyapı testlerinde kullanılan `demo` kayıtlarını içerir.
-Yeni tool’lar `registry/proposals/` altında katkıya özel `.json` veya `.jsonl`
-parçaları olarak `candidate` durumunda eklenir. Ortak bir proposal registry
+Yeni tool’lar `registry/proposals/` altında katkıya özel `.jsonl` parçaları olarak
+`candidate` durumunda eklenir. Ortak bir proposal registry
 dosyası commit edilmez; CLI parçaları birlikte doğrular. `candidate`, canlı
 kaynak veya lisans onayı değildir.
 
@@ -333,7 +333,6 @@ Benchmark yaşam döngüsü için [ayrı belgeye](data/benchmark/README.md) bak�
 ```text
 blueprints/                         İzlenen blueprint ve regresyonlar
 registry/                           Canonical registry ve fixture’lar
-registry/proposals/<katkı>.json     Tek kayıtlı candidate tool parçası
 registry/proposals/<katkı>.jsonl    Çok kayıtlı candidate tool parçası
 registry/proposals/fixtures/        Proposal fixture’ları
 data/dataset/staging/               Yerel üretilmiş adaylar

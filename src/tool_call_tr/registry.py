@@ -12,7 +12,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import SchemaError
 
 from tool_call_tr.config import Settings
-from tool_call_tr.record_sources import discover_record_files
+from tool_call_tr.record_sources import discover_jsonl_record_files
 from tool_call_tr.schemas import SchemaStore, json_path
 
 
@@ -56,12 +56,12 @@ class ToolRegistry:
         locations: list[str] = []
         issues: list[RegistryIssue] = []
         try:
-            source_files = discover_record_files(path)
-        except OSError as exc:
+            source_files = discover_jsonl_record_files(path)
+        except (OSError, ValueError) as exc:
             raise RegistryValidationError([RegistryIssue("REGISTRY_SOURCE_INVALID", str(exc))]) from exc
         if not source_files:
             raise RegistryValidationError(
-                [RegistryIssue("REGISTRY_SOURCE_EMPTY", "directory contains no JSON/JSONL files")]
+                [RegistryIssue("REGISTRY_SOURCE_EMPTY", "directory contains no JSONL files")]
             )
 
         for file_path in source_files:
@@ -159,18 +159,6 @@ def _parse_registry_file(
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
         return [], [RegistryIssue("REGISTRY_SOURCE_INVALID", f"{source_name}: {exc}")]
-    if path.suffix.lower() != ".jsonl":
-        try:
-            return [(None, json.loads(text))], []
-        except json.JSONDecodeError as exc:
-            return [], [
-                RegistryIssue(
-                    "REGISTRY_JSON_INVALID",
-                    f"{source_name}: {exc.msg}",
-                    line=exc.lineno,
-                )
-            ]
-
     records: list[tuple[int | None, Any]] = []
     issues: list[RegistryIssue] = []
     for line_number, line in enumerate(text.splitlines(), 1):
