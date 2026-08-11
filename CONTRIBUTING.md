@@ -32,10 +32,11 @@ Katkı paketinin beklenen asgari içeriği:
 ## Tool katkısı
 
 Yeni tool kayıtları `registry/proposals/` altında katkıya özel bir `.jsonl`
-dosyasında `candidate` olarak tanımlanır. Örneğin Paket 1,
-`registry/proposals/pilot_paket_1_afad.jsonl` yolunu kullanabilir. Ortak bir
-`registry.jsonl` proposal dosyasını düzenlemeyin; bu kural paralel PR'larda
-çakışmayı önler. Kayıt şu sözleşmeleri birlikte taşır:
+dosyasında `candidate` olarak tanımlanır. Dosya adı içeriği açıklayan
+`<domain>_<source>.jsonl` düzenini izler; örneğin
+`registry/proposals/earthquake_afad.jsonl`. Ortak bir `registry.jsonl` proposal
+dosyasını düzenlemeyin; bu kural paralel PR'larda çakışmayı önler. Kayıt şu
+sözleşmeleri birlikte taşır:
 
 - Her katkı veya paket, üst dizinde kendine ait ve açıklayıcı adlı tek bir
   registry parçasını düzenler.
