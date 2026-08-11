@@ -63,6 +63,7 @@ Bugünkü kapasiteyi, riskleri ve ölçekleme kapılarını izlemek için kullan
 ## Araştırma
 
 - [Tool-calling dataset coverage research](tool_call_dataset_coverage_research.md)
+- [AFAD canlı API değerlendirmesi](afad_endpoint_revalidation.md)
 
 Araştırma belgesi gelecekteki `0.2.x` önerilerini de içerir. Uygulanmış davranış
 için teknik rehber, `--help` çıktısı, mevcut şemalar ve bilinen sınırlamalar esas
