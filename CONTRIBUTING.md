@@ -102,8 +102,9 @@ ile doğrulanır. Yeni kayıt:
 - iç operasyon etiketlerini doğal kullanıcı/asistan metnine taşımamalıdır.
 
 Repository'ye eklenen blueprint katkıları da yalnız `.jsonl` kullanır ve her
-satırda bir blueprint kaydı taşır. `tests/fixtures/` altındaki tekil `.json`
-dosyaları yalnız test verisidir; katkı formatına örnek değildir.
+satırda bir blueprint kaydı taşır. Dosya adı registry parçasıyla aynı
+`<domain>_<source>.jsonl` düzenini izler. `tests/fixtures/` altındaki tekil
+`.json` dosyaları yalnız test verisidir; katkı formatına örnek değildir.
 
 Kategori önceliği ve multi-tool kuralları için
 [scenario blueprint rehberini](docs/scenario_blueprints.md) izleyin.
