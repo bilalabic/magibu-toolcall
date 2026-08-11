@@ -64,14 +64,29 @@ class RuleBasedValidator:
     def validate_path(self, kind: str, path: Path) -> ValidationReport:
         if kind == "registry":
             try:
-                ToolRegistry.load(path, schema_store=self.schema_store)
+                registry = ToolRegistry.load(path, schema_store=self.schema_store)
             except RegistryValidationError as exc:
                 return ValidationReport([_registry_issue(issue) for issue in exc.issues], 0)
-            return ValidationReport([], sum(bool(line.strip()) for line in path.read_text(encoding="utf-8").splitlines()))
+            return ValidationReport([], len(registry.records))
         records, parse_issues = parse_path(path)
         report = ValidationReport(parse_issues, len(records))
-        for line, record in records:
+        seen_blueprint_ids: dict[str, int] = {}
+        for record_number, (line, record) in enumerate(records, 1):
             report.extend(self.validate_record(kind, record, line=line).issues)
+            if kind == "blueprint" and isinstance(record, dict) and isinstance(record.get("id"), str):
+                blueprint_id = record["id"]
+                if blueprint_id in seen_blueprint_ids:
+                    report.issues.append(
+                        ValidationIssue(
+                            "DUPLICATE_BLUEPRINT_ID",
+                            f"blueprint ID first appeared in record {seen_blueprint_ids[blueprint_id]}",
+                            "$.id",
+                            record_id=blueprint_id,
+                            line=line,
+                        )
+                    )
+                else:
+                    seen_blueprint_ids[blueprint_id] = record_number
         return report
 
     def validate_record(self, kind: str, record: Any, *, line: int | None = None) -> ValidationReport:

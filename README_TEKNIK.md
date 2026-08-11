@@ -95,9 +95,10 @@ Machine alanları İngilizce ve kararlı kalır. Kullanıcı/asistan metinleri i
 ve parametre açıklamaları Türkiye Türkçesiyle yazılır.
 
 Kanonik registry yalnız altyapı testlerinde kullanılan `demo` kayıtlarını içerir.
-Yeni tool’lar `registry/proposals/registry.jsonl` dosyasına `candidate` olarak
-eklenir; dosya ilk tool katkısıyla oluşturulur. `candidate`, canlı kaynak veya
-lisans onayı değildir.
+Yeni tool’lar `registry/proposals/` altında katkıya özel `.json` veya `.jsonl`
+parçaları olarak `candidate` durumunda eklenir. Ortak bir proposal registry
+dosyası commit edilmez; CLI parçaları birlikte doğrular. `candidate`, canlı
+kaynak veya lisans onayı değildir.
 
 ## 4. Tool katkısı ve execution
 
@@ -110,7 +111,7 @@ doğrulama ve smoke testi:
 ```
 
 Bu komutlar yalnız demo altyapısını sınar. Yeni proposal fixture'ı için aynı
-komutlara `--registry registry\proposals\registry.jsonl` eklenir. Modların
+komutlara `--registry registry\proposals` eklenir. Modların
 sözleşmeleri, status değerleri ve fallback kuralları
 [execution ortamları belgesinde](docs/execution_environments.md) tutulur. CLI
 hiçbir execution modunu sessizce başka moda düşürmez. `tool run-api` yalnız
@@ -130,7 +131,7 @@ tutulur. Bu bölüm yalnız doğrulama komutlarını gösterir.
 Proposal ve production blueprint dosyaları eklendikten sonra:
 
 ```powershell
-$ProposalRegistry = "registry\proposals\registry.jsonl"
+$ProposalRegistry = "registry\proposals"
 $BlueprintFile = "blueprints\contribution.jsonl"
 .\.venv\Scripts\magibu-toolcall.exe registry validate $ProposalRegistry
 .\.venv\Scripts\magibu-toolcall.exe blueprint validate $BlueprintFile --registry $ProposalRegistry
@@ -235,7 +236,7 @@ yalnız önceden planlanmış işi devam ettirmek veya özel shard yönetmek iç
 
 ```powershell
 $BlueprintFile = "blueprints\production_batch.jsonl"
-$ProposalRegistry = "registry\proposals\registry.jsonl"
+$ProposalRegistry = "registry\proposals"
 $JobId = "dataset-batch-001"
 .\.venv\Scripts\magibu-toolcall.exe dataset generate $BlueprintFile `
   --registry $ProposalRegistry `

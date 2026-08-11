@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
-import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from tool_call_tr.ids import generate_record_id
+from tool_call_tr.record_sources import file_sha256, record_source_sha256
 from tool_call_tr.schemas import SchemaStore
 from tool_call_tr.sources import iter_source_rows
 
@@ -97,7 +97,7 @@ def create_job_manifest(
         "target_distributions": distributions,
         "id_plan": id_plan,
         "registry_binding": (
-            {"path": str(registry_path.resolve()), "sha256": _file_hash(registry_path)}
+            {"path": str(registry_path.resolve()), "sha256": record_source_sha256(registry_path)}
             if registry_path is not None
             else None
         ),
@@ -134,7 +134,7 @@ def load_manifest(path: Path, *, verify_input: bool = True) -> dict[str, Any]:
         registry_binding = manifest["registry_binding"]
         if registry_binding is not None:
             registry_path = Path(registry_binding["path"])
-            if not registry_path.exists() or _file_hash(registry_path) != registry_binding["sha256"]:
+            if not registry_path.exists() or record_source_sha256(registry_path) != registry_binding["sha256"]:
                 raise BatchError("job registry is missing or its checksum changed")
     _validate_shards(manifest)
     return manifest
@@ -325,8 +325,4 @@ def _replace_json(path: Path, value: dict[str, Any]) -> None:
 
 
 def _file_hash(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
+    return file_sha256(path)

@@ -31,9 +31,11 @@ Katkı paketinin beklenen asgari içeriği:
 
 ## Tool katkısı
 
-Yeni tool kayıtları `registry/proposals/registry.jsonl` içinde `candidate` olarak
-tanımlanır. Dosya henüz yoksa katkı PR'ı içinde oluşturulur. Kayıt şu
-sözleşmeleri birlikte taşır:
+Yeni tool kayıtları `registry/proposals/` altında katkıya özel bir `.json` veya
+`.jsonl` dosyasında `candidate` olarak tanımlanır. Örneğin Paket 1,
+`registry/proposals/pilot_paket_1_afad.jsonl` yolunu kullanabilir. Ortak bir
+`registry.jsonl` proposal dosyasını düzenlemeyin; bu kural paralel PR'larda
+çakışmayı önler. Kayıt şu sözleşmeleri birlikte taşır:
 
 - kararlı `tool_id`, `tool_version`, domain ve function adı;
 - JSON Schema uyumlu input ve output şemaları;
@@ -119,7 +121,7 @@ Bir proposal registry veya blueprint eklediyseniz kendi dosya yollarınızı
 değişkenlere vererek ayrıca doğrulayın:
 
 ```powershell
-$ProposalRegistry = "registry\proposals\registry.jsonl"
+$ProposalRegistry = "registry\proposals"
 $BlueprintFile = "blueprints\contribution.jsonl"
 $FixtureId = "your.fixture.id"
 .\.venv\Scripts\magibu-toolcall.exe registry validate $ProposalRegistry

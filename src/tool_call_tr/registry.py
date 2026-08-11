@@ -12,6 +12,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import SchemaError
 
 from tool_call_tr.config import Settings
+from tool_call_tr.record_sources import discover_record_files
 from tool_call_tr.schemas import SchemaStore, json_path
 
 
@@ -50,40 +51,74 @@ class ToolRegistry:
         settings = Settings.from_env()
         path = path or settings.registry_path
         schema_store = schema_store or SchemaStore()
-        fixtures_dir = fixtures_dir or path.parent / "fixtures"
+        fixtures_dir = fixtures_dir or (path / "fixtures" if path.is_dir() else path.parent / "fixtures")
         records: list[dict[str, Any]] = []
+        locations: list[str] = []
         issues: list[RegistryIssue] = []
-        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-            if not line.strip():
-                continue
-            try:
-                record = json.loads(line)
-            except json.JSONDecodeError as exc:
-                issues.append(RegistryIssue("REGISTRY_JSON_INVALID", str(exc), line=line_number))
-                continue
-            schema_errors = schema_store.errors("registry", record)
-            issues.extend(
-                RegistryIssue("REGISTRY_SCHEMA_INVALID", error.message, json_path(error), line_number)
-                for error in schema_errors
+        try:
+            source_files = discover_record_files(path)
+        except OSError as exc:
+            raise RegistryValidationError([RegistryIssue("REGISTRY_SOURCE_INVALID", str(exc))]) from exc
+        if not source_files:
+            raise RegistryValidationError(
+                [RegistryIssue("REGISTRY_SOURCE_EMPTY", "directory contains no JSON/JSONL files")]
             )
-            if schema_errors:
-                continue
-            issues.extend(_semantic_record_issues(record, line_number))
-            records.append(record)
 
-        seen_ids: dict[str, int] = {}
-        seen_names: dict[str, int] = {}
-        for line_number, record in enumerate(records, 1):
+        for file_path in source_files:
+            source_name = file_path.name if path.is_dir() else str(file_path)
+            parsed_records, parse_issues = _parse_registry_file(file_path, source_name)
+            issues.extend(parse_issues)
+            for line_number, record in parsed_records:
+                location = f"{source_name}:{line_number}" if line_number is not None else source_name
+                schema_errors = schema_store.errors("registry", record)
+                issues.extend(
+                    RegistryIssue(
+                        "REGISTRY_SCHEMA_INVALID",
+                        f"{location}: {error.message}",
+                        json_path(error),
+                        line_number,
+                    )
+                    for error in schema_errors
+                )
+                if schema_errors:
+                    continue
+                issues.extend(
+                    RegistryIssue(
+                        issue.code,
+                        f"{location}: {issue.message}",
+                        issue.path,
+                        issue.line,
+                    )
+                    for issue in _semantic_record_issues(record, line_number)
+                )
+                records.append(record)
+                locations.append(location)
+
+        seen_ids: dict[str, str] = {}
+        seen_names: dict[str, str] = {}
+        for record, location in zip(records, locations, strict=True):
             tool_id = record["tool_id"]
             name = record["function"]["name"]
             if tool_id in seen_ids:
-                issues.append(RegistryIssue("DUPLICATE_TOOL_ID", f"{tool_id} first appeared on record {seen_ids[tool_id]}", "$.tool_id", line_number))
+                issues.append(
+                    RegistryIssue(
+                        "DUPLICATE_TOOL_ID",
+                        f"{tool_id} first appeared at {seen_ids[tool_id]}; duplicated at {location}",
+                        "$.tool_id",
+                    )
+                )
             else:
-                seen_ids[tool_id] = line_number
+                seen_ids[tool_id] = location
             if name in seen_names:
-                issues.append(RegistryIssue("DUPLICATE_FUNCTION_NAME", f"{name} first appeared on record {seen_names[name]}", "$.function.name", line_number))
+                issues.append(
+                    RegistryIssue(
+                        "DUPLICATE_FUNCTION_NAME",
+                        f"{name} first appeared at {seen_names[name]}; duplicated at {location}",
+                        "$.function.name",
+                    )
+                )
             else:
-                seen_names[name] = line_number
+                seen_names[name] = location
         if issues:
             raise RegistryValidationError(issues)
         return cls(records, fixtures_dir)
@@ -116,7 +151,45 @@ class ToolRegistry:
         return fixture
 
 
-def _semantic_record_issues(record: dict[str, Any], line_number: int) -> list[RegistryIssue]:
+def _parse_registry_file(
+    path: Path,
+    source_name: str,
+) -> tuple[list[tuple[int | None, Any]], list[RegistryIssue]]:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [], [RegistryIssue("REGISTRY_SOURCE_INVALID", f"{source_name}: {exc}")]
+    if path.suffix.lower() != ".jsonl":
+        try:
+            return [(None, json.loads(text))], []
+        except json.JSONDecodeError as exc:
+            return [], [
+                RegistryIssue(
+                    "REGISTRY_JSON_INVALID",
+                    f"{source_name}: {exc.msg}",
+                    line=exc.lineno,
+                )
+            ]
+
+    records: list[tuple[int | None, Any]] = []
+    issues: list[RegistryIssue] = []
+    for line_number, line in enumerate(text.splitlines(), 1):
+        if not line.strip():
+            continue
+        try:
+            records.append((line_number, json.loads(line)))
+        except json.JSONDecodeError as exc:
+            issues.append(
+                RegistryIssue(
+                    "REGISTRY_JSON_INVALID",
+                    f"{source_name}: {exc.msg}",
+                    line=line_number,
+                )
+            )
+    return records, issues
+
+
+def _semantic_record_issues(record: dict[str, Any], line_number: int | None) -> list[RegistryIssue]:
     issues: list[RegistryIssue] = []
     for field, path in ((record["function"]["parameters"], "$.function.parameters"), (record["output_schema"], "$.output_schema")):
         try:

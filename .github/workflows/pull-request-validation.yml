@@ -41,8 +41,14 @@ jobs:
         shell: bash
         run: |
           magibu-toolcall registry validate registry/registry.jsonl
-          if [[ -f registry/proposals/registry.jsonl ]]; then
-            magibu-toolcall registry validate registry/proposals/registry.jsonl
+          proposal_registry_files=()
+          if [[ -d registry/proposals ]]; then
+            mapfile -d '' proposal_registry_files < <(
+              find registry/proposals -maxdepth 1 -type f \( -name '*.json' -o -name '*.jsonl' \) -print0
+            )
+          fi
+          if (( ${#proposal_registry_files[@]} > 0 )); then
+            magibu-toolcall registry validate registry/proposals
           fi
 
       - name: Validate blueprints
@@ -52,12 +58,15 @@ jobs:
             find blueprints -type f \( -name '*.json' -o -name '*.jsonl' \) -print0
           )
           if (( ${#blueprint_files[@]} > 0 )); then
-            if [[ ! -f registry/proposals/registry.jsonl ]]; then
-              echo "Blueprint validation requires registry/proposals/registry.jsonl." >&2
+            mapfile -d '' proposal_registry_files < <(
+              find registry/proposals -maxdepth 1 -type f \( -name '*.json' -o -name '*.jsonl' \) -print0
+            )
+            if (( ${#proposal_registry_files[@]} == 0 )); then
+              echo "Blueprint validation requires registry proposal fragments." >&2
               exit 1
             fi
             for file in "${blueprint_files[@]}"; do
-              magibu-toolcall blueprint validate "$file" --registry registry/proposals/registry.jsonl
+              magibu-toolcall blueprint validate "$file" --registry registry/proposals
             done
           fi
 

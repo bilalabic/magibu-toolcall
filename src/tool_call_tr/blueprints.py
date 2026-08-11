@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import copy
-import json
 from pathlib import Path
 from typing import Any, Protocol
 
+from tool_call_tr.record_sources import discover_record_files
 from tool_call_tr.registry import ToolRegistry
 from tool_call_tr.validation import RuleBasedValidator, ValidationIssue
+from tool_call_tr.validation.parsing import parse_path
 
 
 class BlueprintError(ValueError):
@@ -24,15 +25,31 @@ class BlueprintStore:
     @classmethod
     def load_directory(cls, path: Path, validator: RuleBasedValidator) -> "BlueprintStore":
         records: dict[str, dict[str, Any]] = {}
-        for file_path in sorted(path.glob("*.json")):
-            record = json.loads(file_path.read_text(encoding="utf-8"))
-            report = validator.validate_record("blueprint", record)
-            if not report.valid:
-                raise BlueprintError(f"invalid blueprint: {file_path.name}", report.issues)
-            blueprint_id = record["id"]
-            if blueprint_id in records:
-                raise BlueprintError(f"duplicate blueprint ID: {blueprint_id}")
-            records[blueprint_id] = record
+        try:
+            source_files = discover_record_files(path)
+        except OSError as exc:
+            raise BlueprintError(f"invalid blueprint source: {exc}") from exc
+        if not source_files:
+            raise BlueprintError("blueprint directory contains no JSON/JSONL files")
+
+        locations: dict[str, str] = {}
+        for file_path in source_files:
+            parsed_records, parse_issues = parse_path(file_path)
+            if parse_issues:
+                raise BlueprintError(f"invalid blueprint: {file_path.name}", parse_issues)
+            for line_number, record in parsed_records:
+                report = validator.validate_record("blueprint", record)
+                if not report.valid:
+                    raise BlueprintError(f"invalid blueprint: {file_path.name}", report.issues)
+                blueprint_id = record["id"]
+                location = f"{file_path.name}:{line_number}" if line_number is not None else file_path.name
+                if blueprint_id in records:
+                    raise BlueprintError(
+                        f"duplicate blueprint ID: {blueprint_id} "
+                        f"({locations[blueprint_id]} and {location})"
+                    )
+                records[blueprint_id] = record
+                locations[blueprint_id] = location
         return cls(records)
 
     def get(self, blueprint_id: str) -> dict[str, Any]:

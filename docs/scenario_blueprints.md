@@ -83,10 +83,13 @@ production blueprint are added:
 
 ```powershell
 .\.venv\Scripts\magibu-toolcall.exe blueprint validate tests\fixtures\blueprints\valid\single_tool.json --registry registry\registry.jsonl
-$ProposalRegistry = "registry\proposals\registry.jsonl"
+$ProposalRegistry = "registry\proposals"
 $BlueprintFile = "blueprints\contribution.jsonl"
 .\.venv\Scripts\magibu-toolcall.exe blueprint validate $BlueprintFile --registry $ProposalRegistry
 ```
+
+Blueprint girdisi de tek bir `.json`, çok kayıtlı `.jsonl` veya bu iki formatı
+birlikte içeren bir klasör olabilir.
 
 The test suite also checks repository-wide blueprint ID uniqueness. Files under
 `tests/fixtures/blueprints/` demonstrate validator cases; they are not production

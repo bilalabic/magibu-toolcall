@@ -67,6 +67,7 @@ from tool_call_tr.execution import (
 )
 from tool_call_tr.records import RecordIOError, load_records, write_records
 from tool_call_tr.quality import QualityError, run_dataset_quality, write_quality_report
+from tool_call_tr.record_sources import record_source_sha256
 from tool_call_tr.provider_preflight import check_provider_models
 from tool_call_tr.provider_comparison import (
     FLASH_MODEL,
@@ -410,16 +411,26 @@ def _add_semantic_arguments(parser: argparse.ArgumentParser) -> None:
 def _add_support_commands(subparsers: argparse._SubParsersAction) -> None:
     registry = subparsers.add_parser("registry", help="Manage canonical Tool Registry infrastructure.")
     registry_commands = registry.add_subparsers(dest="registry_command", metavar="COMMAND", required=True)
-    registry_validate = registry_commands.add_parser("validate", help="Validate a registry JSONL file.")
+    registry_validate = registry_commands.add_parser(
+        "validate",
+        help="Validate a registry JSON/JSONL file or a directory of registry fragments.",
+    )
     registry_validate.add_argument("path", type=Path)
     registry_validate.add_argument("--output", choices=OUTPUT_FORMATS, default="text")
     registry_validate.set_defaults(handler=_cmd_validate, record_kind="registry")
 
     blueprint = subparsers.add_parser("blueprint", help="Manage scenario-blueprint infrastructure.")
     blueprint_commands = blueprint.add_subparsers(dest="blueprint_command", metavar="COMMAND", required=True)
-    blueprint_validate = blueprint_commands.add_parser("validate", help="Validate a scenario blueprint.")
+    blueprint_validate = blueprint_commands.add_parser(
+        "validate",
+        help="Validate a scenario-blueprint JSON/JSONL file or directory.",
+    )
     blueprint_validate.add_argument("path", type=Path)
-    blueprint_validate.add_argument("--registry", type=Path, help="Registry JSONL used for tool-contract validation.")
+    blueprint_validate.add_argument(
+        "--registry",
+        type=Path,
+        help="Registry JSON/JSONL file or fragment directory used for tool-contract validation.",
+    )
     blueprint_validate.add_argument("--output", choices=OUTPUT_FORMATS, default="text")
     blueprint_validate.set_defaults(handler=_cmd_validate, record_kind="blueprint")
 
@@ -427,7 +438,11 @@ def _add_support_commands(subparsers: argparse._SubParsersAction) -> None:
     tool_commands = tool.add_subparsers(dest="tool_command", metavar="COMMAND", required=True)
     execute = tool_commands.add_parser("run-fixture", help="Run a declared deterministic registry fixture.")
     execute.add_argument("fixture_id")
-    execute.add_argument("--registry", type=Path, help="Registry JSONL path; defaults to the configured canonical registry.")
+    execute.add_argument(
+        "--registry",
+        type=Path,
+        help="Registry JSON/JSONL file or fragment directory; defaults to the canonical registry.",
+    )
     execute.add_argument("--mode", choices=("mock", "local_executable", "fully_simulated"), help="Execution mode; defaults to the tool contract.")
     execute.set_defaults(handler=_cmd_run_fixture)
     api = tool_commands.add_parser("run-api", help="Run an approved read-only HTTPS JSON tool with explicit live confirmation.")
@@ -1133,7 +1148,7 @@ def _cmd_dataset_quality(args: argparse.Namespace) -> int:
         )
         result.report["input_path"] = str(args.input_path.resolve())
         result.report["registry_path"] = str(registry_path)
-        result.report["registry_sha256"] = hashlib.sha256(registry_path.read_bytes()).hexdigest()
+        result.report["registry_sha256"] = record_source_sha256(registry_path)
         result.report["reference_paths"] = [str(path.resolve()) for path in args.reference]
         write_records(args.output_path, result.records, overwrite=args.overwrite)
         write_quality_report(report_path, result.report, overwrite=args.overwrite)

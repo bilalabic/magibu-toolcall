@@ -1,7 +1,8 @@
 # Tool proposal template
 
-Use this worksheet before adding a new entry to
-`registry/proposals/registry.jsonl`. It gathers the human research needed
+Use this worksheet before adding a new contributor-owned `.json` or `.jsonl`
+fragment under `registry/proposals/`. Do not edit a shared proposal aggregate.
+The worksheet gathers the human research needed
 to write a machine-valid registry record; it does not replace
 `schemas/tool_registry.schema.json`.
 
