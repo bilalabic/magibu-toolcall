@@ -19,7 +19,10 @@ from tool_call_tr.validation import RuleBasedValidator
 
 
 ROOT = Path(__file__).resolve().parents[2]
-PROPOSAL_REGISTRY = ROOT / "registry" / "proposals" / "registry.jsonl"
+PROPOSAL_REGISTRY = (
+    ROOT / "registry" / "proposals" / "pilot_paket_1_afad.jsonl"
+)
+BLUEPRINT_FILE = ROOT / "blueprints" / "pilot_paket_1_afad.jsonl"
 
 FIXTURE_IDS = (
     "earthquake.afad.list_recent.v1",
@@ -27,11 +30,11 @@ FIXTURE_IDS = (
 )
 
 BLUEPRINT_CASES = (
-    ("earthquake_list_recent.json", "tool_call", ()),
-    ("earthquake_get_event_details.json", "tool_call", ()),
-    ("earthquake_list_recent_missing_limit.json", "request_information", ("limit",)),
+    ("bp_earthquake_list_recent_001", "tool_call", ()),
+    ("bp_earthquake_get_event_details_001", "tool_call", ()),
+    ("bp_earthquake_list_recent_missing_limit_001", "request_information", ("limit",)),
     (
-        "earthquake_get_event_details_missing_event_id.json",
+        "bp_earthquake_get_event_details_missing_event_id_001",
         "request_information",
         ("event_id",),
     ),
@@ -42,24 +45,31 @@ def load_registry() -> ToolRegistry:
     return ToolRegistry.load(PROPOSAL_REGISTRY)
 
 
+def load_blueprints() -> dict[str, dict]:
+    records = [
+        json.loads(line)
+        for line in BLUEPRINT_FILE.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    return {record["id"]: record for record in records}
+
+
 def build_engine(registry: ToolRegistry) -> ExecutionEngine:
     adapter = MockAdapter.from_registry(registry, list(FIXTURE_IDS))
     return ExecutionEngine(registry, ExecutionRouter([adapter]))
 
 
 @pytest.mark.parametrize(
-    ("filename", "expected_behavior", "missing_parameters"),
+    ("blueprint_id", "expected_behavior", "missing_parameters"),
     BLUEPRINT_CASES,
 )
 def test_afad_blueprints_are_valid_and_follow_expected_behavior(
-    filename: str,
+    blueprint_id: str,
     expected_behavior: str,
     missing_parameters: tuple[str, ...],
 ) -> None:
     registry = load_registry()
-    blueprint = json.loads(
-        (ROOT / "blueprints" / filename).read_text(encoding="utf-8")
-    )
+    blueprint = load_blueprints()[blueprint_id]
 
     report = RuleBasedValidator(registry=registry).validate_record(
         "blueprint",
