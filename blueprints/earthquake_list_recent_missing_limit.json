@@ -1,0 +1,54 @@
+{
+  "schema_version": "0.1.0",
+  "tool_registry_version": "0.1.0",
+  "id": "bp_earthquake_list_recent_missing_limit_001",
+  "user_goal": "Son 24 saatte meydana gelen, büyüklüğü 3,0 veya daha yüksek depremleri öğrenmek; gösterilecek kayıt sayısını belirtmemek",
+  "available_tools": [
+    "earthquake_list_recent"
+  ],
+  "tool_required": true,
+  "provided_parameters": {
+    "hours": 24,
+    "min_magnitude": 3
+  },
+  "missing_parameters": [
+    "limit"
+  ],
+  "expected_behavior": "request_information",
+  "expected_tool_calls": [],
+  "execution_order": "not_applicable",
+  "expected_tool_result": null,
+  "expected_final_behavior": "Kullanıcıya en fazla kaç deprem görmek istediğini sormak ve yanıt alınana kadar aracı çağırmamak.",
+  "must_avoid": [
+    "Kullanıcıya sormadan gösterilecek deprem sayısını belirlemek.",
+    "Kaç kayıt gösterileceği belirtilmeden aracı çağırmak."
+  ],
+  "metadata": {
+    "main_category": "missing_parameter",
+    "secondary_tags": [
+      "clarification"
+    ],
+    "difficulty": "easy",
+    "source_type": "original_turkish",
+    "domain": "earthquake",
+    "intended_execution_type": "not_applicable",
+    "provenance": {
+      "source_dataset": "afad_contract_synthetic_v1",
+      "source_example_id": "earthquake.afad.list_recent.missing_limit.v1",
+      "upstream_source": "https://deprem.afad.gov.tr/event-service",
+      "source_split": null,
+      "transformation_history": [
+        {
+          "action": "created_missing_parameter_scenario",
+          "timestamp": "2026-08-11T09:00:00Z",
+          "actor_id": null,
+          "details": "Kayıt sayısı eksik olduğunda kullanıcıdan bu bilgiyi isteme davranışını sınamak amacıyla oluşturuldu."
+        }
+      ],
+      "generator_model": null,
+      "generator_version": null,
+      "license": null,
+      "license_chain": []
+    }
+  }
+}

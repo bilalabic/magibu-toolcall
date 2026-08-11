@@ -1,0 +1,51 @@
+{
+  "schema_version": "0.1.0",
+  "tool_registry_version": "0.1.0",
+  "id": "bp_earthquake_get_event_details_missing_event_id_001",
+  "user_goal": "Kimliği belirtilmeyen bir depremin nerede ve ne zaman meydana geldiğini, büyüklüğünü ve derinliğini öğrenmek",
+  "available_tools": [
+    "earthquake_get_event_details"
+  ],
+  "tool_required": true,
+  "provided_parameters": {},
+  "missing_parameters": [
+    "event_id"
+  ],
+  "expected_behavior": "request_information",
+  "expected_tool_calls": [],
+  "execution_order": "not_applicable",
+  "expected_tool_result": null,
+  "expected_final_behavior": "Kullanıcıya hangi deprem hakkında bilgi istediğini sormak ve olay kimliği verilene kadar aracı çağırmamak.",
+  "must_avoid": [
+    "Belirli bir depremi kullanıcı adına seçmek.",
+    "Hangi depremin kastedildiği belli değilken aracı çağırmak."
+  ],
+  "metadata": {
+    "main_category": "missing_parameter",
+    "secondary_tags": [
+      "clarification"
+    ],
+    "difficulty": "easy",
+    "source_type": "original_turkish",
+    "domain": "earthquake",
+    "intended_execution_type": "not_applicable",
+    "provenance": {
+      "source_dataset": "afad_contract_synthetic_v1",
+      "source_example_id": "earthquake.afad.event_details.missing_event_id.v1",
+      "upstream_source": "https://deprem.afad.gov.tr/event-service",
+      "source_split": null,
+      "transformation_history": [
+        {
+          "action": "created_missing_parameter_scenario",
+          "timestamp": "2026-08-11T09:00:00Z",
+          "actor_id": null,
+          "details": "Olay kimliği eksik olduğunda kullanıcıdan gerekli bilgiyi isteme davranışını sınamak amacıyla oluşturuldu."
+        }
+      ],
+      "generator_model": null,
+      "generator_version": null,
+      "license": null,
+      "license_chain": []
+    }
+  }
+}

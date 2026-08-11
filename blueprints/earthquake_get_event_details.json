@@ -1,0 +1,71 @@
+{
+  "schema_version": "0.1.0",
+  "tool_registry_version": "0.1.0",
+  "id": "bp_earthquake_get_event_details_001",
+  "user_goal": "evt-000001 kimlikli depremin nerede ve ne zaman meydana geldiğini, büyüklüğünü ve derinliğini öğrenmek",
+  "available_tools": [
+    "earthquake_get_event_details"
+  ],
+  "tool_required": true,
+  "provided_parameters": {
+    "event_id": "evt-000001"
+  },
+  "missing_parameters": [],
+  "expected_behavior": "tool_call",
+  "expected_tool_calls": [
+    {
+      "function": {
+        "name": "earthquake_get_event_details",
+        "arguments": {
+          "event_id": "evt-000001"
+        }
+      }
+    }
+  ],
+  "execution_order": "not_applicable",
+  "expected_tool_result": {
+    "source": "AFAD",
+    "retrieved_at": "2026-08-11T09:00:00Z",
+    "event": {
+      "event_id": "evt-000001",
+      "occurred_at": "2026-08-11T08:15:00Z",
+      "latitude": 38.0,
+      "longitude": 25.5,
+      "depth_km": 7.2,
+      "magnitude": 3.4,
+      "magnitude_type": "ML",
+      "location": "Ege Denizi"
+    }
+  },
+  "expected_final_behavior": "Depremin zamanını, konumunu, büyüklüğünü ve derinliğini yalnızca araç çıktısındaki bilgilere dayanarak açıklamak; sonucu bir acil durum değerlendirmesi olarak sunmamak.",
+  "must_avoid": [
+    "Araç çıktısında yer almayan hasar, can kaybı veya artçı deprem tahminleri eklemek.",
+    "Olay kimliğini değiştirip başka bir depreme ait bilgi vermek."
+  ],
+  "metadata": {
+    "main_category": "single_tool",
+    "secondary_tags": [],
+    "difficulty": "easy",
+    "source_type": "original_turkish",
+    "domain": "earthquake",
+    "intended_execution_type": "mock",
+    "provenance": {
+      "source_dataset": "afad_contract_synthetic_v1",
+      "source_example_id": "earthquake.afad.event_details.v1",
+      "upstream_source": "https://deprem.afad.gov.tr/event-service",
+      "source_split": null,
+      "transformation_history": [
+        {
+          "action": "normalized_to_candidate_contract",
+          "timestamp": "2026-08-11T09:00:00Z",
+          "actor_id": null,
+          "details": "Liste sonucundaki depremle aynı olay kimliğini kullanan ve her çalıştırmada aynı sonucu veren bir örnek oluşturuldu."
+        }
+      ],
+      "generator_model": null,
+      "generator_version": null,
+      "license": null,
+      "license_chain": []
+    }
+  }
+}

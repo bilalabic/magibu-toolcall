@@ -1,0 +1,22 @@
+{
+  "fixture_id": "earthquake.afad.event_details.v1",
+  "function_name": "earthquake_get_event_details",
+  "arguments": {
+    "event_id": "evt-000001"
+  },
+  "result": {
+    "source": "AFAD",
+    "retrieved_at": "2026-08-11T09:00:00Z",
+    "event": {
+      "event_id": "evt-000001",
+      "occurred_at": "2026-08-11T08:15:00Z",
+      "latitude": 38.0,
+      "longitude": 25.5,
+      "depth_km": 7.2,
+      "magnitude": 3.4,
+      "magnitude_type": "ML",
+      "location": "Ege Denizi"
+    }
+  },
+  "provenance": "fixture_version=v1; created_at=2026-08-11T12:00:00+03:00; contract_source=https://deprem.afad.gov.tr/event-service; data_kind=synthetic; linked_fixture=earthquake.afad.list_recent.v1; live_api_status=HOLD; redistribution_status=not_applicable_to_synthetic_values; note=Bu içerik gerçek bir deprem kaydından alınmamıştır. Liste sonucuyla bağlantısı korunarak yalnızca şema ile çalışma akışının tutarlı biçimde sınanması için oluşturulmuştur."
+}
