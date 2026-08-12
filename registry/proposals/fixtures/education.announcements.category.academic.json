@@ -1,0 +1,28 @@
+{
+  "fixture_id": "education.announcements.category.academic",
+  "function_name": "education_list_announcements",
+  "arguments": {
+    "category": "academic",
+    "limit": 10
+  },
+  "result": {
+    "announcements": [
+      {
+        "announcement_id": "ann_academic_001",
+        "title": "2026-2027 Güz Dönemi Ders Kayıtları",
+        "category": "academic",
+        "published_at": "2026-08-04T09:00:00+03:00",
+        "summary": "Güz dönemi ders kayıtları 7-11 Eylül 2026 tarihleri arasında öğrenci bilgi sistemi üzerinden yapılacaktır."
+      },
+      {
+        "announcement_id": "ann_academic_002",
+        "title": "Yan Dal Programı Başvuruları",
+        "category": "academic",
+        "published_at": "2026-08-18T14:30:00+03:00",
+        "summary": "Yan dal programı başvuruları 24 Ağustos 2026 tarihine kadar fakülte öğrenci işleri birimine teslim edilebilir."
+      }
+    ],
+    "count": 2
+  },
+  "provenance": "Tamamen sentetik, sürümlenmiş ve kişisel veri içermeyen üniversite simülatörü fixture'ı."
+}
