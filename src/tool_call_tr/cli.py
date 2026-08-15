@@ -450,7 +450,17 @@ def _add_support_commands(subparsers: argparse._SubParsersAction) -> None:
     api.add_argument("--arguments", required=True, help="JSON object containing function arguments.")
     api.add_argument("--call-id", default="call_001")
     api.add_argument("--timeout-ms", type=int)
+    api.add_argument(
+        "--registry",
+        type=Path,
+        help="Registry JSONL file or fragment directory; defaults to the canonical registry.",
+    )
     api.add_argument("--confirm-live", action="store_true")
+    api.add_argument(
+        "--allow-candidate",
+        action="store_true",
+        help="Additionally allow a candidate-lifecycle tool; --confirm-live is still required.",
+    )
     api.set_defaults(handler=_cmd_run_api)
     call_id = tool_commands.add_parser("generate-call-id", help="Generate a deterministic tool-call ID.")
     call_id.add_argument("number", type=int)
@@ -639,9 +649,9 @@ def _cmd_run_api(args: argparse.Namespace) -> int:
         arguments = json.loads(args.arguments)
         if not isinstance(arguments, dict):
             raise ValueError("arguments must be a JSON object")
-        registry = ToolRegistry.load()
+        registry = ToolRegistry.load(args.registry)
         tool = registry.by_function_name(args.function_name)
-        if tool["lifecycle"] != "approved":
+        if tool["lifecycle"] != "approved" and not (args.allow_candidate and tool["lifecycle"] == "candidate"):
             raise ValueError("live execution requires an approved registry tool")
         engine = ExecutionEngine(registry, ExecutionRouter([HttpJsonAdapter(registry)]))
         result = engine.execute(ExecutionRequest(

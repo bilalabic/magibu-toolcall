@@ -106,3 +106,10 @@ jobs:
                 done
             fi
           done
+
+      - name: Validate source snapshots
+        shell: bash
+        run: |
+          if [[ -d data/snapshots ]]; then
+            python -m tool_call_tr.snapshots data/snapshots
+          fi

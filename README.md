@@ -64,6 +64,9 @@ modüller [mimari belgesinde](docs/architecture.md), uygulanabilir komutlar ise
 | Canonical registry | 3 adet `demo` tool |
 | Proposal registry | `registry/proposals/<domain>_<source>.jsonl` katkı parçaları |
 | Blueprint katkıları | `blueprints/<domain>_<source>.jsonl`, satır başına bir kayıt |
+| Yerel executor'lar | `src/tool_call_tr/execution/local/<domain>_<source>.py` |
+| Simülasyon araçları | `src/tool_call_tr/execution/simulation/<domain>_<source>.py` |
+| Kaynak snapshot'ları | `data/snapshots/<snapshot_version>/`, zorunlu `provenance.json` |
 | Accepted dataset | Henüz yok |
 | Onaylı canlı API tool'u | Henüz yok |
 

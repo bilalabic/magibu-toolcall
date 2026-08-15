@@ -36,7 +36,9 @@ Sistemin neden bu şekilde tasarlandığını açıklar.
 
 - [Architecture](architecture.md): modüller, veri akışı ve güven sınırları.
 - [Execution environments](execution_environments.md): local, mock,
-  fully-simulated, real API ve sandbox ayrımı.
+  fully-simulated, real API ve sandbox ayrımı; her mod için katkının hangi
+  dosyaya yazılacağı, hangi arayüzü uygulayacağı ve hangi komutla doğrulanacağı;
+  sürümlenmiş kaynak snapshot sözleşmesi.
 - [Scenario blueprints](scenario_blueprints.md): scenario oracle'ı, kategori
   önceliği ve authoring kuralları.
 - [Validation](validation.md): deterministik pipeline, diagnostic kodları, model
