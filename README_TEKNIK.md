@@ -142,6 +142,9 @@ $BlueprintFile = "blueprints\<domain>_<source>.jsonl"
 .\.venv\Scripts\magibu-toolcall.exe blueprint validate $BlueprintFile --registry $ProposalRegistry
 ```
 
+`blueprint validate` tek bir dosya yerine dizin de alır; `blueprints` verildiğinde
+depodaki bütün blueprint parçaları birlikte doğrulanır.
+
 Canonical registry ve tüm test paketi birlikte çalıştırılabilir:
 
 ```powershell
