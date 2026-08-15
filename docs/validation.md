@@ -62,6 +62,11 @@ validated against their manifest-bound proposal registry during `dataset
 generate` and again by `dataset quality --registry ...`. Committed accepted
 records must resolve against the canonical registry used by CI.
 
+Versioned source snapshots are checked by a separate deterministic validator,
+`python -m tool_call_tr.snapshots`, which re-computes every declared `sha256`.
+Its directory contract, fields and `SNAPSHOT_*` codes are defined in
+[execution environments](execution_environments.md).
+
 ## Model and human gates
 
 Syntactic success is not semantic success. Natural Turkish, tool necessity,

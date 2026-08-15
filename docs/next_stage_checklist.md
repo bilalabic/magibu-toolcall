@@ -6,8 +6,11 @@ Complete these gates before starting and then scaling the next dataset pilot:
    access, license/terms check date, freshness policy, and fixture plan for each.
 2. Replace repetitive synthetic fixtures with versioned, provenance-backed
    snapshots where redistribution is permitted.
-3. Add or verify the execution implementation and focused tests for every tool;
-   do not mark `sandbox` or `real_api` as supported without a runnable adapter.
+3. Add or verify the execution implementation and focused tests for every tool.
+   `sandbox` still has no runnable adapter. `real_api` runs on the generic
+   HTTPS GET adapter, so a tool is marked supported only after its
+   `execution.http` contract, allowlisted host, credential environment
+   variables and error/timeout tests are reviewed.
 4. Review blueprint coverage across all five categories, both active source
    types, domains, difficulties, missing-parameter cases, and parallel/sequential
    multi-tool behavior.

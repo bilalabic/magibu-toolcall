@@ -257,7 +257,8 @@ Validate before opening the pull request:
 Error codes: `SNAPSHOT_SCHEMA_INVALID` (record does not match the schema, or a
 `raw_file` is repeated), `SNAPSHOT_FILE_MISSING`, `SNAPSHOT_HASH_MISMATCH` (the
 raw file changed, or the wrong hash was pasted), `SNAPSHOT_PATH_INVALID` (a path
-escapes the snapshot directory), `SNAPSHOT_UNREADABLE`.
+escapes the snapshot directory), `SNAPSHOT_UNREADABLE`, and
+`SNAPSHOT_SCHEMA_UNAVAILABLE` (the schema file itself cannot be read).
 
 The conversion from the raw file to the data file is committed as
 `scripts/snapshots/<domain>_<source>.py`. It must be deterministic and offline
