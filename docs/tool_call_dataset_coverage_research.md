@@ -37,6 +37,8 @@ The current repository already provides:
 - real API, local executable, sandbox, mock, simulation, and no-call contracts;
   the sandbox contract does not yet have a runnable adapter;
 - strict tool input/output schemas, registry versions, lifecycle, fixture, and risk fields;
+- versioned local snapshots of officially published sources, with a provenance
+  schema and per-raw-file `sha256` verification enforced on every pull request;
 - GitHub PR review history, language/semantic/execution validation, duplicate checks, and benchmark-isolation metadata.
 
 The current infrastructure provides the required core contracts and supports
@@ -57,7 +59,7 @@ snapshot.
 | Initial state, state delta, final-state assertions | Required for stateful tools and outcome-based evaluation | Blueprint + evidence |
 | Per-call execution evidence | A record-level `execution.status` cannot explain which call failed or why | Evidence |
 | Structured tool results and errors | Preserves HTTP/MCP/local error semantics instead of flattening everything to text | Evidence + release projection |
-| Source/spec/fixture snapshot provenance | Makes live and recorded data auditable and redistributable | Registry + evidence |
+| Source/spec/fixture snapshot provenance | Makes live and recorded data auditable and redistributable; local source snapshots are already covered by the `data/snapshots/` provenance contract, live/replay fixture provenance is still open | Registry + evidence |
 | Safety and effect vector | A single risk label cannot express consent, permissions, reversibility, PII, cost, and external impact | Registry + blueprint |
 | Family, cluster, and leakage identifiers | Split must occur after clustering, not by random row | Audit metadata |
 | Runtime identity and determinism | Python, parser, locale, clock, seed, and dependency drift can change results | Evidence |
@@ -383,7 +385,7 @@ Only documented public interfaces are called APIs. Private endpoints discovered 
 | Priority | Official source | Candidate tools | Preferred mode | Qualification note |
 |---|---|---|---|---|
 | 1 | [TCMB EVDS](https://evds2.tcmb.gov.tr/index.php?/evds/userDocs=) | economic series search/read, official exchange rates | live read-only + replay | Strong documentation; API key required. [Terms](https://evds2.tcmb.gov.tr/help/videos/EVDS_Disclaimer.pdf) require attribution, prohibit charging specifically for EVDS data in a commercial product, and disclaim investment advice |
-| 2 | [AFAD Earthquake Web Service](https://deprem.afad.gov.tr/event-service) | list/filter/get earthquakes | live read-only + replay | Keyless JSON; attribution required; confirm bulk redistribution terms before release |
+| 2 | [AFAD Earthquake Web Service](https://deprem.afad.gov.tr/event-service) | list/filter/get earthquakes | live read-only + replay | Keyless JSON; attribution required; confirm bulk redistribution terms before release. The 2026-08-11 revalidation could not confirm the endpoints and response contract, so live access is on hold and the AFAD tools ship as `mock`; see [AFAD revalidation](afad_endpoint_revalidation.md) |
 | 3 | [TR Dizin API](https://development.trdizin.gov.tr/) | publication/journal/author search | live read-only + replay | Documented JSON API. [Published terms](https://trdizin.gov.tr/kullanim-sartlari/) do not establish a clear content license; verify redistribution, minimize author/ORCID data, and remove contact/address fields |
 | 4 | [Official holiday law](https://www.mevzuat.gov.tr/mevzuatmetin/1.5.2429.pdf) + [Diyanet religious days](https://vakithesaplama.diyanet.gov.tr/dini_gunler.php) | list holidays, business-day checks | versioned deterministic local tool | Keep legal source/version and distinguish public holiday from administrative leave |
 | 5 | [Ministry of Health Open Data](https://acikveri.saglik.gov.tr/) | dataset catalog and individually approved de-identified datasets | versioned local snapshot | [Attribution license](https://acikveri.saglik.gov.tr/app/doc/KullanimKosullari.pdf); review every dataset for re-identification and third-party rights, including medical images |

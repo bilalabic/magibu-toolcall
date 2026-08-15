@@ -52,5 +52,8 @@ declared mode:
   variable names, normalization behavior, and error tests;
 - `sandbox`: adapter and isolation tests, because no runnable sandbox exists yet.
 
+The file layout, interface, error codes and validation command for each mode are
+defined in [execution environments](execution_environments.md).
+
 Do not add secrets, real personal data, undocumented endpoints, or a live
 side-effecting operation to a proposal.

@@ -1,5 +1,10 @@
 # Dependency decisions
 
+`pyproject.toml` carries the machine-readable dependency lists; this document
+carries the reason for each entry and is where a proposed dependency is argued
+before the version pin changes. A dependency that is not justified here has no
+recorded decision behind it.
+
 - Python `>=3.11`: supports `StrEnum`, modern typing, and a maintainable
   standard-library-first implementation.
 - `jsonschema>=4.21,<5`: supplies Draft 2020-12,

@@ -13,6 +13,10 @@
   not a production tool catalog. A fixture may be simulated data or an
   approved frozen snapshot; its provenance must say which.
 - `sandbox` exists in the execution contract but has no runnable adapter.
+- The versioned source-snapshot contract, its JSON Schema and the
+  `python -m tool_call_tr.snapshots` check exist, but no snapshot has been
+  committed yet; `data/snapshots/` appears with the first contribution that
+  needs it.
 - The generic live adapter supports only approved, read-only HTTPS GET JSON
   contracts. It does not support POST, payments, email, or other side effects.
 - OpenAI judging and semantic similarity are automated quality evidence, not
