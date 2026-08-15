@@ -116,8 +116,12 @@ komutlara `--registry registry\proposals` eklenir. Modların
 sözleşmeleri, status değerleri ve fallback kuralları
 [execution ortamları belgesinde](docs/execution_environments.md) tutulur. CLI
 hiçbir execution modunu sessizce başka moda düşürmez. `tool run-api` yalnız
-canonical registry'deki `approved` read-only tool için ve `--confirm-live` ile
-çalışır; bugün böyle bir kayıt yoktur.
+read-only tool için ve `--confirm-live` ile çalışır; varsayılan olarak canonical
+registry'deki `approved` kayıtlarla sınırlıdır. `--registry` bir JSONL dosyası
+veya parça dizini alır; `--allow-candidate` kapıyı yalnız `candidate` yaşam
+döngüsüne açar, `demo` ve `deprecated` kapalı kalır ve `--confirm-live` yine
+gerekir. Bugün ne `approved` bir kayıt ne de `real_api` sözleşmesi taşıyan bir
+`candidate` kayıt vardır.
 
 ## 5. Blueprint hazırlama
 
@@ -133,7 +137,7 @@ Proposal ve production blueprint dosyaları eklendikten sonra:
 
 ```powershell
 $ProposalRegistry = "registry\proposals"
-$BlueprintFile = "blueprints\contribution.jsonl"
+$BlueprintFile = "blueprints\<domain>_<source>.jsonl"
 .\.venv\Scripts\magibu-toolcall.exe registry validate $ProposalRegistry
 .\.venv\Scripts\magibu-toolcall.exe blueprint validate $BlueprintFile --registry $ProposalRegistry
 ```
@@ -236,7 +240,7 @@ Normal başlangıç komutu `dataset generate`’dır. Ayrı `batch plan/run` kom
 yalnız önceden planlanmış işi devam ettirmek veya özel shard yönetmek içindir.
 
 ```powershell
-$BlueprintFile = "blueprints\production_batch.jsonl"
+$BlueprintFile = "blueprints\<domain>_<source>.jsonl"
 $ProposalRegistry = "registry\proposals"
 $JobId = "dataset-batch-001"
 .\.venv\Scripts\magibu-toolcall.exe dataset generate $BlueprintFile `
@@ -331,10 +335,14 @@ Benchmark yaşam döngüsü için [ayrı belgeye](data/benchmark/README.md) bak�
 ## 12. Dizinler ve Git politikası
 
 ```text
-blueprints/                         İzlenen blueprint ve regresyonlar
+blueprints/<domain>_<source>.jsonl  İzlenen blueprint katkısı ve regresyonlar
 registry/                           Canonical registry ve fixture’lar
 registry/proposals/<domain>_<source>.jsonl  Candidate tool parçası
 registry/proposals/fixtures/        Proposal fixture’ları
+src/tool_call_tr/execution/local/   Yerel executor modülleri
+src/tool_call_tr/execution/simulation/  Simülasyon tool modülleri
+data/snapshots/                     Sürümlenmiş kaynak snapshot’ları (izlenir)
+scripts/snapshots/                  Snapshot dönüştürme scriptleri
 data/dataset/staging/               Yerel üretilmiş adaylar
 data/dataset/needs_revision/        PR’a seçilerek eklenen review adayları
 data/dataset/accepted/dataset.jsonl Canonical accepted dataset
@@ -343,9 +351,13 @@ runs/dataset/                       Yerel manifest/checkpoint/provider kanıtlar
 schemas/                            JSON Schema sözleşmeleri
 ```
 
-`.gitignore` ham, staging, run ve genel üretilmiş çıktıları dışarıda bırakır.
-Yalnız `<job_id>.pr.review.jsonl`, `<job_id>.pr.quality.json` ve canonical
-`accepted/dataset.jsonl` açıkça review edilebilir yollar olarak izlenebilir.
+`.gitignore` dataset/benchmark ham girdilerini, staging, run ve genel üretilmiş
+çıktıları dışarıda bırakır. Yalnız `<job_id>.pr.review.jsonl`,
+`<job_id>.pr.quality.json` ve canonical `accepted/dataset.jsonl` açıkça review
+edilebilir yollar olarak izlenebilir. `data/snapshots/` bu kuralın dışındadır:
+snapshot'ın ham kaynak dosyaları denetim kanıtı olduğu için bilerek commit
+edilir; sözleşme
+[execution ortamları belgesindedir](docs/execution_environments.md).
 
 ## 13. Son doğrulama
 
