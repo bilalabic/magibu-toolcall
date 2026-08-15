@@ -1,0 +1,31 @@
+{
+  "fixture_id": "education.academic_calendar.registration.2026-09",
+  "function_name": "education_get_academic_calendar",
+  "arguments": {
+    "start_date": "2026-09-01",
+    "end_date": "2026-09-30",
+    "event_type": "registration"
+  },
+  "result": {
+    "events": [
+      {
+        "event_id": "cal_registration_2026_fall",
+        "title": "2026-2027 Güz Dönemi Ders Kayıtları",
+        "event_type": "registration",
+        "start_date": "2026-09-07",
+        "end_date": "2026-09-11",
+        "description": "Güz dönemi ders kayıtları öğrenci bilgi sistemi üzerinden yapılacaktır."
+      },
+      {
+        "event_id": "cal_add_drop_2026_fall",
+        "title": "Güz Dönemi Ders Ekleme ve Bırakma",
+        "event_type": "registration",
+        "start_date": "2026-09-14",
+        "end_date": "2026-09-18",
+        "description": "Öğrenciler bu tarihler arasında ders ekleme ve bırakma işlemlerini gerçekleştirebilir."
+      }
+    ],
+    "count": 2
+  },
+  "provenance": "Tamamen sentetik, sürümlenmiş ve kişisel veri içermeyen üniversite akademik takvim fixture'ı."
+}

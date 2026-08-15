@@ -1,0 +1,32 @@
+{
+  "fixture_id": "education.meal_menu.main.2026-08-18",
+  "function_name": "education_get_meal_menu",
+  "arguments": {
+    "campus": "main",
+    "date": "2026-08-18"
+  },
+  "result": {
+    "campus": "main",
+    "date": "2026-08-18",
+    "menu": [
+      {
+        "course": "soup",
+        "name": "Tarhana Çorbası"
+      },
+      {
+        "course": "main",
+        "name": "Etli Nohut"
+      },
+      {
+        "course": "side",
+        "name": "Bulgur Pilavı"
+      },
+      {
+        "course": "dessert",
+        "name": "Sütlaç"
+      }
+    ],
+    "vegetarian_available": false
+  },
+  "provenance": "Tamamen sentetik, sürümlenmiş ve kişisel veri içermeyen üniversite yemek menüsü fixture'ı."
+}
