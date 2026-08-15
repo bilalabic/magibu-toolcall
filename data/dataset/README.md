@@ -65,10 +65,16 @@ göstermez. İzin veriliyorsa gerçek API veya resmî kaynaktan alınmış bir s
 - kaynak, alınma zamanı, lisans ve sürüm bilgisi eklenerek;
 - checksum ile dondurularak
 
-fixture hâline getirilebilir. Tamamen sentetik fixture da kullanılabilir. Köken
-bilgisi provenance içinde `api_snapshot`, `official_snapshot` veya `synthetic`
-olarak belirtilir. Yapılandırılmış fixture-origin alanının daha ayrıntılı hâli
-henüz gelecek geliştirme konusudur.
+fixture hâline getirilebilir. Tamamen sentetik fixture da kullanılabilir. Kökenin
+kaydı bugün serbest metindir: fixture'ın kendi `provenance` alanında ve
+gerektiğinde kaydın `provenance.upstream_source` bilgisinde, verinin gerçek bir
+yayından mı yoksa sentetik üretimden mi geldiği açıkça yazılır. Bunun için
+şemayla zorlanan bir değer listesi henüz yoktur; yapılandırılmış bir
+fixture-origin alanı gelecek geliştirme konusudur.
+
+Sürümlenmiş kaynak snapshot'ları bunun istisnasıdır: onların provenance kaydı
+[`schemas/snapshot_provenance.schema.json`](../../schemas/snapshot_provenance.schema.json)
+ile doğrulanır ve ham dosya başına `sha256` zorunludur.
 
 `sentetik`, `mock` ve `fixture` gibi operasyon etiketleri kullanıcı/asistan
 metnine yazılmaz. Doğal metin doğrulayıcıları bu sızıntıları reddeder. Yalnızca
