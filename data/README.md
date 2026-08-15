@@ -8,7 +8,7 @@ Bu dizin üç ayrı alanı barındırır:
 | --- | --- | --- | --- |
 | [`dataset/`](dataset/README.md) | `tctr_*` | Eğitim veya ince ayar kayıtları | Aktif |
 | [`benchmark/`](benchmark/README.md) | `bench_*` | Eğitim verisine girmeyen değerlendirme gold kayıtları | Üretim askıda |
-| `snapshots/` | `<snapshot_version>` | `local_executable` tool'ların okuduğu sürümlenmiş kaynak snapshot'ları | Aktif |
+| `snapshots/` | Kayıt kimliği yok | `local_executable` tool'ların okuduğu sürümlenmiş kaynak snapshot'ları | Sözleşme hazır; henüz commit edilmiş snapshot yok |
 
 `snapshots/` ilk ikisinden farklı bir şeydir: dataset kaydı değil, tool'ların
 çalışma zamanında okuduğu sabitlenmiş kaynak veridir. Her snapshot kendi
@@ -17,7 +17,12 @@ dizininde `provenance.json`, ham kaynak dosyalarının bulunduğu `raw/` ve
 denetlenebilirliği onlara dayanır. Provenance kaydı
 [`schemas/snapshot_provenance.schema.json`](../schemas/snapshot_provenance.schema.json)
 ile doğrulanır ve ham dosya başına `sha256` zorunludur, yani beyan edilen bayt
-ile commit edilen bayt her PR'da karşılaştırılır.
+ile commit edilen bayt her PR'da karşılaştırılır. Dizin adı açıklayıcıdır ve iç
+içe olabilir; doğrulama `data/snapshots/` altındaki her `provenance.json`
+dosyasını bulur.
+
+Snapshot eklendikten sonra çalıştırılır; verilen yol yoksa komut
+`SNAPSHOT_UNREADABLE` ile durur:
 
 ```powershell
 .\.venv\Scripts\python.exe -m tool_call_tr.snapshots data\snapshots

@@ -15,12 +15,18 @@ conversation rules that JSON Schema cannot express clearly.
 - `ids` and `versioning`: stable identifier and semantic-version rules.
 - `validation`: parse, schema, registry, tool-call, message-flow, execution,
   benchmark, and review checks with stable diagnostic codes.
-- `execution`: adapter protocol, normalized results, mock/local/stateful examples,
-  fixture loading, reset, and explicit mode transitions.
+- `execution`: adapter protocol, normalized results, module registries that
+  discover `local_executable` functions under `execution/local/` and
+  `fully_simulated` tools under `execution/simulation/`, registry fixture
+  loading, the read-only HTTPS GET JSON adapter, reset, and explicit mode
+  transitions.
 - `blueprints`: blueprint validation and a deliberately narrow candidate
   conversion hook.
 - `provenance` and `deduplication`: provenance comparison, deterministic hashes,
   schema fingerprints, duplicate reports, and semantic-similarity protocol.
+- `snapshots`: provenance validation and byte-level `sha256` verification for
+  versioned local snapshots of officially published sources, with its own
+  `python -m tool_call_tr.snapshots` entry point.
 - `generation`: provider role protocols, mock provider, final-response request
   models, grounding/conflict hooks, configuration-gated DeepSeek generation,
   and OpenAI strict structured-output dataset judging.
