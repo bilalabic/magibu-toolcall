@@ -14,6 +14,8 @@ from tool_call_tr.execution.core import (
     ExecutionTimeout,
     ExecutionType,
 )
+from tool_call_tr.execution.local import load_functions
+from tool_call_tr.execution.simulation import SimulationTool, load_tools
 from tool_call_tr.registry import ToolRegistry
 
 
@@ -38,10 +40,7 @@ class LocalExecutableAdapter:
     execution_type = ExecutionType.LOCAL_EXECUTABLE
 
     def __init__(self) -> None:
-        self._functions: dict[str, Callable[[dict[str, Any]], Any]] = {
-            "utility_add": lambda args: {"result": args["left"] + args["right"]},
-            "utility_multiply": lambda args: {"result": args["left"] * args["right"]},
-        }
+        self._functions: dict[str, Callable[[dict[str, Any]], Any]] = load_functions()
 
     def execute(self, request: ExecutionRequest) -> ExecutionResult:
         if request.execution_type != self.execution_type:
@@ -85,20 +84,23 @@ class StatefulSimulationAdapter:
     execution_type = ExecutionType.FULLY_SIMULATED
 
     def __init__(self) -> None:
-        self._state: dict[str, Any] = {}
+        self._tools = load_tools()
+        self._by_function: dict[str, SimulationTool] = {
+            function_name: tool for tool in self._tools for function_name in tool.function_names
+        }
+        self._states: dict[SimulationTool, Any] = {}
+        self.reset()
 
     def execute(self, request: ExecutionRequest) -> ExecutionResult:
         if request.execution_type != self.execution_type:
             raise ValueError("request execution type does not match simulation adapter")
-        if request.function_name == "simulation_put":
-            self._state[request.arguments["key"]] = request.arguments["value"]
-            return _normalized_call(request, lambda _: {"stored": True})
-        if request.function_name == "simulation_get":
-            return _normalized_call(request, lambda args: {"value": self._state.get(args["key"])})
-        return ExecutionResult(request.call_id, request.function_name, self.execution_type, ExecutionStatus.FAILED, error="simulation_function_not_found")
+        tool = self._by_function.get(request.function_name)
+        if tool is None:
+            return ExecutionResult(request.call_id, request.function_name, self.execution_type, ExecutionStatus.FAILED, error="simulation_function_not_found")
+        return _normalized_call(request, lambda args: tool.execute(self._states[tool], request.function_name, args))
 
     def reset(self) -> None:
-        self._state.clear()
+        self._states = {tool: tool.initial_state() for tool in self._tools}
 
 
 class ControlledStatusAdapter:
