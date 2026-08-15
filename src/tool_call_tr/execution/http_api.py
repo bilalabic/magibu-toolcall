@@ -69,8 +69,11 @@ class HttpJsonAdapter:
         if parsed.hostname not in set(contract["allowed_hosts"]):
             raise ValueError("http_host_not_allowed")
         mapping = contract["query_map"]
-        if set(arguments) != set(mapping):
-            raise ValueError("http_arguments_not_fully_mapped")
+        # Required arguments are already enforced by the registry parameter schema in
+        # ExecutionEngine.execute; here only declared arguments may reach the query string,
+        # and omitted (optional) ones are simply left out.
+        if not set(arguments) <= set(mapping):
+            raise ValueError("http_argument_not_mapped")
         query = list(parse_qsl(parsed.query, keep_blank_values=True))
         query.extend((mapping[name], _query_value(arguments[name])) for name in sorted(arguments))
         return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), ""))
