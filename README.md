@@ -63,9 +63,9 @@ modüller [mimari belgesinde](docs/architecture.md), uygulanabilir komutlar ise
 | Varlık | Mevcut durum |
 | --- | --- |
 | Canonical registry | 3 adet `demo` tool |
-| Proposal registry | 3 katkı parçasında 6 `candidate` tool; hepsi `mock` execution (`registry/proposals/<domain>_<source>.jsonl`) |
-| Proposal fixture'ları | 8 adet `registry/proposals/fixtures/<fixture_id>.json` |
-| Blueprint katkıları | 3 dosyada 8 kayıt (`blueprints/<domain>_<source>.jsonl`, satır başına bir kayıt) |
+| Proposal registry | İncelemedeki `candidate` tool'lar; `registry/proposals/<domain>_<source>.jsonl` |
+| Proposal fixture'ları | `registry/proposals/fixtures/<fixture_id>.json` |
+| Blueprint katkıları | `blueprints/<domain>_<source>.jsonl`, satır başına bir kayıt |
 | Yerel executor'lar | Yalnız demo modülü; katkılar `src/tool_call_tr/execution/local/<domain>_<source>.py` |
 | Simülasyon araçları | Yalnız demo modülü; katkılar `src/tool_call_tr/execution/simulation/<domain>_<source>.py` |
 | Kaynak snapshot'ları | Henüz yok; sözleşme hazır (`data/snapshots/` altında zorunlu `provenance.json`) |
