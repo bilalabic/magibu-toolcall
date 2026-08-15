@@ -268,3 +268,74 @@ Raw published files are committed under `raw/` because they are the evidence the
 snapshot rests on. Content whose redistribution permission is unclear is not
 committed; see the source and licence rules in
 [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+## Output conventions
+
+Contribution packages are written in parallel by different people, so two tools
+covering the same subject can easily describe it differently. The rules below fix
+the shapes that recur across packages. Follow them without coordinating with
+anyone: reading this section is the coordination.
+
+### The `source` object
+
+A tool that answers from an official or pinned source reports where the answer
+came from, using exactly these fields:
+
+```json
+"source": {
+  "type": "object",
+  "properties": {
+    "provider": {"const": "TÜİK"},
+    "dataset": {"type": "string", "minLength": 1},
+    "release_id": {"type": "string", "minLength": 1},
+    "source_url": {"type": "string", "format": "uri"},
+    "snapshot_version": {"type": "string", "minLength": 1},
+    "retrieved_at": {"type": "string", "format": "date"}
+  },
+  "required": ["provider", "dataset", "release_id", "source_url", "snapshot_version", "retrieved_at"],
+  "additionalProperties": false
+}
+```
+
+`provider` is a `const` naming the institution. The remaining values come from
+the snapshot's `provenance.json`, so a reader can trace an answer back to the
+published file it was derived from.
+
+A tool serving purely synthetic fixtures has no publication to point at; it may
+name its provider with a scalar `source` instead, or omit the field. But a tool
+that declares a structured `source` must use this exact field set.
+`test_registry.py` enforces it across every registry fragment, so a divergent
+shape fails CI rather than reaching review.
+
+### Units are never implicit
+
+Any numeric measurement is accompanied by a `unit` field with an enumerated
+value — `person`, `per_thousand`, `percent`, `mm`, and so on. A rate reported as
+`8.7` with no unit is indistinguishable from `0.087`, and the two spellings will
+not survive being mixed in one dataset.
+
+### Dates, currencies, and place names
+
+- Dates use ISO 8601 `YYYY-MM-DD` with JSON Schema `format: date`. Name the
+  fields `date`, `start_date`, `end_date`.
+- Currency codes are uppercase ISO 4217 in a `currency_code` field. Write `TRY`,
+  never `TL` or `₺`.
+- Place names are returned in the official spelling used by the source. Input
+  matching is case-insensitive and tolerant of Turkish letter forms, but the
+  output preserves the source's own spelling so answers stay quotable.
+
+### Empty results
+
+An empty answer is not a failure. Return the declared shape with nothing in it —
+`{"events": [], "count": 0}` — and the execution stays `passed`. Returning
+`None`, `{}` or `[]` instead makes the engine normalize the call to
+`empty_result`, which is a different claim: not "there is nothing", but "the tool
+produced nothing". Choose deliberately.
+
+### Naming next to an existing tool
+
+When a package adds a tool to a domain that already has one, the tool
+descriptions must draw the boundary between them, and the pull request states it
+in one sentence. Two tools that both plausibly answer "when is my exam" teach a
+model to guess. The boundary is usually already implied by the package plan; the
+work is writing it where the model can see it.

@@ -100,6 +100,22 @@ alanlarını kullanır. Kaynak özel dönüşüm gerektiriyorsa mevcut adaptör 
 sayılmaz; normalizasyon kodu ve testleri aynı PR’da eklenmelidir. POST, ödeme,
 e-posta ve başka yan etkili canlı işlemler mevcut adaptörün kapsamı dışındadır.
 
+Paketler paralel yazıldığı için çıktı şekilleri de sözleşmelidir. Kaynak künyesi
+(`source` nesnesi), birim alanı, tarih ve para birimi biçimleri, boş sonuç
+davranışı ve mevcut bir domain'e eklenen aracın sınırı
+[execution ortamları belgesindeki çıktı konvansiyonlarında](docs/execution_environments.md)
+tanımlıdır. Kimseyle koordinasyon gerekmez; o bölümü okumak koordinasyonun
+kendisidir.
+
+Halihazırda aracı bulunan bir domain'e yeni araç ekliyorsanız, iki aracın sınırını
+tool açıklamalarında belirtin ve PR'da tek cümleyle yazın. Aynı soruya iki aracın
+da makul göründüğü durum, modele tahmin etmeyi öğretir.
+
+Katkılar `pyproject.toml` dosyasını düzenlemez. Dönüştürme scriptleri gerektirdiği
+paketi kendi docstring'inde belirtir; test paketine gerçekten yeni bir bağımlılık
+gerekiyorsa önce PR'da sorun, karar
+[bağımlılık kararlarına](docs/dependency_decisions.md) yazılır.
+
 En az şu testleri ekleyin:
 
 - geçerli input için beklenen sonuç;

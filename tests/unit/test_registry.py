@@ -121,3 +121,48 @@ def test_registry_semantic_failures(tmp_path: Path, mutation, code: str) -> None
     with pytest.raises(RegistryValidationError) as exc_info:
         ToolRegistry.load(path)
     assert code in {issue.code for issue in exc_info.value.issues}
+
+
+SOURCE_OBJECT_FIELDS = {
+    "provider",
+    "dataset",
+    "release_id",
+    "source_url",
+    "snapshot_version",
+    "retrieved_at",
+}
+
+
+def _registry_records() -> list[tuple[Path, dict]]:
+    paths = sorted((ROOT / "registry").rglob("*.jsonl"))
+    return [
+        (path, json.loads(line))
+        for path in paths
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+
+def test_declared_source_objects_use_the_shared_shape() -> None:
+    """A tool may omit `source`, but a declared one keeps one agreed field set.
+
+    Packages are written in parallel, so an output convention that is only
+    documented drifts. See the output conventions in
+    docs/execution_environments.md.
+    """
+
+    for path, record in _registry_records():
+        source = record["output_schema"].get("properties", {}).get("source")
+        if not isinstance(source, dict) or "properties" not in source:
+            # A fixture-backed tool may name its provider with a scalar instead.
+            continue
+        where = f"{record['tool_id']} in {path.name}"
+        assert set(source.get("properties", {})) == SOURCE_OBJECT_FIELDS, (
+            f"{where}: source properties must be exactly {sorted(SOURCE_OBJECT_FIELDS)}"
+        )
+        assert set(source.get("required", [])) == SOURCE_OBJECT_FIELDS, (
+            f"{where}: every source field is required"
+        )
+        assert source.get("additionalProperties") is False, (
+            f"{where}: source must not allow additional properties"
+        )
