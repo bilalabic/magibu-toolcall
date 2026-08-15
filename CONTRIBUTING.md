@@ -87,12 +87,13 @@ kodları ve doğrulama komutu
 olarak tutulur.
 
 Resmî yayımlanmış veriye dayanan bir `local_executable` tool'u, veriyi
-`data/snapshots/<snapshot_version>/` altında sürümlenmiş bir snapshot olarak
-sabitler. Ham dosya başına `sha256` zorunludur; beyan edilen bayt ile commit
+`data/snapshots/` altında sürümlenmiş bir snapshot dizini olarak sabitler. Ham
+dosyalar snapshot'ın denetlenebilir kanıtı olduğu için `raw/` altında commit
+edilir; ham dosya başına `sha256` zorunludur ve beyan edilen bayt ile commit
 edilen bayt her PR'da karşılaştırılır. Ham kaynaktan üretilmiş dosyaya giden
 dönüşüm `scripts/snapshots/<domain>_<source>.py` altında commit edilir ve
-deterministik olmalıdır. Alan listesi ve doğrulama komutu yine execution
-ortamları belgesindedir.
+deterministik olmalıdır. Dizin düzeni, alan listesi ve doğrulama komutu yine
+execution ortamları belgesindedir.
 
 Basit bir `real_api` katkısı için tool’a özel wrapper zorunlu değildir: mevcut
 HTTP adaptörü registry’deki URL, query eşlemesi, header/auth ve `response_path`
@@ -157,9 +158,12 @@ geçer. Otomatik kalite komutu language ve review alanlarına insan onayı yazma
 `review/dataset/<job_id>.pr.quality.json` adıyla PR’a eklenebilir. Nihai birleşik
 dataset yalnız `data/dataset/accepted/dataset.jsonl` yolunda tutulur.
 
-Ham kaynaklar, staging çıktıları, checkpoint’ler ve provider response’ları
-üretilmiş çalışma verisidir; Git geçmişine eklenmez. Canonical kayıt ile eğitim
-projeksiyonu birbirine karıştırılmaz.
+Dataset üretim akışının ham girdileri (`data/dataset/raw/`), staging çıktıları,
+checkpoint’ler ve provider response’ları üretilmiş çalışma verisidir; Git
+geçmişine eklenmez. Bu kural yalnız dataset üretimi içindir; tool snapshot’larının
+`raw/` altındaki kaynak kanıtı bunun dışındadır ve yukarıda anlatıldığı gibi
+bilerek commit edilir. Canonical kayıt ile eğitim projeksiyonu birbirine
+karıştırılmaz.
 
 ## Yerel kontroller
 
@@ -175,7 +179,7 @@ kendi blueprint yolunuzu vererek ayrıca doğrulayın:
 
 ```powershell
 $ProposalRegistry = "registry\proposals"
-$BlueprintFile = "blueprints\contribution.jsonl"
+$BlueprintFile = "blueprints\<domain>_<source>.jsonl"
 $FixtureId = "your.fixture.id"
 .\.venv\Scripts\magibu-toolcall.exe registry validate $ProposalRegistry
 .\.venv\Scripts\magibu-toolcall.exe blueprint validate $BlueprintFile --registry $ProposalRegistry

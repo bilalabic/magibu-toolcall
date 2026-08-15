@@ -11,9 +11,10 @@ argümanlarla çağıran ve cevabını gerçek tool sonucuna dayandıran eğitim
 oluşturmaktır.
 
 > **Proje durumu:** Altyapı çalışır durumdadır. `registry/registry.jsonl`
-> içindeki üç `demo` tool yalnız altyapı testleri içindir. Proposal kayıtları
-> katkıya özel JSONL parçalarında `candidate` olarak incelenir; bu durum
-> kaynak, lisans veya canlı API onayı anlamına gelmez.
+> içindeki üç `demo` tool yalnız altyapı testleri içindir. İlk gerçek tool
+> katkıları `registry/proposals/` altındaki JSONL parçalarında `candidate`
+> olarak incelemededir; bu durum kaynak, lisans veya canlı API onayı anlamına
+> gelmez.
 
 ## Temel yetenekler
 
@@ -34,7 +35,7 @@ tarafından oluşturulur veya doğrulanır. Provider çıktısı tek başına bi
 
 | Kaynak türü | Amaç | Durum |
 | --- | --- | --- |
-| `original_turkish` | Genel amaçlı tool'lar için doğrudan Türkçe senaryolar | Altyapı hazır; katalog oluşturulacak |
+| `original_turkish` | Genel amaçlı tool'lar için doğrudan Türkçe senaryolar | Altyapı hazır; ilk blueprint katkıları incelemede |
 | `turkey_native` | Türkiye'deki kurum, açık veri ve yerel hizmet senaryoları | Altyapı hazır; kaynaklar onaylanacak |
 | `translated` | xLAM, When2Call ve benzeri kaynakların lokalizasyonu | Askıda |
 
@@ -62,11 +63,12 @@ modüller [mimari belgesinde](docs/architecture.md), uygulanabilir komutlar ise
 | Varlık | Mevcut durum |
 | --- | --- |
 | Canonical registry | 3 adet `demo` tool |
-| Proposal registry | `registry/proposals/<domain>_<source>.jsonl` katkı parçaları |
-| Blueprint katkıları | `blueprints/<domain>_<source>.jsonl`, satır başına bir kayıt |
-| Yerel executor'lar | `src/tool_call_tr/execution/local/<domain>_<source>.py` |
-| Simülasyon araçları | `src/tool_call_tr/execution/simulation/<domain>_<source>.py` |
-| Kaynak snapshot'ları | `data/snapshots/<snapshot_version>/`, zorunlu `provenance.json` |
+| Proposal registry | 3 katkı parçasında 6 `candidate` tool; hepsi `mock` execution (`registry/proposals/<domain>_<source>.jsonl`) |
+| Proposal fixture'ları | 8 adet `registry/proposals/fixtures/<fixture_id>.json` |
+| Blueprint katkıları | 3 dosyada 8 kayıt (`blueprints/<domain>_<source>.jsonl`, satır başına bir kayıt) |
+| Yerel executor'lar | Yalnız demo modülü; katkılar `src/tool_call_tr/execution/local/<domain>_<source>.py` |
+| Simülasyon araçları | Yalnız demo modülü; katkılar `src/tool_call_tr/execution/simulation/<domain>_<source>.py` |
+| Kaynak snapshot'ları | Henüz yok; sözleşme hazır (`data/snapshots/` altında zorunlu `provenance.json`) |
 | Accepted dataset | Henüz yok |
 | Onaylı canlı API tool'u | Henüz yok |
 
