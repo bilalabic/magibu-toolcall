@@ -166,3 +166,34 @@ def test_declared_source_objects_use_the_shared_shape() -> None:
         assert source.get("additionalProperties") is False, (
             f"{where}: source must not allow additional properties"
         )
+
+
+def test_cli_prints_turkish_output_on_a_legacy_code_page(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A cp1252 console must not break a fixture whose result is Turkish.
+
+    The execution itself succeeds; without `_force_utf8_output` the CLI raises
+    UnicodeEncodeError while printing the result it just produced.
+    """
+
+    import io
+    import sys
+
+    from tool_call_tr import cli
+
+    legacy = io.TextIOWrapper(io.BytesIO(), encoding="cp1252", newline="")
+    monkeypatch.setattr(sys, "stdout", legacy)
+    exit_code = cli.main([
+        "tool",
+        "run-fixture",
+        "education.meal_menu.main.2026-08-18",
+        "--registry",
+        str(ROOT / "registry" / "proposals"),
+    ])
+    legacy.flush()
+
+    assert exit_code == 0
+    assert legacy.encoding.lower().replace("-", "") == "utf8"
+    printed = legacy.buffer.getvalue().decode("utf-8")
+    assert "Tarhana Çorbası" in printed

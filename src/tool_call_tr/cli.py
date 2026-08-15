@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+import sys
 from threading import Lock
 import time
 from typing import Any
@@ -1549,7 +1550,26 @@ def _provider_retry(operation, settings: Settings):
     return replace(value, attempts=attempts)
 
 
+def _force_utf8_output() -> None:
+    """Print Turkish output on consoles whose default codec cannot encode it.
+
+    Every record this CLI emits may contain Turkish characters, so a console
+    using a legacy code page (cp1252 on Windows) raises UnicodeEncodeError while
+    printing a result that was produced successfully.
+    """
+
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None or (getattr(stream, "encoding", "") or "").lower() in {"utf-8", "utf8"}:
+            continue
+        try:
+            reconfigure(encoding="utf-8")
+        except (OSError, ValueError):  # a stream that refuses reconfiguration stays as it is
+            continue
+
+
 def main(argv: Sequence[str] | None = None) -> int:
+    _force_utf8_output()
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
@@ -1563,3 +1583,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.print_help()
         return 0
     return handler(args)
+
+
+if __name__ == "__main__":  # `python -m tool_call_tr.cli` must run, not exit silently
+    raise SystemExit(main())
