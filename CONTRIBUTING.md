@@ -54,6 +54,12 @@ sözleşmeleri birlikte taşır:
 - kaynak, lisans, kullanım koşulu kontrol tarihi ve riskler;
 - gerekiyorsa fixture kimlikleri veya salt-okunur HTTP sözleşmesi.
 
+Bir tool'un input ve output şemaları registry kaydının **içinde** yaşar:
+`function.parameters` ve `output_schema`. `schemas/` dizini yalnız meta-şemaları
+tutar; tool başına ayrı şema dosyası açılmaz. Kayıt sözleşmesi
+`additionalProperties: false` olduğu için harici bir şemaya referans verilecek
+alan zaten yoktur.
+
 Şema doğrulamasının geçmesi kaynak, lisans veya canlı kullanım onayı değildir.
 Bu kararlar PR'daki kaynak kanıtı ve insan incelemesiyle verilir.
 
@@ -66,11 +72,27 @@ Execution implementasyonu seçilen moda göre hazırlanır:
 
 | Mod | Katkıda bulunulacak yer | Kabul ölçütü |
 | --- | --- | --- |
-| `local_executable` | `src/tool_call_tr/execution/` altında odaklı implementasyon ve adapter eşlemesi | Deterministik, ağsız, input/output şemalarıyla uyumlu ve testli |
+| `local_executable` | `src/tool_call_tr/execution/local/<domain>_<source>.py` içinde modül düzeyinde `FUNCTIONS` sözlüğü | Deterministik, ağsız, input/output şemalarıyla uyumlu ve testli |
 | `mock` | `registry/proposals/fixtures/<fixture_id>.json` ve registry `fixture_ids` | Sabit, şema uyumlu, kaynak kökeni açık ve kişisel verisiz |
-| `fully_simulated` | Stateful adapter implementasyonu | Dış sisteme dokunmayan, resetlenebilir ve durum geçişleri testli |
+| `fully_simulated` | `src/tool_call_tr/execution/simulation/<domain>_<source>.py` içinde modül düzeyinde `TOOLS` dizisi | Dış sisteme dokunmayan, resetlenebilir ve durum geçişleri testli |
 | `real_api` | Registry `execution.http`; gerekirse HTTP adapter geliştirmesi | Yalnız HTTPS GET, izinli host, açık auth, timeout ve şema doğrulaması |
 | `sandbox` | Yeni adapter ve test paketi gerekir | Repository’de bugün çalışır sandbox adapter yoktur |
+
+Hiçbir mod `src/tool_call_tr/execution/adapters.py` dosyasının düzenlenmesini
+gerektirmez. Registry ve blueprint parçalarında olduğu gibi, her katkı paketi
+ortak bir üst dizinde kendine ait tek bir `<domain>_<source>` dosyasını açar;
+paralel PR'lar bu sayede çakışmaz. Her modun dosya düzeni, arayüzü, hata
+kodları ve doğrulama komutu
+[execution ortamları belgesinde](docs/execution_environments.md) tek kaynak
+olarak tutulur.
+
+Resmî yayımlanmış veriye dayanan bir `local_executable` tool'u, veriyi
+`data/snapshots/<snapshot_version>/` altında sürümlenmiş bir snapshot olarak
+sabitler. Ham dosya başına `sha256` zorunludur; beyan edilen bayt ile commit
+edilen bayt her PR'da karşılaştırılır. Ham kaynaktan üretilmiş dosyaya giden
+dönüşüm `scripts/snapshots/<domain>_<source>.py` altında commit edilir ve
+deterministik olmalıdır. Alan listesi ve doğrulama komutu yine execution
+ortamları belgesindedir.
 
 Basit bir `real_api` katkısı için tool’a özel wrapper zorunlu değildir: mevcut
 HTTP adaptörü registry’deki URL, query eşlemesi, header/auth ve `response_path`
@@ -142,6 +164,12 @@ $FixtureId = "your.fixture.id"
 .\.venv\Scripts\magibu-toolcall.exe registry validate $ProposalRegistry
 .\.venv\Scripts\magibu-toolcall.exe blueprint validate $BlueprintFile --registry $ProposalRegistry
 .\.venv\Scripts\magibu-toolcall.exe tool run-fixture $FixtureId --registry $ProposalRegistry
+```
+
+Snapshot eklediyseniz ayrıca çalıştırın; aynı kontrol CI'da da yapılır:
+
+```powershell
+.\.venv\Scripts\python.exe -m tool_call_tr.snapshots data\snapshots
 ```
 
 ## Pull request ve otomatik yorum
