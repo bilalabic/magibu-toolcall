@@ -65,6 +65,22 @@ A function receives the already validated `arguments` dictionary and returns the
 output payload. Raising is allowed: the adapter boundary maps an exception to
 `failed`, and `ExecutionTimeout` / `ExecutionRateLimited` to their own statuses.
 
+A module that answers from a pinned snapshot resolves it with `snapshot_dir`
+rather than counting parent directories:
+
+```python
+from tool_call_tr.snapshots import snapshot_dir
+
+SNAPSHOT_ROOT = snapshot_dir("tuik", "migration", "v1")
+```
+
+`Path(__file__).resolve().parents[N]` breaks silently the moment a module moves
+between directories, and it is wrong outside a source checkout because `data/`
+is not package data. `snapshot_dir` keeps that arithmetic in one place and reads
+`MAGIBU_SNAPSHOT_ROOT` when the snapshot tree lives elsewhere. It does not
+require the directory to exist; report a missing snapshot in your own error
+vocabulary.
+
 Discovery imports the modules in sorted name order and never swallows an import
 error. `LocalModuleError` is raised when a module has no `FUNCTIONS` mapping, or
 when two modules claim the same function name — the message names both modules.
