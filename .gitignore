@@ -11,6 +11,12 @@ build/
 dist/
 *.egg-info/
 
+# Operating system and file manager artifacts.
+.DS_Store
+._*
+Thumbs.db
+desktop.ini
+
 # Generated run and export content; directory markers remain tracked.
 runs/**/*.jsonl
 runs/**/*.json
