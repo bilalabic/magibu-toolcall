@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 from collections.abc import Sequence
 import json
+import os
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -23,6 +24,24 @@ from tool_call_tr.schemas import json_path
 
 PROVENANCE_FILENAME = "provenance.json"
 SCHEMA_FILENAME = "snapshot_provenance.schema.json"
+SNAPSHOT_ROOT_ENV_VAR = "MAGIBU_SNAPSHOT_ROOT"
+
+
+def snapshot_dir(*parts: str) -> Path:
+    """Return a directory under ``data/snapshots`` without counting parents.
+
+    A `local_executable` module resolves its snapshot through this helper rather
+    than walking up from its own file: the number of parent steps changes
+    whenever the module moves, and it is wrong outside a source checkout. Set
+    ``MAGIBU_SNAPSHOT_ROOT`` to read a snapshot tree kept elsewhere.
+
+    The path is not required to exist; the caller reports a missing snapshot in
+    its own terms.
+    """
+
+    override = os.environ.get(SNAPSHOT_ROOT_ENV_VAR)
+    root = Path(override) if override else Path(__file__).resolve().parents[2] / "data" / "snapshots"
+    return root.joinpath(*parts)
 
 
 class SnapshotError(ValueError):

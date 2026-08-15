@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from tool_call_tr import snapshots
 from tool_call_tr.snapshots import SCHEMA_FILENAME, main
 
 
@@ -178,3 +179,32 @@ def test_repository_snapshots_directory_validates_when_present() -> None:
     if not snapshots_dir.is_dir():
         pytest.skip("no committed snapshots yet")
     assert run(snapshots_dir) == 0
+
+
+def test_snapshot_dir_resolves_the_repository_tree(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Executors must not count parent directories to find their snapshot."""
+
+    monkeypatch.delenv(snapshots.SNAPSHOT_ROOT_ENV_VAR, raising=False)
+
+    root = snapshots.snapshot_dir()
+
+    assert root == ROOT / "data" / "snapshots"
+    assert snapshots.snapshot_dir("tuik", "migration", "v1") == root / "tuik" / "migration" / "v1"
+
+
+def test_snapshot_dir_honours_an_external_root(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A tree kept outside the checkout stays reachable after installation."""
+
+    monkeypatch.setenv(snapshots.SNAPSHOT_ROOT_ENV_VAR, str(tmp_path))
+
+    assert snapshots.snapshot_dir() == tmp_path
+    assert snapshots.snapshot_dir("tuik") == tmp_path / "tuik"
+
+
+def test_snapshot_dir_does_not_require_the_directory_to_exist() -> None:
+    """The caller reports a missing snapshot in its own error vocabulary."""
+
+    assert not snapshots.snapshot_dir("no", "such", "snapshot").exists()
