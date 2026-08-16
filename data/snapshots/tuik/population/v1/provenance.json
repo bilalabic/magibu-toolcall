@@ -1,0 +1,28 @@
+{
+  "snapshot_provenance_version": "0.1.0",
+  "provider": "TÜİK",
+  "source_name": "Adrese Dayalı Nüfus Kayıt Sistemi (ADNKS), İl Nüfusu 2024",
+  "snapshot_version": "tuik-adnks-population-2023-2024-v1",
+  "retrieved_at": "2026-08-16",
+  "license": "TÜİK verileri kaynak gösterilerek yeniden kullanılabilir.",
+  "license_url": "https://www.tuik.gov.tr/Kurumsal/Yasal_Uyari",
+  "data_file": "population_2023_2024.csv",
+  "sources": [
+    {
+      "raw_file": "raw/adnks_il_nufus_2023_2024.csv",
+      "sha256": "1b92b7fcc239c82b7efa4bcf5a9ecbe022704f84ee3a8ecfd8f2d25075f1dc95",
+      "release_id": "ADNKS-2024-il-nufusu",
+      "source_url": "https://www.tuik.gov.tr/Kurumsal/Yasal_Uyari",
+      "release_date": "2025-02-01",
+      "label": "2023-2024",
+      "source_name": "ADNKS İl Nüfusu, 2024 sonuçları (2023 karşılaştırmalı)"
+    }
+  ],
+  "transformation_notes": [
+    "Kapsam: pilot 5 il (İstanbul, Ankara, İzmir, Bursa, Antalya), 2023 ve 2024 yılları.",
+    "2023 değeri, 2024 ADNKS duyurusunda yer alan yıllık artış rakamı 2024 değerinden çıkarılarak elde edilmiştir.",
+    "province ve year alanları birlikte benzersizdir; population kişi sayısı tamsayıdır.",
+    "Kaynak gösterimi: Türkiye İstatistik Kurumu (TÜİK), Adrese Dayalı Nüfus Kayıt Sistemi (ADNKS), 2024.",
+    "Executor yalnızca yerel CSV ve provenance dosyasını okur; çalışma zamanında ağ çağrısı yapmaz."
+  ]
+}

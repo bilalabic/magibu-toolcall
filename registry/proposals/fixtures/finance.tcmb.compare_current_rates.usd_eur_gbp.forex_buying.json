@@ -1,0 +1,41 @@
+{
+  "fixture_id": "finance.tcmb.compare_current_rates.usd_eur_gbp.forex_buying",
+  "function_name": "finance_compare_current_rates",
+  "arguments": {
+    "currency_codes": ["USD", "EUR", "GBP"],
+    "rate_type": "forex_buying"
+  },
+  "result": {
+    "date": "2026-08-14",
+    "bulletin_no": "2026/151",
+    "rate_type": "forex_buying",
+    "count": 3,
+    "rates": [
+      {
+        "currency_code": "EUR",
+        "currency_unit": 1,
+        "rate": 55.1391
+      },
+      {
+        "currency_code": "GBP",
+        "currency_unit": 1,
+        "rate": 64.4148
+      },
+      {
+        "currency_code": "USD",
+        "currency_unit": 1,
+        "rate": 47.7206
+      }
+    ],
+    "unit": "try_per_currency_unit",
+    "source": {
+      "provider": "TCMB",
+      "dataset": "TCMB Günlük Döviz Kurları Bülteni, 14 Ağustos 2026",
+      "release_id": "2026/151",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202608/14082026.xml",
+      "snapshot_version": "tcmb-current-rates-2026-08-14-v1",
+      "retrieved_at": "2026-08-16"
+    }
+  },
+  "provenance": "fixture_version=v1; data_kind=frozen_official_response; contract_source=https://www.tcmb.gov.tr/kurlar/202608/14082026.xml; bulletin=2026/151; retrieved_at=2026-08-16; license=TCMB verileri kaynak gösterilmek suretiyle yayımlanabilir, ticari kullanım yazılı izne tabidir; license_url=https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Bottom+Menu/Diger/Kullanim+Sartlari; note=Kur değerleri 14.08.2026 tarihli resmî bültenden birebir alınmıştır, sentetik değildir. Kayıtlar kişisel veri içermez ve para birimi kodu sırasına göre yazılmıştır."
+}
