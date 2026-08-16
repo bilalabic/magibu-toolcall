@@ -174,19 +174,32 @@ def test_search_smoke_returns_published_bulletin_rates(
     assert result.data["lowest"]["rate"] == min(item["rate"] for item in result.data["rates"])
 
 
-def test_search_over_a_closed_period_is_an_empty_answer_not_a_failure() -> None:
-    """26-31 May 2026 is inside the window but holds no bulletin."""
+@pytest.mark.parametrize(("currency_code", "expected_unit"), (("EUR", 1), ("JPY", 100)))
+def test_search_over_a_closed_period_is_an_empty_answer_not_a_failure(
+    currency_code: str,
+    expected_unit: int,
+) -> None:
+    """26-31 May 2026 is inside the window but holds no bulletin.
+
+    The unit still comes from the snapshot, so an empty JPY range keeps
+    reporting 100 rather than falling back to a populated row's value.
+    """
 
     result = execute(
         "finance_search_historical_rates",
-        {"currency_code": "EUR", "start_date": "2026-05-26", "end_date": "2026-05-31", "rate_type": "forex_selling"},
+        {
+            "currency_code": currency_code,
+            "start_date": "2026-05-26",
+            "end_date": "2026-05-31",
+            "rate_type": "forex_selling",
+        },
     )
 
     assert result.status == ExecutionStatus.PASSED
     assert result.data["count"] == 0
     assert result.data["rates"] == []
     assert result.data["highest"] is None and result.data["lowest"] is None
-    assert result.data["currency_unit"] == 1
+    assert result.data["currency_unit"] == expected_unit
 
 
 @pytest.mark.parametrize(
