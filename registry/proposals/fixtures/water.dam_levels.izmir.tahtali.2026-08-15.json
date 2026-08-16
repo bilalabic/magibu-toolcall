@@ -1,0 +1,23 @@
+{
+  "fixture_id": "water.dam_levels.izmir.tahtali.2026-08-15",
+  "function_name": "water_get_dam_levels",
+  "arguments": {
+    "dam": "Tahtalı Barajı"
+  },
+  "result": {
+    "city": "İzmir",
+    "as_of_date": "2026-08-15",
+    "source": "İZSU baraj doluluk verisinin yapısına göre modellenmiş, sürümlenmiş sentetik veri (gerçek ölçüm değildir).",
+    "dams": [
+      {
+        "name": "Tahtalı Barajı",
+        "occupancy_rate": 42.6,
+        "unit": "percent",
+        "measurement_date": "2026-08-14",
+        "freshness": "fresh"
+      }
+    ],
+    "count": 1
+  },
+  "provenance": "İZSU Tahtalı Barajı doluluk yapısına göre modellenmiş, sürümlenmiş sentetik fixture. Gerçek ölçüm değildir."
+}
