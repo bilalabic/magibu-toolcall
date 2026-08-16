@@ -1,0 +1,28 @@
+{
+  "snapshot_provenance_version": "0.1.0",
+  "provider": "TÜİK",
+  "source_name": "Temel işgücü göstergeleri (15+ yaş), 2021-2025",
+  "snapshot_version": "tuik-labor-force-annual-2021-2025-v1",
+  "retrieved_at": "2026-08-15",
+  "license": "TÜİK verileri kaynak gösterilerek yeniden kullanılabilir.",
+  "license_url": "https://www.tuik.gov.tr/Kurumsal/Yasal_Uyari",
+  "data_file": "unemployment_2021_2025.csv",
+  "sources": [
+    {
+      "raw_file": "raw/labor_force_indicators_15_plus_2005_2025.xls",
+      "sha256": "a7f9149031c296231a1a22ea335c828f7a905a62f39c06e248392ae51d87eef3",
+      "release_id": "57996",
+      "source_url": "https://veriportali.tuik.gov.tr/tr/press/57996",
+      "release_date": "2026-03-25",
+      "label": "2025"
+    }
+  ],
+  "transformation_notes": [
+    "Tablo: Temel işgücü göstergeleri, 15+ yaş, 2005-2025.",
+    "Resmî XLS tablosundaki 2021-2025 toplam yıllık işsizlik oranları sabit sütun adlarıyla UTF-8 CSV'ye aktarılmıştır.",
+    "Oranlar 0-1 kesrine çevrilmeden yüzde değeri ve bir ondalık basamak olarak saklanmıştır.",
+    "Kapsam: 2021-2025 yıllık Türkiye toplam işsizlik oranı, 15+ yaş.",
+    "Kaynak gösterimi: Türkiye İstatistik Kurumu (TÜİK), İşgücü İstatistikleri, 2025.",
+    "Executor yalnızca yerel CSV ve provenance dosyasını okur; çalışma zamanında ağ çağrısı yapmaz."
+  ]
+}
