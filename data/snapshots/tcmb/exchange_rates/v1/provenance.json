@@ -1,0 +1,487 @@
+{
+  "snapshot_provenance_version": "0.1.0",
+  "provider": "TCMB",
+  "source_name": "TCMB Günlük Döviz Kurları Bültenleri, 2026 ikinci çeyrek",
+  "snapshot_version": "tcmb-exchange-rates-2026-q2-v1",
+  "retrieved_at": "2026-08-16",
+  "license": "TCMB sitesindeki bilgiler kaynak gösterilmek suretiyle yayımlanabilir; ticari amaçlı kullanım TCMB'nin yazılı iznine tabidir.",
+  "license_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Bottom+Menu/Diger/Kullanim+Sartlari",
+  "data_file": "exchange_rates_2026_q2.csv",
+  "sources": [
+    {
+      "raw_file": "raw/01042026.xml",
+      "sha256": "40f077b27a2996270bcd03ece543c50788ec9fa0c9991d3fb7de3f8f132d9f60",
+      "release_id": "2026/62",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/01042026.xml",
+      "release_date": "2026-04-01",
+      "label": "2026-04-01"
+    },
+    {
+      "raw_file": "raw/02042026.xml",
+      "sha256": "107b741efba6f0edea9ff3d4e788ee3d56a36a21bd23aee18b0d95942b1949a7",
+      "release_id": "2026/63",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/02042026.xml",
+      "release_date": "2026-04-02",
+      "label": "2026-04-02"
+    },
+    {
+      "raw_file": "raw/03042026.xml",
+      "sha256": "4389537269deea3c476de4e027319083bd04dc851cfff98d4eb19311aaecc073",
+      "release_id": "2026/64",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/03042026.xml",
+      "release_date": "2026-04-03",
+      "label": "2026-04-03"
+    },
+    {
+      "raw_file": "raw/06042026.xml",
+      "sha256": "0e714e0e42185b524a7473437ecaa991431c831b25517048b43f9a33a1dd5814",
+      "release_id": "2026/65",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/06042026.xml",
+      "release_date": "2026-04-06",
+      "label": "2026-04-06"
+    },
+    {
+      "raw_file": "raw/07042026.xml",
+      "sha256": "d9119cd5101b6fff955409bdfab29c09b137e4be87b3d87abb1286ffe370eaa4",
+      "release_id": "2026/66",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/07042026.xml",
+      "release_date": "2026-04-07",
+      "label": "2026-04-07"
+    },
+    {
+      "raw_file": "raw/08042026.xml",
+      "sha256": "f2315257a7ad85757a0e80331d647c329ea9c9b5911349575d6e714fc65ee454",
+      "release_id": "2026/67",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/08042026.xml",
+      "release_date": "2026-04-08",
+      "label": "2026-04-08"
+    },
+    {
+      "raw_file": "raw/09042026.xml",
+      "sha256": "5b740a917ddc828303ad49442cde9ad6d9db9a93c4bdbad677aae5efdb682de2",
+      "release_id": "2026/68",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/09042026.xml",
+      "release_date": "2026-04-09",
+      "label": "2026-04-09"
+    },
+    {
+      "raw_file": "raw/10042026.xml",
+      "sha256": "d3753a08bdb8ac3df08e433768eeaf0c4a02fba3e886a16d775063b7ba21e308",
+      "release_id": "2026/69",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/10042026.xml",
+      "release_date": "2026-04-10",
+      "label": "2026-04-10"
+    },
+    {
+      "raw_file": "raw/13042026.xml",
+      "sha256": "542ab5db762bc33c43d654e4dbd1fc4abf50411204414e4aac6dc920d7055835",
+      "release_id": "2026/70",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/13042026.xml",
+      "release_date": "2026-04-13",
+      "label": "2026-04-13"
+    },
+    {
+      "raw_file": "raw/14042026.xml",
+      "sha256": "6e2bf8b5616ea180bebc133f0880801020ac3c81fe8cebe44d7788e9248bd981",
+      "release_id": "2026/71",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/14042026.xml",
+      "release_date": "2026-04-14",
+      "label": "2026-04-14"
+    },
+    {
+      "raw_file": "raw/15042026.xml",
+      "sha256": "81cbb392982a4362c418fe2c343606dae545278e2ee158db4b50631c1de897b7",
+      "release_id": "2026/72",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/15042026.xml",
+      "release_date": "2026-04-15",
+      "label": "2026-04-15"
+    },
+    {
+      "raw_file": "raw/16042026.xml",
+      "sha256": "4fe4d0f65824fb70149b956145b16533cc81b114b46cf572e07fb3543798bb36",
+      "release_id": "2026/73",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/16042026.xml",
+      "release_date": "2026-04-16",
+      "label": "2026-04-16"
+    },
+    {
+      "raw_file": "raw/17042026.xml",
+      "sha256": "e50136684fc4afef608836720ccb0033e73a3a71f1ffd861359d20cc7af84901",
+      "release_id": "2026/74",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/17042026.xml",
+      "release_date": "2026-04-17",
+      "label": "2026-04-17"
+    },
+    {
+      "raw_file": "raw/20042026.xml",
+      "sha256": "5f668bee1e3bee82b5714c322be22c709e7ff5de103b0330a2145142246763cd",
+      "release_id": "2026/75",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/20042026.xml",
+      "release_date": "2026-04-20",
+      "label": "2026-04-20"
+    },
+    {
+      "raw_file": "raw/21042026.xml",
+      "sha256": "f016fb0b06d54a670a744d77d60f5063f657aec932968671a20fb852dbf14189",
+      "release_id": "2026/76",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/21042026.xml",
+      "release_date": "2026-04-21",
+      "label": "2026-04-21"
+    },
+    {
+      "raw_file": "raw/22042026.xml",
+      "sha256": "0062ee2de4caa69b61f8a96c5be77dc6e4d02df6bf555b6a090a4ec6e80eddf4",
+      "release_id": "2026/77",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/22042026.xml",
+      "release_date": "2026-04-22",
+      "label": "2026-04-22"
+    },
+    {
+      "raw_file": "raw/24042026.xml",
+      "sha256": "a7af93045cf6bef373b8672bf1814f5041029a779d5310b56337e59381ff7f84",
+      "release_id": "2026/78",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/24042026.xml",
+      "release_date": "2026-04-24",
+      "label": "2026-04-24"
+    },
+    {
+      "raw_file": "raw/27042026.xml",
+      "sha256": "e19618673344fe4c9b65ab3ae4d7f68a754b2330fc8096461a38f390f806cca0",
+      "release_id": "2026/79",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/27042026.xml",
+      "release_date": "2026-04-27",
+      "label": "2026-04-27"
+    },
+    {
+      "raw_file": "raw/28042026.xml",
+      "sha256": "4dee88257107557fb6568902f7a8d0e93d17201f6230e80d45147839c69f71b0",
+      "release_id": "2026/80",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/28042026.xml",
+      "release_date": "2026-04-28",
+      "label": "2026-04-28"
+    },
+    {
+      "raw_file": "raw/29042026.xml",
+      "sha256": "d89179b8ca344e86241847cab9d22144838b0758d35c68cdde8852e09c57fc56",
+      "release_id": "2026/81",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/29042026.xml",
+      "release_date": "2026-04-29",
+      "label": "2026-04-29"
+    },
+    {
+      "raw_file": "raw/30042026.xml",
+      "sha256": "4b54312865d0f7c1a23173775eb01234a7c392d294ca6a0714fbb8cbcb5258cd",
+      "release_id": "2026/82",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202604/30042026.xml",
+      "release_date": "2026-04-30",
+      "label": "2026-04-30"
+    },
+    {
+      "raw_file": "raw/04052026.xml",
+      "sha256": "08055287679af8e59fe7d402e0c4d97c43a74947ab8cca801a592fc9af9be04d",
+      "release_id": "2026/83",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202605/04052026.xml",
+      "release_date": "2026-05-04",
+      "label": "2026-05-04"
+    },
+    {
+      "raw_file": "raw/05052026.xml",
+      "sha256": "327c0fb65c0b38c3b1b45dfba4023adf3ccc890f4af731f9ef9163b2a604e2c2",
+      "release_id": "2026/84",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202605/05052026.xml",
+      "release_date": "2026-05-05",
+      "label": "2026-05-05"
+    },
+    {
+      "raw_file": "raw/06052026.xml",
+      "sha256": "d5615ea0e655935f425b1b40cb0545e67c3f3de4eba4e838010ee78b3f1b8092",
+      "release_id": "2026/85",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202605/06052026.xml",
+      "release_date": "2026-05-06",
+      "label": "2026-05-06"
+    },
+    {
+      "raw_file": "raw/07052026.xml",
+      "sha256": "b379a0c27ff2bebf7cbccbc75ce1fc2d2d7ab0e84c680f1393f273c8cd6be6c8",
+      "release_id": "2026/86",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202605/07052026.xml",
+      "release_date": "2026-05-07",
+      "label": "2026-05-07"
+    },
+    {
+      "raw_file": "raw/08052026.xml",
+      "sha256": "c72c572944e192c84405fb04e90ecda7d2eaf03d397ba329b9aa34f0eb41b265",
+      "release_id": "2026/87",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202605/08052026.xml",
+      "release_date": "2026-05-08",
+      "label": "2026-05-08"
+    },
+    {
+      "raw_file": "raw/11052026.xml",
+      "sha256": "1987632ed9fed40c4d8d28b31513aa3a685e0f8244acb6b13b01fcca537e8e0a",
+      "release_id": "2026/88",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202605/11052026.xml",
+      "release_date": "2026-05-11",
+      "label": "2026-05-11"
+    },
+    {
+      "raw_file": "raw/12052026.xml",
+      "sha256": "ba476b97005a8bef1d12f7060fb329e7368f6f9ca0db1631c8043d8ab8c05ac9",
+      "release_id": "2026/89",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202605/12052026.xml",
+      "release_date": "2026-05-12",
+      "label": "2026-05-12"
+    },
+    {
+      "raw_file": "raw/13052026.xml",
+      "sha256": "f99e5868306a9247ad90dda46b973e380afbc46696b84bedc59db8ea26273f18",
+      "release_id": "2026/90",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202605/13052026.xml",
+      "release_date": "2026-05-13",
+      "label": "2026-05-13"
+    },
+    {
+      "raw_file": "raw/14052026.xml",
+      "sha256": "f5faefab2d818aad470383ed0fc688ff1681713eefdabbcf1f69a243962bbc51",
+      "release_id": "2026/91",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202605/14052026.xml",
+      "release_date": "2026-05-14",
+      "label": "2026-05-14"
+    },
+    {
+      "raw_file": "raw/15052026.xml",
+      "sha256": "1fdcdd6b8ca27d4fce55154d5a53963e2c0d8e15146b816fedd54dbd8aaadf08",
+      "release_id": "2026/92",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202605/15052026.xml",
+      "release_date": "2026-05-15",
+      "label": "2026-05-15"
+    },
+    {
+      "raw_file": "raw/18052026.xml",
+      "sha256": "0f00e0124994f7db77bd428f09319d778f99e021deb848938b627c60974d6e0e",
+      "release_id": "2026/93",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202605/18052026.xml",
+      "release_date": "2026-05-18",
+      "label": "2026-05-18"
+    },
+    {
+      "raw_file": "raw/20052026.xml",
+      "sha256": "e2629f92a230b514b2dc088ceba6b407e30f8f57452d73d1a70c4a485c1bbe46",
+      "release_id": "2026/94",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202605/20052026.xml",
+      "release_date": "2026-05-20",
+      "label": "2026-05-20"
+    },
+    {
+      "raw_file": "raw/21052026.xml",
+      "sha256": "7c41c7fa33007478d2e731e4e2ec4091d5179c640cfca69edbedb515e966517c",
+      "release_id": "2026/95",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202605/21052026.xml",
+      "release_date": "2026-05-21",
+      "label": "2026-05-21"
+    },
+    {
+      "raw_file": "raw/22052026.xml",
+      "sha256": "47fb99834921b22bc88dbe12f0c50149925470187e95eea3cad01f947b1b879d",
+      "release_id": "2026/96",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202605/22052026.xml",
+      "release_date": "2026-05-22",
+      "label": "2026-05-22"
+    },
+    {
+      "raw_file": "raw/25052026.xml",
+      "sha256": "ec63339683dc476394f0bd64c9609e16b1a6eefcdee02f084124439a0ab8dfcb",
+      "release_id": "2026/97",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202605/25052026.xml",
+      "release_date": "2026-05-25",
+      "label": "2026-05-25"
+    },
+    {
+      "raw_file": "raw/01062026.xml",
+      "sha256": "f55fd9f86f976ba4c5fbcf66953d8cbe2bc66c0f7aafd4e7a594603b49225e35",
+      "release_id": "2026/98",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/01062026.xml",
+      "release_date": "2026-06-01",
+      "label": "2026-06-01"
+    },
+    {
+      "raw_file": "raw/02062026.xml",
+      "sha256": "4c7ebaf25809527d546a0b401b958977f0359b81f19f5eb2b9d6c65102e22ea4",
+      "release_id": "2026/99",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/02062026.xml",
+      "release_date": "2026-06-02",
+      "label": "2026-06-02"
+    },
+    {
+      "raw_file": "raw/03062026.xml",
+      "sha256": "ded16921e957eeb877eea5b901267d46cd0f920fa95fe6646ec7c2a59a4ca32a",
+      "release_id": "2026/100",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/03062026.xml",
+      "release_date": "2026-06-03",
+      "label": "2026-06-03"
+    },
+    {
+      "raw_file": "raw/04062026.xml",
+      "sha256": "92d94ee80206f54e8614c1608a544103d9c6d95398ebc4e45b365e26fd8968ed",
+      "release_id": "2026/101",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/04062026.xml",
+      "release_date": "2026-06-04",
+      "label": "2026-06-04"
+    },
+    {
+      "raw_file": "raw/05062026.xml",
+      "sha256": "d70b74e998e56eef04cdb636dad010a45799f41ad987f2b8971893a1357bf7db",
+      "release_id": "2026/102",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/05062026.xml",
+      "release_date": "2026-06-05",
+      "label": "2026-06-05"
+    },
+    {
+      "raw_file": "raw/08062026.xml",
+      "sha256": "bfb7bb91f1217eb48820106e1592bd33a46e527cf3377b944c87813e392ec93f",
+      "release_id": "2026/103",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/08062026.xml",
+      "release_date": "2026-06-08",
+      "label": "2026-06-08"
+    },
+    {
+      "raw_file": "raw/09062026.xml",
+      "sha256": "1aca5b79102bcc3e6593e4781538901132fadbda6c84874044acaec28e632026",
+      "release_id": "2026/104",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/09062026.xml",
+      "release_date": "2026-06-09",
+      "label": "2026-06-09"
+    },
+    {
+      "raw_file": "raw/10062026.xml",
+      "sha256": "1317105abc6960911b92e2bd786e43a3c8353946229ae1b45db089a71b567cca",
+      "release_id": "2026/105",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/10062026.xml",
+      "release_date": "2026-06-10",
+      "label": "2026-06-10"
+    },
+    {
+      "raw_file": "raw/11062026.xml",
+      "sha256": "c209157f01e4c5a7629fe31f7aec8be1f0c3e7970e01a3d0aef0b8c756cf8f0d",
+      "release_id": "2026/106",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/11062026.xml",
+      "release_date": "2026-06-11",
+      "label": "2026-06-11"
+    },
+    {
+      "raw_file": "raw/12062026.xml",
+      "sha256": "88385352f2ae0729586ad0231c9179646dfe0c78de84f6dcfbef742323387797",
+      "release_id": "2026/107",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/12062026.xml",
+      "release_date": "2026-06-12",
+      "label": "2026-06-12"
+    },
+    {
+      "raw_file": "raw/15062026.xml",
+      "sha256": "4293bf5b4a274f6b6810de1283a302c40c331398b9ffb555abbaff979e5bc9d8",
+      "release_id": "2026/108",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/15062026.xml",
+      "release_date": "2026-06-15",
+      "label": "2026-06-15"
+    },
+    {
+      "raw_file": "raw/16062026.xml",
+      "sha256": "821aea31a2ccefa600cf75f94706f52e9bbd8f4721d39439904e86c576a822e1",
+      "release_id": "2026/109",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/16062026.xml",
+      "release_date": "2026-06-16",
+      "label": "2026-06-16"
+    },
+    {
+      "raw_file": "raw/17062026.xml",
+      "sha256": "5525ec973bd94b395c271f5577c2916a38c1d5a95fdbfa3bc4cba769f53863c6",
+      "release_id": "2026/110",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/17062026.xml",
+      "release_date": "2026-06-17",
+      "label": "2026-06-17"
+    },
+    {
+      "raw_file": "raw/18062026.xml",
+      "sha256": "db5975a87fd12ee9ac95e20a8bd2635c055e0040df2346cd1bc6d6f5ded19628",
+      "release_id": "2026/111",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/18062026.xml",
+      "release_date": "2026-06-18",
+      "label": "2026-06-18"
+    },
+    {
+      "raw_file": "raw/19062026.xml",
+      "sha256": "2720513928a4504035edac942ca755e2791637173998b96a06afcefc1cdeaeca",
+      "release_id": "2026/112",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/19062026.xml",
+      "release_date": "2026-06-19",
+      "label": "2026-06-19"
+    },
+    {
+      "raw_file": "raw/22062026.xml",
+      "sha256": "fdc982461b11025f657f95fe24af33a26231d2d867644f61375d9f8bf0e3e22e",
+      "release_id": "2026/113",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/22062026.xml",
+      "release_date": "2026-06-22",
+      "label": "2026-06-22"
+    },
+    {
+      "raw_file": "raw/23062026.xml",
+      "sha256": "817acf93ffdf38bf8c2fb3b0c02d0cce37dfc541200530228b187e95a178a43a",
+      "release_id": "2026/114",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/23062026.xml",
+      "release_date": "2026-06-23",
+      "label": "2026-06-23"
+    },
+    {
+      "raw_file": "raw/24062026.xml",
+      "sha256": "bd6a35956a14cef4f121aa99bd797a1b95859e6096a541870a6f2c7bfd97477d",
+      "release_id": "2026/115",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/24062026.xml",
+      "release_date": "2026-06-24",
+      "label": "2026-06-24"
+    },
+    {
+      "raw_file": "raw/25062026.xml",
+      "sha256": "4eed9f00f108c8f10853f55b1e6a04fd9fc5207841396a0587b770a9ed10f962",
+      "release_id": "2026/116",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/25062026.xml",
+      "release_date": "2026-06-25",
+      "label": "2026-06-25"
+    },
+    {
+      "raw_file": "raw/26062026.xml",
+      "sha256": "e3cecac66f300020389e208b8202f6ff09f6493450b479bd15ddfb22829ea9df",
+      "release_id": "2026/117",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/26062026.xml",
+      "release_date": "2026-06-26",
+      "label": "2026-06-26"
+    },
+    {
+      "raw_file": "raw/29062026.xml",
+      "sha256": "1a5280bb3b58adb1c7b2b19cf537045feaa54182a59540d09aa7cf0b230dfb41",
+      "release_id": "2026/118",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/29062026.xml",
+      "release_date": "2026-06-29",
+      "label": "2026-06-29"
+    },
+    {
+      "raw_file": "raw/30062026.xml",
+      "sha256": "601663aba7976591872f78eb7cba1488a5ae8ca2a3b8f2037d9c9b9aabce3d52",
+      "release_id": "2026/119",
+      "source_url": "https://www.tcmb.gov.tr/kurlar/202606/30062026.xml",
+      "release_date": "2026-06-30",
+      "label": "2026-06-30"
+    }
+  ],
+  "transformation_notes": [
+    "Kapsam: 1 Nisan 2026 - 30 Haziran 2026 arasında TCMB'nin yayımladığı 58 günlük döviz kuru bülteni.",
+    "Ham dosyalar https://www.tcmb.gov.tr/kurlar/<YYYYAA>/<GGAAYYYY>.xml adresinden bir kez indirilmiş ve yayımlandıkları adla değiştirilmeden commit edilmiştir.",
+    "Hafta sonları ile 23 Nisan, 1 Mayıs, 19 Mayıs ve 26-29 Mayıs 2026 günlerinde bülten yayımlanmadığı için bu tarihler snapshot'ta yoktur; kapsam içi 'yayın yok' durumu boş sonuçla temsil edilir.",
+    "Dönüşüm scripti: scripts/snapshots/finance_tcmb_historical.py; yalnızca standart kütüphane kullanır, ağ çağrısı yapmaz ve tekrar çalıştırıldığında bayt bazında aynı CSV'yi üretir.",
+    "Her bültenden yalnız döviz alış (ForexBuying) ve döviz satış (ForexSelling) değerleri alınmıştır; efektif alış/satış (Banknote) sütunları kapsam dışıdır.",
+    "XDR (Özel Çekme Hakkı) satırı 58 bültenin tamamında satış kuru yayımlamadığı için snapshot dışında bırakılmıştır; kalan 21 para birimi her gün eksiksizdir.",
+    "Kur değerleri bültendeki metin biçimiyle birebir taşınmıştır; ondalık basamak sayısı değiştirilmemiş ve yuvarlama yapılmamıştır.",
+    "JPY bülteni 100 birim üzerinden yayımlar; currency_unit sütunu bu çarpanı taşır ve normalize edilmemiştir.",
+    "Kaynak gösterimi: Türkiye Cumhuriyet Merkez Bankası (TCMB), Günlük Döviz Kurları Bülteni."
+  ]
+}
