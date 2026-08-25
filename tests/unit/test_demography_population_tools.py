@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -85,6 +86,80 @@ def test_get_population_smoke_happy_path() -> None:
     assert result.data["source"]["provider"] == "TÜİK"
 
 
+def test_source_object_carries_all_six_agreed_fields() -> None:
+    provenance = json.loads((SNAPSHOT_ROOT / "provenance.json").read_text(encoding="utf-8"))
+    entry = provenance["sources"][0]
+    expected = {
+        "provider": provenance["provider"],
+        "dataset": provenance["source_name"],
+        "release_id": entry["release_id"],
+        "source_url": entry["source_url"],
+        "snapshot_version": provenance["snapshot_version"],
+        "retrieved_at": provenance["retrieved_at"],
+    }
+
+    for function_name, arguments in (
+        ("demography_get_population", {"province": "İzmir", "year": 2023}),
+        (
+            "demography_compare_population",
+            {"province_a": "Ankara", "province_b": "Bursa", "year": 2024},
+        ),
+        (
+            "demography_compare_population",
+            {"province": "İstanbul", "year_a": 2024, "year_b": 2023},
+        ),
+    ):
+        result = execute(function_name, arguments)
+        assert result.status == ExecutionStatus.PASSED
+        assert result.data["source"] == expected
+
+
+def test_transformation_notes_name_the_conversion_script() -> None:
+    provenance = json.loads((SNAPSHOT_ROOT / "provenance.json").read_text(encoding="utf-8"))
+
+    assert any(
+        "scripts/snapshots/demography_tuik.py" in note
+        for note in provenance["transformation_notes"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("queried", "expected_province"),
+    (
+        ("ankara", "Ankara"),
+        ("ANKARA", "Ankara"),
+        ("İSTANBUL", "İstanbul"),
+        ("istanbul", "İstanbul"),
+        ("  izmir  ", "İzmir"),
+    ),
+)
+def test_get_population_tolerates_turkish_letter_forms(
+    queried: str,
+    expected_province: str,
+) -> None:
+    result = execute("demography_get_population", {"province": queried, "year": 2024})
+
+    assert result.status == ExecutionStatus.PASSED
+    assert result.data["province"] == expected_province
+
+
+def test_compare_population_returns_snapshot_spelling_in_both_modes() -> None:
+    province_mode = execute(
+        "demography_compare_population",
+        {"province_a": "ankara", "province_b": "BURSA", "year": 2024},
+    )
+    assert province_mode.status == ExecutionStatus.PASSED
+    assert province_mode.data["comparison"]["province_a"] == "Ankara"
+    assert province_mode.data["comparison"]["province_b"] == "Bursa"
+
+    year_mode = execute(
+        "demography_compare_population",
+        {"province": "İSTANBUL", "year_a": 2024, "year_b": 2023},
+    )
+    assert year_mode.status == ExecutionStatus.PASSED
+    assert year_mode.data["comparison"]["province"] == "İstanbul"
+
+
 def test_compare_population_province_vs_province_happy_path() -> None:
     result = execute(
         "demography_compare_population",
@@ -144,11 +219,31 @@ def test_get_population_unknown_province_fails_cleanly() -> None:
     assert result.error is not None and result.error.startswith("lookup_error:")
 
 
-def test_compare_population_ambiguous_mode_fails_cleanly() -> None:
-    result = execute(
-        "demography_compare_population",
-        {"province": "Ankara"},
-    )
+@pytest.mark.parametrize(
+    "arguments",
+    (
+        pytest.param({}, id="empty"),
+        pytest.param({"province": "Ankara"}, id="partial_year_mode"),
+        pytest.param(
+            {"province_a": "Ankara", "province_b": "Bursa", "year": 2024, "year_a": 2023},
+            id="mixed_modes",
+        ),
+        pytest.param(
+            {"province": "Ankara", "province_b": "Bursa", "year_a": 2023, "year_b": 2024},
+            id="year_mode_plus_stray_province_b",
+        ),
+    ),
+)
+def test_compare_population_rejects_anything_but_one_whole_mode(
+    arguments: dict[str, object],
+) -> None:
+    """Neither mode is satisfied unless exactly its three fields are supplied.
+
+    A mixed call such as `{province_a, province_b, year, year_a}` must not be
+    answered with the extra field silently dropped.
+    """
+
+    result = execute("demography_compare_population", arguments)
 
     assert result.status == ExecutionStatus.FAILED
     assert result.error is not None and result.error.startswith("input_error:")
@@ -171,6 +266,18 @@ def test_local_population_executors_do_not_open_network_connections(
         "demography_compare_population",
         {"province_a": "Antalya", "province_b": "Bursa", "year": 2024},
     ).status == ExecutionStatus.PASSED
+
+
+def test_normalizer_folds_turkish_letter_forms() -> None:
+    assert pop._normalized_turkish("İSTANBUL") == pop._normalized_turkish("İstanbul")
+    assert pop._normalized_turkish(" ankara ") == pop._normalized_turkish("Ankara")
+    assert pop._normalized_turkish("Ankara") != pop._normalized_turkish("Bursa")
+
+
+def test_module_keeps_no_snapshot_cache() -> None:
+    """Each call re-reads the ten-row snapshot; a module global would go stale."""
+
+    assert not hasattr(pop, "_CACHE")
 
 
 def test_repeated_calls_are_deterministic() -> None:
