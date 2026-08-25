@@ -28,8 +28,8 @@ from tool_call_tr.validation import RuleBasedValidator
 
 
 ROOT = Path(__file__).resolve().parents[2]
-REGISTRY_PATH = ROOT / "registry" / "proposals" / "finance_tcmb_historical.jsonl"
-FIXTURES_DIR = ROOT / "registry" / "proposals" / "fixtures"
+REGISTRY_PATH = ROOT / "registry" / "registry.jsonl"
+FIXTURES_DIR = ROOT / "registry" / "fixtures"
 BLUEPRINT_PATH = ROOT / "blueprints" / "finance_tcmb_historical.jsonl"
 SNAPSHOT_ROOT = ROOT / "data" / "snapshots" / "tcmb" / "exchange_rates" / "v1"
 CONVERSION_SCRIPT = ROOT / "scripts" / "snapshots" / "finance_tcmb_historical.py"
@@ -79,7 +79,6 @@ def execute(function_name: str, arguments: dict[str, Any]):
 def test_registry_declares_two_local_tools_and_one_fixture_tool() -> None:
     loaded = registry()
 
-    assert len(loaded.records) == 3
     for tool_id in ("finance.search_historical_rates.v1", "finance.compare_historical_rates.v1"):
         tool = loaded.by_tool_id(tool_id)
         assert tool["execution"]["default_type"] == "local_executable"
@@ -90,7 +89,14 @@ def test_registry_declares_two_local_tools_and_one_fixture_tool() -> None:
     assert current["execution"]["default_type"] == "mock"
     assert current["execution"]["supported_types"] == ["mock"]
     assert tuple(current["execution"]["fixture_ids"]) == CURRENT_RATES_FIXTURES
-    assert all(record["access"]["authentication"] == "none" for record in loaded.records)
+    assert all(
+        loaded.by_tool_id(tool_id)["access"]["authentication"] == "none"
+        for tool_id in (
+            "finance.search_historical_rates.v1",
+            "finance.compare_historical_rates.v1",
+            "finance.compare_current_rates.v1",
+        )
+    )
     assert all(record["risks"]["personal_data"] is False for record in loaded.records)
 
 

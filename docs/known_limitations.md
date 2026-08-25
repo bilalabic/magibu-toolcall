@@ -9,14 +9,15 @@
   registry and do not accept a registry override. Proposal-backed drafts are
   validated inside `dataset generate` and `dataset quality --registry ...`;
   accepted records must resolve against the canonical registry used by CI.
-- The canonical registry has three `demo` tools for infrastructure tests. It is
-  not a production tool catalog. A fixture may be simulated data or an
+- The canonical registry holds three `demo` tools for infrastructure tests plus
+  the packages approved for the first dataset pilot. It is not yet a complete
+  tool catalog: proposals that have not been approved stay under
+  `registry/proposals/` as `candidate`. A fixture may be simulated data or an
   approved frozen snapshot; its provenance must say which.
 - `sandbox` exists in the execution contract but has no runnable adapter.
 - The versioned source-snapshot contract, its JSON Schema and the
-  `python -m tool_call_tr.snapshots` check exist, but no snapshot has been
-  committed yet; `data/snapshots/` appears with the first contribution that
-  needs it.
+  `python -m tool_call_tr.snapshots` check are in use; `data/snapshots/` holds
+  the snapshots the approved local tools read.
 - The generic live adapter supports only approved, read-only HTTPS GET JSON
   contracts. It does not support POST, payments, email, or other side effects.
 - OpenAI judging and semantic similarity are automated quality evidence, not

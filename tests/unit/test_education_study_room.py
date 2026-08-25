@@ -17,12 +17,7 @@ from tool_call_tr.registry import ToolRegistry
 
 ROOT = Path(__file__).resolve().parents[2]
 
-PROPOSAL_REGISTRY = (
-    ROOT
-    / "registry"
-    / "proposals"
-    / "education_study_room.jsonl"
-)
+PROPOSAL_REGISTRY = ROOT / "registry" / "registry.jsonl"
 
 FUNCTION_NAME = "education_book_study_room"
 
