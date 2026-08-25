@@ -22,7 +22,7 @@ from tool_call_tr.registry import ToolRegistry
 # Resolve contribution paths from the repository root so the tests work
 # regardless of the directory pytest is started from.
 ROOT = Path(__file__).resolve().parents[2]
-PROPOSAL_REGISTRY = ROOT / "registry" / "proposals" / "water_izsu.jsonl"
+PROPOSAL_REGISTRY = ROOT / "registry" / "registry.jsonl"
 
 # Every fixture declared by the dam-levels proposal record is exercised below.
 FIXTURE_IDS = (

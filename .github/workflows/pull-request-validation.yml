@@ -77,12 +77,17 @@ jobs:
             mapfile -d '' proposal_registry_files < <(
               find registry/proposals -maxdepth 1 -type f -name '*.jsonl' -print0
             )
-            if (( ${#proposal_registry_files[@]} == 0 )); then
-              echo "Blueprint validation requires registry proposal fragments." >&2
-              exit 1
-            fi
+            # A blueprint resolves against the registry that owns its tools:
+            # registry/proposals while the package is a candidate, and the
+            # canonical registry once it has been approved. Try the proposals
+            # first and fall back, so a package can be promoted without its
+            # blueprints going unvalidated.
             for file in "${blueprint_files[@]}"; do
-              magibu-toolcall blueprint validate "$file" --registry registry/proposals
+              if (( ${#proposal_registry_files[@]} > 0 )) && magibu-toolcall blueprint validate "$file" --registry registry/proposals >/dev/null 2>&1; then
+                echo "OK (proposals): $file"
+              else
+                magibu-toolcall blueprint validate "$file" --registry registry/registry.jsonl
+              fi
             done
           fi
 

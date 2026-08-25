@@ -177,7 +177,10 @@ Windows PowerShell:
 ```
 
 Bir proposal registry parçası veya blueprint eklediyseniz proposal klasörünü ve
-kendi blueprint yolunuzu vererek ayrıca doğrulayın:
+kendi blueprint yolunuzu vererek ayrıca doğrulayın. Paketiniz onaylanıp canonical
+registry'ye taşındıysa aynı komutlarda `registry\proposals` yerine
+`registry\registry.jsonl` verin; blueprint her zaman araçlarının bulunduğu
+registry'ye karşı doğrulanır:
 
 ```powershell
 $ProposalRegistry = "registry\proposals"

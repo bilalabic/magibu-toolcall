@@ -22,9 +22,9 @@ from tool_call_tr.validation import RuleBasedValidator
 
 
 ROOT = Path(__file__).resolve().parents[2]
-PROPOSAL_REGISTRY = ROOT / "registry" / "proposals" / "finance_tcmb.jsonl"
+PROPOSAL_REGISTRY = ROOT / "registry" / "registry.jsonl"
 BLUEPRINT_FILE = ROOT / "blueprints" / "finance_tcmb.jsonl"
-FIXTURE_DIR = ROOT / "registry" / "proposals" / "fixtures"
+FIXTURE_DIR = ROOT / "registry" / "fixtures"
 NORMALIZER_SCRIPT = ROOT / "scripts" / "fixtures" / "finance_tcmb.py"
 
 USD_FIXTURE = "finance.tcmb.exchange_rate.usd_forex_selling.v1"
@@ -120,15 +120,13 @@ def test_tcmb_blueprints_are_valid_and_follow_expected_behavior(
 def test_tcmb_registry_contains_two_mock_only_candidate_tools() -> None:
     registry = load_registry()
 
-    assert len(registry.records) == 2
-
     for function_name in (
         "finance_get_exchange_rate",
         "finance_list_exchange_rates",
     ):
         tool = registry.by_function_name(function_name)
 
-        assert tool["lifecycle"] == "candidate"
+        assert tool["lifecycle"] == "approved"
         assert tool["execution"]["default_type"] == "mock"
         assert tool["execution"]["supported_types"] == ["mock"]
         assert tool["access"]["credential_env_vars"] == []

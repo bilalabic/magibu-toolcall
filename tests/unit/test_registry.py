@@ -14,10 +14,13 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_registry_load_lookup_and_demo_lifecycle() -> None:
     registry = ToolRegistry.load(ROOT / "registry" / "registry.jsonl")
-    assert len(registry.records) == 3
     assert registry.by_tool_id("utility.add.v1")["function"]["name"] == "utility_add"
     assert registry.by_function_name("weather_get_forecast")["tool_id"] == "weather.get_forecast.v1"
-    assert {record["lifecycle"] for record in registry.records} == {"demo"}
+    # The canonical registry carries the demo tools the infrastructure tests use
+    # plus whatever has been approved out of `registry/proposals/`; a candidate
+    # never appears here.
+    assert {record["lifecycle"] for record in registry.records} <= {"demo", "approved"}
+    assert {record["lifecycle"] for record in registry.records if record["tool_id"].startswith("utility.")} == {"demo"}
     with pytest.raises(KeyError, match="unknown function"):
         registry.by_function_name("missing_tool")
 
@@ -58,10 +61,10 @@ def test_registry_loads_multiple_jsonl_fragments(tmp_path: Path, capsys) -> None
 
     registry = ToolRegistry.load(tmp_path)
 
-    assert len(registry.records) == 3
+    assert len(registry.records) == len(records)
     assert registry.fixtures_dir == fixtures
     assert main(["registry", "validate", str(tmp_path)]) == 0
-    assert "OK: 3 record(s) validated" in capsys.readouterr().out
+    assert f"OK: {len(records)} record(s) validated" in capsys.readouterr().out
 
 
 def test_registry_rejects_duplicates_across_fragment_files(tmp_path: Path) -> None:

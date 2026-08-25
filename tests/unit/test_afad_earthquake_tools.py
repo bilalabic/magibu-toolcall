@@ -20,7 +20,7 @@ from tool_call_tr.validation import RuleBasedValidator
 
 ROOT = Path(__file__).resolve().parents[2]
 PROPOSAL_REGISTRY = (
-    ROOT / "registry" / "proposals" / "earthquake_afad.jsonl"
+    ROOT / "registry" / "registry.jsonl"
 )
 BLUEPRINT_FILE = ROOT / "blueprints" / "earthquake_afad.jsonl"
 
@@ -91,15 +91,13 @@ def test_afad_blueprints_are_valid_and_follow_expected_behavior(
 def test_afad_registry_contains_two_mock_only_candidate_tools() -> None:
     registry = load_registry()
 
-    assert len(registry.records) == 2
-
     for function_name in (
         "earthquake_list_recent",
         "earthquake_get_event_details",
     ):
         tool = registry.by_function_name(function_name)
 
-        assert tool["lifecycle"] == "candidate"
+        assert tool["lifecycle"] == "approved"
         assert tool["execution"]["default_type"] == "mock"
         assert tool["execution"]["supported_types"] == ["mock"]
         assert tool["access"]["authentication"] == "not_applicable"
