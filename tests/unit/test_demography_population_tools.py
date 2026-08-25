@@ -239,14 +239,23 @@ def test_compare_population_rejects_anything_but_one_whole_mode(
 ) -> None:
     """Neither mode is satisfied unless exactly its three fields are supplied.
 
-    A mixed call such as `{province_a, province_b, year, year_a}` must not be
-    answered with the extra field silently dropped.
+    The two argument sets are declared as `oneOf` branches, so a mixed call such
+    as `{province_a, province_b, year, year_a}` is refused by the parameter schema
+    before the tool runs — the model sees the boundary instead of discovering it
+    from a failed call.
     """
 
-    result = execute("demography_compare_population", arguments)
+    with pytest.raises(ValidationError):
+        execute("demography_compare_population", arguments)
 
-    assert result.status == ExecutionStatus.FAILED
-    assert result.error is not None and result.error.startswith("input_error:")
+
+def test_compare_population_guards_its_modes_without_the_schema() -> None:
+    """The executor refuses a mixed call on its own, not only through the schema."""
+
+    with pytest.raises(ValueError, match="^input_error:"):
+        pop.demography_compare_population(
+            {"province_a": "Ankara", "province_b": "Bursa", "year": 2024, "year_a": 2023}
+        )
 
 
 def test_local_population_executors_do_not_open_network_connections(

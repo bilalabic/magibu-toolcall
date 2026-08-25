@@ -35,6 +35,14 @@ A tool's input and output schemas always live inside its registry record
 (`function.parameters` and `output_schema`). The `schemas/` directory holds only
 meta-schemas; never add a per-tool schema file.
 
+A tool whose arguments come in two mutually exclusive sets declares them as
+`oneOf` branches beside `properties`. Each branch repeats its own fields with
+`additionalProperties: false`, so a call that mixes the two sets, or supplies
+half of one, is refused by the parameter schema before the tool runs — the model
+reads the boundary instead of discovering it from a failed call. Keep the
+top-level `properties` listing every field of both branches; `required` then
+stays empty and the branches carry the requirement.
+
 ### `local_executable`
 
 Add `src/tool_call_tr/execution/local/<domain>_<source>.py` publishing a
