@@ -27,12 +27,17 @@ import xml.etree.ElementTree as ElementTree
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-BULLETIN_FILE = Path(__file__).resolve().with_name("finance_tcmb_bulletin.xml")
+#: Fixture'ların dondurduğu bülten. TCMB'nin yayımladığı belgenin kendisidir ve
+#: `tcmb-exchange-rates-2026-q2-v1` snapshot'ında `sha256` ile sabitlenmiştir, yani
+#: bu araçların döndürdüğü kurlar tarihsel araçlarınkiyle aynı kaynaktan gelir.
+BULLETIN_FILE = (
+    REPOSITORY_ROOT / "data" / "snapshots" / "tcmb" / "exchange_rates" / "v1" / "raw" / "30062026.xml"
+)
 FIXTURE_DIR = REPOSITORY_ROOT / "registry" / "proposals" / "fixtures"
 
 #: Bültenin donduruldugu an. XML belgesi saat taşımadığı için sabit tutulur;
 #: değişmesi fixture'ların da yeniden üretilmesini gerektirir.
-RETRIEVED_AT = "2026-08-14T12:35:00Z"
+RETRIEVED_AT = "2026-08-16T12:00:00Z"
 
 #: Kur türü adı -> TCMB XML alan adı. Araçların `rate_type` enum'u budur.
 RATE_TYPE_FIELDS = {
@@ -43,15 +48,15 @@ RATE_TYPE_FIELDS = {
 }
 
 PROVENANCE = (
-    "fixture_version=v1; created_at=2026-08-16T12:00:00+03:00; "
+    "fixture_version=v2; created_at=2026-08-16T12:00:00+03:00; "
     "contract_source=https://www.tcmb.gov.tr/kurlar/today.xml; "
-    "contract_verified_on=2026-08-16; data_kind=synthetic; "
-    "license_review_status=pending; "
-    "redistribution_status=not_applicable_to_synthetic_values; "
+    "contract_verified_on=2026-08-16; data_kind=official; "
+    "release_id=2026/119; "
+    "source_url=https://www.tcmb.gov.tr/kurlar/202606/30062026.xml; "
     "generator=scripts/fixtures/finance_tcmb.py; "
-    "source_document=scripts/fixtures/finance_tcmb_bulletin.xml; "
-    "note=Kur degerleri TCMB'nin yayimladigi bir bultenden kopyalanmamistir; "
-    "yalniz belge yapisi ve para birimi listesi canli sozlesmeden alinmistir."
+    "source_document=data/snapshots/tcmb/exchange_rates/v1/raw/30062026.xml; "
+    "note=Kurlar TCMB'nin 30.06.2026 tarihli bulteninden birebir tasinmistir; "
+    "kaynak gosterme kosuluyla yeniden yayimlanabilir."
 )
 
 

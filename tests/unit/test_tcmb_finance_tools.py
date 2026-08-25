@@ -172,9 +172,12 @@ def test_tcmb_fixtures_are_declared_and_schema_valid(fixture_id: str) -> None:
     assert fixture["fixture_id"] == fixture_id
 
     provenance = fixture["provenance"].lower()
-    assert "fixture_version=v1" in provenance
-    assert "data_kind=synthetic" in provenance
-    assert "license_review_status=pending" in provenance
+    assert "fixture_version=v2" in provenance
+    assert "data_kind=official" in provenance
+    # The rates are the published ones, so the fixture must name the bulletin it
+    # froze; a reader traces the answer back through this line.
+    assert "release_id=2026/119" in provenance
+    assert "data/snapshots/tcmb/exchange_rates/v1/raw/30062026.xml" in provenance
 
 
 def test_fixtures_are_reproducible_from_the_pinned_bulletin() -> None:
@@ -236,7 +239,7 @@ def test_unpublished_rate_is_an_answer_not_a_failure() -> None:
     assert result.status == ExecutionStatus.PASSED
     assert result.data["rate_available"] is False
     assert result.data["rate"] is None
-    assert result.data["bulletin_date"] == "2026-08-14"
+    assert result.data["bulletin_date"] == "2026-06-30"
 
 
 def test_undeclared_argument_combination_fails_closed() -> None:
