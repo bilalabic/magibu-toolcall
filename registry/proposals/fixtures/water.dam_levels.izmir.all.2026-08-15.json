@@ -1,0 +1,49 @@
+{
+  "fixture_id": "water.dam_levels.izmir.all.2026-08-15",
+  "function_name": "water_get_dam_levels",
+  "arguments": {},
+  "result": {
+    "city": "İzmir",
+    "as_of_date": "2026-08-15",
+    "source": "İZSU baraj doluluk verisinin yapısına göre modellenmiş, sürümlenmiş sentetik veri (gerçek ölçüm değildir).",
+    "dams": [
+      {
+        "name": "Tahtalı Barajı",
+        "occupancy_rate": 42.6,
+        "unit": "percent",
+        "measurement_date": "2026-08-14",
+        "freshness": "fresh"
+      },
+      {
+        "name": "Balçova Barajı",
+        "occupancy_rate": 55.1,
+        "unit": "percent",
+        "measurement_date": "2026-08-14",
+        "freshness": "fresh"
+      },
+      {
+        "name": "Gördes Barajı",
+        "occupancy_rate": 18.3,
+        "unit": "percent",
+        "measurement_date": "2026-08-13",
+        "freshness": "fresh"
+      },
+      {
+        "name": "Alaçatı Barajı",
+        "occupancy_rate": 9.7,
+        "unit": "percent",
+        "measurement_date": "2026-08-02",
+        "freshness": "stale"
+      },
+      {
+        "name": "Ürkmez Barajı",
+        "occupancy_rate": 33.8,
+        "unit": "percent",
+        "measurement_date": "2026-08-14",
+        "freshness": "fresh"
+      }
+    ],
+    "count": 5
+  },
+  "provenance": "İZSU baraj doluluk yapısına göre modellenmiş, sürümlenmiş sentetik fixture. Gerçek ölçüm değildir, kişisel veri içermez."
+}
