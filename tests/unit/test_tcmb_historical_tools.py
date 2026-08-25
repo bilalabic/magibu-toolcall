@@ -299,10 +299,10 @@ def test_current_rate_comparison_serves_the_frozen_bulletin(
 
     assert result.status == ExecutionStatus.PASSED
     assert result.fixture_id == expected_fixture
-    assert result.data["date"] == "2026-08-14"
-    assert result.data["bulletin_no"] == "2026/151"
+    assert result.data["date"] == "2026-06-30"
+    assert result.data["bulletin_no"] == "2026/119"
     assert result.data["count"] == expected_count == len(result.data["rates"])
-    assert result.data["source"]["release_id"] == "2026/151"
+    assert result.data["source"]["release_id"] == "2026/119"
 
 
 def test_unknown_argument_combination_reports_a_missing_fixture() -> None:
