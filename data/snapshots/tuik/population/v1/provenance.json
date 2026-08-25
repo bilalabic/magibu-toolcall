@@ -19,6 +19,7 @@
     }
   ],
   "transformation_notes": [
+    "Dönüşüm scripti: scripts/snapshots/demography_tuik.py; ham CSV'den bu veri dosyasını deterministik olarak üretir.",
     "Kapsam: pilot 5 il (İstanbul, Ankara, İzmir, Bursa, Antalya), 2023 ve 2024 yılları.",
     "2023 değeri, 2024 ADNKS duyurusunda yer alan yıllık artış rakamı 2024 değerinden çıkarılarak elde edilmiştir.",
     "province ve year alanları birlikte benzersizdir; population kişi sayısı tamsayıdır.",

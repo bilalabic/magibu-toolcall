@@ -141,7 +141,29 @@
           "items": {"$ref": "#/$defs/parameter_name"},
           "uniqueItems": true
         },
-        "additionalProperties": {"const": false}
+        "additionalProperties": {"const": false},
+        "oneOf": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["properties", "required", "additionalProperties"],
+            "properties": {
+              "properties": {
+                "type": "object",
+                "propertyNames": {"$ref": "#/$defs/parameter_name"},
+                "additionalProperties": {"$ref": "#/$defs/parameter_schema"}
+              },
+              "required": {
+                "type": "array",
+                "items": {"$ref": "#/$defs/parameter_name"},
+                "uniqueItems": true
+              },
+              "additionalProperties": {"const": false}
+            },
+            "additionalProperties": false
+          }
+        }
       },
       "additionalProperties": false
     },

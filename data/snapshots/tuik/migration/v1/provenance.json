@@ -60,6 +60,7 @@
     "Kişi sayıları tamsayı; net göç hızı kaynak hücrelerin görüntüleme hassasiyetiyle bir ondalık basamak olarak saklanmıştır.",
     "Kapsam: 2021-2025, yıl başına 81 il; in_migration/out_migration/net_migration kişi, net_migration_rate binde.",
     "Kaynak gösterimi: Türkiye İstatistik Kurumu (TÜİK), İç Göç İstatistikleri, 2021-2025.",
-    "Executor yalnızca yerel CSV ve provenance dosyasını okur; çalışma zamanında ağ çağrısı yapmaz."
+    "Executor yalnızca yerel CSV ve provenance dosyasını okur; çalışma zamanında ağ çağrısı yapmaz.",
+    "Dönüşüm scripti: scripts/snapshots/demography_labor_tuik.py; beş ham XLS dosyasından bu CSV'yi deterministik olarak üretir."
   ]
 }

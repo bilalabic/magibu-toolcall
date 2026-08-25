@@ -58,7 +58,9 @@ Bir tool'un input ve output şemaları registry kaydının **içinde** yaşar:
 `function.parameters` ve `output_schema`. `schemas/` dizini yalnız meta-şemaları
 tutar; tool başına ayrı şema dosyası açılmaz. Kayıt sözleşmesi
 `additionalProperties: false` olduğu için harici bir şemaya referans verilecek
-alan zaten yoktur.
+alan zaten yoktur. Argümanları iki ayrı kümeden birine düşen bir araç, bu iki
+kümeyi `function.parameters` içinde `oneOf` dalları olarak yazar; ayrıntısı
+[execution ortamları belgesindedir](docs/execution_environments.md).
 
 Şema doğrulamasının geçmesi kaynak, lisans veya canlı kullanım onayı değildir.
 Bu kararlar PR'daki kaynak kanıtı ve insan incelemesiyle verilir.
