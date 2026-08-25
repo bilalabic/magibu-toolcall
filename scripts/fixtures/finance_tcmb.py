@@ -21,6 +21,7 @@ import argparse
 from dataclasses import dataclass
 import json
 from pathlib import Path
+import sys
 from typing import Any
 import xml.etree.ElementTree as ElementTree
 
@@ -248,6 +249,11 @@ def render(fixture: dict[str, Any]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Hem ilerleme satırları hem fixture metni Türkçe karakter taşır ve Windows
+    # konsolunun varsayılan kod sayfası bunları kodlayamaz; akışı UTF-8'e almazsak
+    # script ilk `print` çağrısında UnicodeEncodeError ile düşer.
+    sys.stdout.reconfigure(encoding="utf-8")
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--bulletin",
