@@ -23,6 +23,7 @@
     "Oranlar 0-1 kesrine çevrilmeden yüzde değeri ve bir ondalık basamak olarak saklanmıştır.",
     "Kapsam: 2021-2025 yıllık Türkiye toplam işsizlik oranı, 15+ yaş.",
     "Kaynak gösterimi: Türkiye İstatistik Kurumu (TÜİK), İşgücü İstatistikleri, 2025.",
-    "Executor yalnızca yerel CSV ve provenance dosyasını okur; çalışma zamanında ağ çağrısı yapmaz."
+    "Executor yalnızca yerel CSV ve provenance dosyasını okur; çalışma zamanında ağ çağrısı yapmaz.",
+    "Dönüşüm scripti: scripts/snapshots/demography_labor_tuik.py; ham XLS dosyasının toplam bloğundan bu CSV'yi deterministik olarak üretir."
   ]
 }
