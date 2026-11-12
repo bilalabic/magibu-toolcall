@@ -124,5 +124,8 @@ ise güncel `magibu-toolcall --help` çıktısı son sözdür.
 
 ## Lisans
 
-Kod ve dataset için yayın lisansı henüz seçilmemiştir. Lisans ve kaynak yeniden
-dağıtım kararları tamamlanmadan public release yapılmamalıdır.
+Kod [Apache License 2.0](LICENSE) ile lisanslanmıştır. Projenin kendi
+yazdığı veri ve dokümantasyon [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+kapsamındadır. Üçüncü taraf kaynaklardan alınan API yanıtları, dokümantasyon ve
+snapshot'lar kendi lisans ve kullanım koşullarını korur; ayrıntılar için
+[NOTICE](NOTICE) dosyasına bakın.
