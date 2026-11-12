@@ -1,0 +1,24 @@
+Magibu ToolCall
+Copyright 2026 Bilal Abıç and the Magibu ToolCall contributors
+
+Licensing
+---------
+Source code in this repository is licensed under the Apache License,
+Version 2.0. See the LICENSE file.
+
+Data, documentation and other non-code material written by this project
+(for example registry entries, review notes and dataset records authored
+here) is licensed under Creative Commons Attribution 4.0 International
+(CC BY 4.0): https://creativecommons.org/licenses/by/4.0/
+
+Third-party material
+--------------------
+API responses, tool documentation, source snapshots and any other material
+taken from third-party services keep their original license and terms of use.
+These licenses are not changed by this project. Each tool specification
+records its own source, license and terms-of-use review; check them before
+reusing or redistributing such material.
+
+Contributors
+------------
+Contributions remain credited to their authors in the Git history.
